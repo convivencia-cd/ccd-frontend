@@ -70,12 +70,8 @@ export function InteresModal({ eventoId, eventoNombre, montoInscripcion, mpDispo
     apellido: '',
     email: '',
     telefono: '',
-    tipo_documento: '',
+    tipo_documento: 'dni',
     documento: '',
-    direccion: '',
-    localidad: '',
-    provincia: '',
-    pais: 'Argentina',
   })
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<Step>('datos')
@@ -193,7 +189,7 @@ export function InteresModal({ eventoId, eventoNombre, montoInscripcion, mpDispo
       setFile(null)
       setComprobanteEnviado(false)
       setYaRegistrado(false)
-      setForm({ nombre: '', apellido: '', email: '', telefono: '', tipo_documento: '', documento: '', direccion: '', localidad: '', provincia: '', pais: 'Argentina' })
+      setForm({ nombre: '', apellido: '', email: '', telefono: '', tipo_documento: 'dni', documento: '' })
       onOpenChange(open)
       if (debeVolverAlListado) router.push(volverAlListadoHref!)
       return
@@ -442,55 +438,6 @@ export function InteresModal({ eventoId, eventoNombre, montoInscripcion, mpDispo
                 </div>
               </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="direccion">Dirección</Label>
-                <Input
-                  id="direccion"
-                  name="direccion"
-                  value={form.direccion}
-                  onChange={handleChange}
-                  autoComplete="street-address"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label htmlFor="localidad">Localidad</Label>
-                <Input
-                  id="localidad"
-                  name="localidad"
-                  value={form.localidad}
-                  onChange={handleChange}
-                  autoComplete="address-level2"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="provincia">Provincia</Label>
-                  <Input
-                    id="provincia"
-                    name="provincia"
-                    value={form.provincia}
-                    onChange={handleChange}
-                    autoComplete="address-level1"
-                    disabled={loading}
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="pais">País</Label>
-                  <Input
-                    id="pais"
-                    name="pais"
-                    value={form.pais}
-                    onChange={handleChange}
-                    autoComplete="country-name"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
               )}
@@ -505,7 +452,7 @@ export function InteresModal({ eventoId, eventoNombre, montoInscripcion, mpDispo
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Enviando...' : requierePago ? 'Continuar' : 'Registrar interés'}
+                  {loading ? 'Enviando...' : requierePago ? 'Enviar' : 'Registrar interés'}
                 </Button>
               </DialogFooter>
             </form>

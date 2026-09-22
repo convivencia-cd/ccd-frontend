@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request) {
   const body = await request.json()
 
-  const { nombre, apellido, evento_id, email, telefono, tipo_documento, documento, direccion, localidad, provincia, pais, notas } = body
+  const { nombre, apellido, evento_id, email, telefono, tipo_documento, documento, notas } = body
 
   if (!nombre || !apellido || !evento_id || !email || !telefono) {
     return NextResponse.json(
@@ -90,10 +90,6 @@ export async function POST(request: Request) {
     if (telefono) insertData.telefono = telefono.trim()
     if (tipoDocNorm) insertData.tipo_documento = tipoDocNorm
     if (documentoNorm) insertData.documento = documentoNorm
-    if (direccion) insertData.direccion = direccion.trim()
-    if (localidad) insertData.localidad = localidad.trim()
-    if (provincia) insertData.provincia = provincia.trim()
-    if (pais) insertData.pais = pais.trim()
 
     const { data: persona, error: personaError } = await supabaseAdmin
       .from('personas')
