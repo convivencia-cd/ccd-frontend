@@ -4,17 +4,28 @@ import { esCentralizadorDeEvento } from './cierre'
 
 // ─── Catálogos de la UI ───────────────────────────────────────────────────────
 
-/** Roles operativos de servidor dentro de un evento (evento_participantes.rol_en_evento). */
-export const ROLES_SERVIDOR_OPCIONES = [
-  { value: 'coordinador', label: 'Coordinador' },
-  { value: 'asesor', label: 'Asesor' },
-  { value: 'centralizador', label: 'Centralizador' },
-  { value: 'equipo_auxiliar', label: 'Equipo Auxiliar' },
+/** Las 3 áreas en las que se divide el Equipo del Evento (minuta #138). */
+export const AREAS_EQUIPO = [
+  { value: 'centralizadores', label: 'Centralizadores' },
+  { value: 'servidores', label: 'Servidores' },
+  { value: 'auxiliar', label: 'Equipo Auxiliar (Cocina)' },
 ] as const
 
+export type AreaEquipo = (typeof AREAS_EQUIPO)[number]['value']
+
+/** Roles operativos de servidor dentro de un evento (evento_participantes.rol_en_evento). */
+export const ROLES_SERVIDOR_OPCIONES = [
+  { value: 'coordinador', label: 'Coordinador', area: 'servidores' },
+  { value: 'asesor', label: 'Asesor', area: 'servidores' },
+  { value: 'musica', label: 'Ministerio de Música', area: 'servidores' },
+  { value: 'servidor', label: 'Servidor (a cargo de grupo)', area: 'servidores' },
+  { value: 'centralizador', label: 'Centralizador', area: 'centralizadores' },
+  { value: 'equipo_auxiliar', label: 'Equipo Auxiliar (Cocina)', area: 'auxiliar' },
+] as const satisfies readonly { value: string; label: string; area: AreaEquipo }[]
+
 /**
- * El check de la tabla solo admite estos cinco roles, así que las funciones
- * específicas (cocina, enfermería, librería...) se cargan bajo
+ * El check de la tabla no tiene un rol por cada función concreta, así que las
+ * del área de cocina (cocinero, enfermería, librería...) se cargan bajo
  * "Equipo Auxiliar" y se detallan en `notas`.
  */
 export const ROLES_EVENTO_LABEL: Record<string, string> = {
@@ -22,8 +33,13 @@ export const ROLES_EVENTO_LABEL: Record<string, string> = {
   coordinador: 'Coordinador',
   asesor: 'Asesor',
   centralizador: 'Centralizador',
+  musica: 'Ministerio de Música',
+  servidor: 'Servidor',
   equipo_auxiliar: 'Equipo Auxiliar',
 }
+
+/** Tope de integrantes del Ministerio de Música por evento (minuta #138). */
+export const MAX_MINISTERIO_MUSICA = 2
 
 /** Estados del ciclo de vida de participación (evento_participantes.estado_participacion). */
 export const ESTADOS_PARTICIPACION_OPCIONES = [

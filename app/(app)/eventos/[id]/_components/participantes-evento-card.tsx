@@ -7,8 +7,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PersonaCombobox, type PersonaOption } from '@/components/persona-combobox'
 import { ClipboardList, Plus, UserMinus, Users } from 'lucide-react'
-import { ESTADOS_PARTICIPACION_OPCIONES, ROLES_SERVIDOR_OPCIONES } from '@/lib/eventos/equipo'
+import { AREAS_EQUIPO, ESTADOS_PARTICIPACION_OPCIONES, ROLES_SERVIDOR_OPCIONES } from '@/lib/eventos/equipo'
 import { formatDateAR } from '@/lib/utils'
+
+/** Los roles del equipo, agrupados en las 3 áreas de la minuta #138. */
+function OpcionesDeRol() {
+  return (
+    <>
+      {AREAS_EQUIPO.map(area => (
+        <optgroup key={area.value} label={area.label}>
+          {ROLES_SERVIDOR_OPCIONES.filter(r => r.area === area.value).map(r => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </>
+  )
+}
 
 export type ParticipanteEquipo = {
   id: string
@@ -16,6 +33,7 @@ export type ParticipanteEquipo = {
   rol_en_evento: string
   estado_participacion: string
   fecha_inscripcion: string | null
+  grupo_id: string | null
   notas: string | null
   persona: { id: string; nombre: string; apellido: string; email: string | null; telefono: string | null } | null
 }
@@ -38,6 +56,7 @@ export default function ParticipantesEventoCard({
   filas,
   personas,
   cargandoPersonas,
+  grupos = [],
   onChanged,
 }: {
   eventoId: string
@@ -45,6 +64,8 @@ export default function ParticipantesEventoCard({
   filas: ParticipanteEquipo[]
   personas: PersonaOption[]
   cargandoPersonas: boolean
+  /** Grupos del evento — solo se usan en modo `inscriptos`, para asignar cada convivente. */
+  grupos?: { id: string; nombre: string }[]
   onChanged: () => void
 }) {
   const esEquipo = modo === 'equipo'
@@ -145,7 +166,7 @@ export default function ParticipantesEventoCard({
         </CardTitle>
         <CardDescription>
           {esEquipo
-            ? `${activos.length} servidores. Las funciones sin rol propio (cocina, enfermería, librería…) se cargan como Equipo Auxiliar y se detallan en la nota.`
+            ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al evento son los de "Asignaciones del Evento".`
             : `${conteo.interesado} interesados · ${conteo.inscripto} inscriptos · ${conteo.en_curso} convivientes`}
         </CardDescription>
       </CardHeader>
@@ -169,6 +190,7 @@ export default function ParticipantesEventoCard({
                     </>
                   )}
                   <th className="px-3 py-2 font-medium">Estado</th>
+                  {!esEquipo && grupos.length > 0 && <th className="px-3 py-2 font-medium">Grupo</th>}
                   <th className="px-3 py-2 font-medium">Nota</th>
                   <th className="px-3 py-2 text-right font-medium">Acciones</th>
                 </tr>
@@ -185,11 +207,7 @@ export default function ParticipantesEventoCard({
                           disabled={ocupado === p.id}
                           onChange={e => actualizar(p.id, { rol_en_evento: e.target.value })}
                         >
-                          {ROLES_SERVIDOR_OPCIONES.map(r => (
-                            <option key={r.value} value={r.value}>
-                              {r.label}
-                            </option>
-                          ))}
+                          <OpcionesDeRol />
                         </select>
                       </td>
                     ) : (
@@ -216,6 +234,23 @@ export default function ParticipantesEventoCard({
                         ))}
                       </select>
                     </td>
+                    {!esEquipo && grupos.length > 0 && (
+                      <td className="px-3 py-2">
+                        <select
+                          className={selectClass}
+                          value={p.grupo_id ?? ''}
+                          disabled={ocupado === p.id}
+                          onChange={e => actualizar(p.id, { grupo_id: e.target.value || null })}
+                        >
+                          <option value="">— Sin grupo —</option>
+                          {grupos.map(g => (
+                            <option key={g.id} value={g.id}>
+                              {g.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-muted-foreground">{p.notas ?? '—'}</td>
                     <td className="px-3 py-2 text-right">
                       <Button
@@ -257,11 +292,7 @@ export default function ParticipantesEventoCard({
           <div className="flex flex-wrap items-center gap-2">
             {esEquipo && (
               <select className={selectClass} value={nuevoRol} onChange={e => setNuevoRol(e.target.value)}>
-                {ROLES_SERVIDOR_OPCIONES.map(r => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
+                <OpcionesDeRol />
               </select>
             )}
             <select className={selectClass} value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>

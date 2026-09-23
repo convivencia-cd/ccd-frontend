@@ -10,7 +10,8 @@ import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink
 import { formatDateAR } from '@/lib/utils'
 import { esCentralizadorDeEvento, ROLES_SERVIDORES, formatMonto } from '@/lib/eventos/cierre'
 import { canGestionarPension } from '@/lib/eventos/pension'
-import { canGestionarAsignaciones, canGestionarParticipantes } from '@/lib/eventos/equipo'
+import { canGestionarAsignaciones, canGestionarParticipantes, ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
+import { cargarGruposDelEvento } from '@/lib/eventos/grupos'
 import PensionBecasPanel from '../_components/pension-becas-panel'
 import EquipoEventoPanel, {
   type AsignacionesEvento,
@@ -40,13 +41,6 @@ const participacionLabel: Record<string, string> = {
   en_curso: 'Conviviente',
 }
 
-const rolServidorLabel: Record<string, string> = {
-  coordinador: 'Coordinador',
-  asesor: 'Asesor',
-  centralizador: 'Centralizador',
-  equipo_auxiliar: 'Equipo Auxiliar',
-}
-
 type ParticipanteRow = {
   id: string
   persona_id: string
@@ -56,6 +50,7 @@ type ParticipanteRow = {
   valor_inscripcion: number | null
   valor_pension: number | null
   beca_pension: number
+  grupo_id: string | null
   notas: string | null
   notas_beca: string | null
   persona: { id: string; nombre: string; apellido: string; email: string | null; telefono: string | null } | null
@@ -76,7 +71,7 @@ export default async function EventoGestionPage({
     .select(`
       id, nombre, tipo, estado, fecha_inicio, fecha_fin, ciudad, provincia_evento,
       precio, pension, cupo_maximo,
-      organizacion_id, fraternidad_id,
+      organizacion_id, fraternidad_id, tipo_evento_id,
       coordinador_asignado_id, asesor_asignado_id,
       centralizador_1_persona_id, centralizador_1_nombre, centralizador_1_email, centralizador_1_telefono,
       centralizador_2_persona_id, centralizador_2_nombre, centralizador_2_email, centralizador_2_telefono,
@@ -129,7 +124,7 @@ export default async function EventoGestionPage({
   const { data: participantesRaw } = await supabase
     .from('evento_participantes')
     .select(
-      'id, persona_id, rol_en_evento, estado_participacion, fecha_inscripcion, valor_inscripcion, valor_pension, beca_pension, notas, notas_beca, persona:personas!persona_id(id, nombre, apellido, email, telefono)'
+      'id, persona_id, rol_en_evento, estado_participacion, fecha_inscripcion, valor_inscripcion, valor_pension, beca_pension, grupo_id, notas, notas_beca, persona:personas!persona_id(id, nombre, apellido, email, telefono)'
     )
     .eq('evento_id', id)
     .order('fecha_inscripcion', { ascending: false })
@@ -168,6 +163,10 @@ export default async function EventoGestionPage({
   // quedan para quien tenga event.update; el padrón, también para el centralizador.
   const canAsignaciones = canGestionarAsignaciones(ctx, cierreEvento)
   const canParticipantes = canGestionarParticipantes(ctx, cierreEvento)
+
+  const { grupos, nombresGrupos } = canParticipantes
+    ? await cargarGruposDelEvento(supabase, id, (evento as Record<string, unknown>).tipo_evento_id as string | null)
+    : { grupos: [], nombresGrupos: [] }
 
   const canPension = canGestionarPension(ctx, cierreEvento)
   const participantesPension = canPension
@@ -231,7 +230,7 @@ export default async function EventoGestionPage({
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div>
               <p className="text-xs text-muted-foreground">Enlace público de inscripción</p>
-              <p className="text-sm text-foreground">/e/{id}</p>
+              <p className="text-sm text-muted-foreground">Compartilo con quienes se quieran inscribir.</p>
             </div>
             <CopyLinkButton path={`/e/${id}`} />
           </div>
@@ -275,6 +274,8 @@ export default async function EventoGestionPage({
           eventoId={id}
           asignaciones={evento as unknown as AsignacionesEvento}
           participantes={participantes as unknown as ParticipanteEquipo[]}
+          grupos={grupos}
+          nombresGrupos={nombresGrupos}
           canAsignaciones={canAsignaciones}
           canParticipantes={canParticipantes}
         />
@@ -348,12 +349,14 @@ export default async function EventoGestionPage({
               <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay equipo asignado.</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {(['coordinador', 'asesor', 'centralizador', 'equipo_auxiliar'] as const).map(rol => {
+                {ROLES_SERVIDORES.map(rol => {
                   const lista = equipos.filter(p => p.rol_en_evento === rol)
                   if (lista.length === 0) return null
                   return (
                     <div key={rol} className="rounded-lg border border-border p-4 space-y-1.5">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{rolServidorLabel[rol]}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        {ROLES_EVENTO_LABEL[rol] ?? rol}
+                      </p>
                       {lista.map(p => (
                         <p key={p.id} className="text-sm text-foreground">
                           {p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}

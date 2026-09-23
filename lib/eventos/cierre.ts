@@ -31,8 +31,18 @@ export const CATEGORIAS_EGRESO = [
   'Varios',
 ] as const
 
-/** Roles operativos que integran el "Equipo de Servidores" (para el informe de carismas). */
-export const ROLES_SERVIDORES = ['coordinador', 'asesor', 'centralizador', 'equipo_auxiliar'] as const
+/**
+ * Roles operativos que integran el "Equipo de Servidores" (para el informe de
+ * carismas): todo el Equipo del Evento menos los conviventes.
+ */
+export const ROLES_SERVIDORES = [
+  'coordinador',
+  'asesor',
+  'centralizador',
+  'musica',
+  'servidor',
+  'equipo_auxiliar',
+] as const
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 

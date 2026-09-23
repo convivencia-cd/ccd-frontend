@@ -13,6 +13,7 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { PersonaCombobox } from '@/components/persona-combobox'
 import { Combobox } from '@/components/ui/combobox'
+import { ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
 
 type EventoOption = { id: string; nombre: string; fecha_inicio: string }
 
@@ -143,11 +144,11 @@ export default function NewInscripcionPage() {
                   onChange={handleChange}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
                 >
-                  <option value="convivente">Convivente</option>
-                  <option value="coordinador">Coordinador</option>
-                  <option value="asesor">Asesor</option>
-                  <option value="centralizador">Centralizador</option>
-                  <option value="equipo_auxiliar">Equipo Auxiliar</option>
+                  {Object.entries(ROLES_EVENTO_LABEL).map(([valor, etiqueta]) => (
+                    <option key={valor} value={valor}>
+                      {etiqueta}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">

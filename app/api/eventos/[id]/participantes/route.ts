@@ -3,10 +3,47 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
 import {
   ESTADOS_PARTICIPACION,
+  MAX_MINISTERIO_MUSICA,
   ROLES_EVENTO,
   ROLES_EVENTO_LABEL,
   canGestionarParticipantes,
 } from '@/lib/eventos/equipo'
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+
+/**
+ * Reglas del Ministerio de Música (minuta #138): hasta 2 integrantes por evento
+ * y solo cecistas. Se validan acá y no con un constraint porque dependen de un
+ * conteo por evento y de personas.tipo_persona.
+ * `exceptoParticipanteId` deja fuera del conteo a la fila que se está editando.
+ */
+async function validarMinisterioMusica(
+  supabase: SupabaseClient,
+  eventoId: string,
+  tipoPersona: string | null,
+  exceptoParticipanteId?: string
+): Promise<string | null> {
+  if (tipoPersona !== 'cecista') {
+    return 'El Ministerio de Música solo puede integrarse con personas cecistas'
+  }
+
+  let query = supabase
+    .from('evento_participantes')
+    .select('id', { count: 'exact', head: true })
+    .eq('evento_id', eventoId)
+    .eq('rol_en_evento', 'musica')
+    .neq('estado_participacion', 'cancelado')
+
+  if (exceptoParticipanteId) query = query.neq('id', exceptoParticipanteId)
+
+  const { count } = await query
+
+  if ((count ?? 0) >= MAX_MINISTERIO_MUSICA) {
+    return `El Ministerio de Música admite hasta ${MAX_MINISTERIO_MUSICA} personas por evento`
+  }
+
+  return null
+}
 
 type EventoScope = {
   id: string
@@ -80,6 +117,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (!persona) return NextResponse.json({ error: 'La persona no existe' }, { status: 404 })
 
+  if (rol === 'musica') {
+    const problema = await validarMinisterioMusica(supabase, id, persona.tipo_persona)
+    if (problema) return NextResponse.json({ error: problema }, { status: 400 })
+  }
+
   // evento_participantes tiene UNIQUE(evento_id, persona_id): si la persona ya
   // figura, se reactiva la fila dada de baja en vez de crear una nueva.
   const { data: existente } = await supabase
@@ -132,7 +174,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({ ok: true, id: creado.id })
 }
 
-// PATCH — cambiar rol, estado o notas de alguien ya cargado en el evento
+// PATCH — cambiar rol, estado, grupo o notas de alguien ya cargado en el evento
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { error, status, supabase } = await cargarEventoAutorizado(id)
@@ -142,6 +184,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     participante_id?: string
     rol_en_evento?: string
     estado_participacion?: string
+    grupo_id?: string | null
     notas?: string | null
   }
 
@@ -152,9 +195,37 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const invalido = validarRolYEstado(body.rol_en_evento, body.estado_participacion)
   if (invalido) return NextResponse.json({ error: invalido }, { status: 400 })
 
+  if (body.rol_en_evento === 'musica') {
+    const { data: fila } = await supabase
+      .from('evento_participantes')
+      .select('persona:personas!persona_id(tipo_persona)')
+      .eq('id', body.participante_id)
+      .eq('evento_id', id)
+      .maybeSingle()
+
+    const tipoPersona =
+      (fila?.persona as unknown as { tipo_persona: string | null } | null)?.tipo_persona ?? null
+    const problema = await validarMinisterioMusica(supabase, id, tipoPersona, body.participante_id)
+    if (problema) return NextResponse.json({ error: problema }, { status: 400 })
+  }
+
+  // El grupo tiene que ser de este evento: si no, se podría mover un convivente
+  // al grupo de otra convivencia pasando un id cualquiera.
+  if (body.grupo_id) {
+    const { data: grupo } = await supabase
+      .from('evento_grupos')
+      .select('id')
+      .eq('id', body.grupo_id)
+      .eq('evento_id', id)
+      .maybeSingle()
+
+    if (!grupo) return NextResponse.json({ error: 'El grupo no pertenece a este evento' }, { status: 400 })
+  }
+
   const updates: Record<string, unknown> = {}
   if (body.rol_en_evento !== undefined) updates.rol_en_evento = body.rol_en_evento
   if (body.estado_participacion !== undefined) updates.estado_participacion = body.estado_participacion
+  if (body.grupo_id !== undefined) updates.grupo_id = body.grupo_id || null
   if (body.notas !== undefined) updates.notas = body.notas?.trim() || null
 
   if (Object.keys(updates).length === 0) {

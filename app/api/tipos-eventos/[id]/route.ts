@@ -55,6 +55,14 @@ export async function PATCH(
     updateData.preguntas_informe = body.preguntas_informe
   }
 
+  // Nombres de grupo de la convivencia (ej. "Jerusalem"): lista de strings sin
+  // vacíos ni repetidos — de acá salen las opciones al armar los grupos.
+  if (Array.isArray(body.nombres_grupos)) {
+    updateData.nombres_grupos = Array.from(
+      new Set(body.nombres_grupos.map((n: unknown) => String(n).trim()).filter(Boolean))
+    )
+  }
+
   const { error } = await supabase
     .from('tipos_eventos')
     .update(updateData)
