@@ -52,6 +52,9 @@ export default function EditarEventoForm({
     modalidad: "presencial",
     estado: "borrador",
     descripcion: "",
+    manuales_stock: "",
+    manuales_necesarios: "",
+    notas_noticias: "",
     link_pago_mercadopago: "",
     ciudad: "",
     codigo_postal: "",
@@ -67,7 +70,7 @@ export default function EditarEventoForm({
       supabase
         .from("eventos")
         .select(
-          "id, nombre, tipo, fecha_solicitud, fecha_inicio, fecha_fin, organizacion_id, casa_retiro_id, cupo_maximo, precio, pension, audiencia, modalidad, estado, descripcion, link_pago_mercadopago, ciudad, codigo_postal, diocesis, provincia_evento, pais_evento, flyer_horizontal_url, flyer_cuadrado_url",
+          "id, nombre, tipo, fecha_solicitud, fecha_inicio, fecha_fin, organizacion_id, casa_retiro_id, cupo_maximo, precio, pension, audiencia, modalidad, estado, descripcion, manuales_stock, manuales_necesarios, notas_noticias, link_pago_mercadopago, ciudad, codigo_postal, diocesis, provincia_evento, pais_evento, flyer_horizontal_url, flyer_cuadrado_url",
         )
         .eq("id", id)
         .single(),
@@ -115,6 +118,9 @@ export default function EditarEventoForm({
           modalidad: evento.modalidad ?? "presencial",
           estado: evento.estado ?? "borrador",
           descripcion: evento.descripcion ?? "",
+          manuales_stock: evento.manuales_stock?.toString() ?? "",
+          manuales_necesarios: evento.manuales_necesarios?.toString() ?? "",
+          notas_noticias: evento.notas_noticias ?? "",
           link_pago_mercadopago: (evento as Record<string, unknown>).link_pago_mercadopago as string ?? "",
           ciudad: evento.ciudad ?? "",
           codigo_postal: evento.codigo_postal ?? "",
@@ -191,6 +197,13 @@ export default function EditarEventoForm({
         precio: formData.precio ? parseFloat(formData.precio) : null,
         pension: formData.pension ? parseFloat(formData.pension) : null,
         descripcion: formData.descripcion || null,
+        manuales_stock: formData.manuales_stock
+          ? parseInt(formData.manuales_stock)
+          : null,
+        manuales_necesarios: formData.manuales_necesarios
+          ? parseInt(formData.manuales_necesarios)
+          : null,
+        notas_noticias: formData.notas_noticias || null,
         link_pago_mercadopago: formData.link_pago_mercadopago.trim() || null,
         ciudad: formData.ciudad || null,
         codigo_postal: formData.codigo_postal || null,
@@ -622,6 +635,56 @@ export default function EditarEventoForm({
                 name="descripcion"
                 placeholder="Descripción del evento..."
                 value={formData.descripcion}
+                onChange={handleChange}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm min-h-20"
+              />
+            </div>
+
+            {/* Manuales — se cargan en "Datos para Noticias"; acá quedan
+                editables cuando el evento ya pasó esa etapa. */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="manuales_stock">Manuales en stock</Label>
+                <Input
+                  id="manuales_stock"
+                  name="manuales_stock"
+                  type="number"
+                  min="0"
+                  value={formData.manuales_stock}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="manuales_necesarios">Manuales necesarios</Label>
+                <Input
+                  id="manuales_necesarios"
+                  name="manuales_necesarios"
+                  type="number"
+                  min="0"
+                  value={formData.manuales_necesarios}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Manuales a solicitar</Label>
+                <p className="px-3 py-2 text-sm text-foreground">
+                  {Math.max(
+                    (Number(formData.manuales_necesarios) || 0) -
+                      (Number(formData.manuales_stock) || 0),
+                    0,
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Notas para Noticias */}
+            <div className="space-y-2">
+              <Label htmlFor="notas_noticias">Notas para Noticias</Label>
+              <textarea
+                id="notas_noticias"
+                name="notas_noticias"
+                placeholder="Información adicional para la publicación del evento..."
+                value={formData.notas_noticias}
                 onChange={handleChange}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm min-h-20"
               />
