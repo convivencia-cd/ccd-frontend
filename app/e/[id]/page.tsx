@@ -5,10 +5,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { ArrowLeft, CalendarDays, MapPin, Users, Phone, Mail, Building2, BookOpen, Wallet, CheckCircle2, Clock, XCircle, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { InteresModalWrapper } from '@/components/landing/InteresModalWrapper'
-import { hayCuentaCobroCentral } from '@/lib/mercadopago/org-account'
 
-// El precio y la disponibilidad de Mercado Pago pueden cambiar en cualquier
-// momento (una organización conecta su cuenta) — no cachear esta página.
+// El precio y el estado del evento pueden cambiar en cualquier momento — no
+// cachear esta página.
 export const dynamic = 'force-dynamic'
 
 const TIPO_LABELS: Record<string, string> = {
@@ -137,8 +136,8 @@ export default async function PublicEventDetailPage({
         centralizador_1_persona_id, centralizador_1_nombre, centralizador_1_email, centralizador_1_telefono,
         centralizador_2_persona_id, centralizador_2_nombre, centralizador_2_email, centralizador_2_telefono,
         centralizador_3_persona_id, centralizador_3_nombre, centralizador_3_email, centralizador_3_telefono,
-        organizacion:organizaciones!organizacion_id(id, nombre, pago_alias, pago_cbu, pago_titular, pago_banco, pago_instrucciones),
-        fraternidad:organizaciones!fraternidad_id(id, nombre, pago_alias, pago_cbu, pago_titular, pago_banco, pago_instrucciones),
+        organizacion:organizaciones!organizacion_id(id, nombre),
+        fraternidad:organizaciones!fraternidad_id(id, nombre),
         casa_retiro:casas_retiro!casa_retiro_id(id, nombre, ciudad, provincia, link_maps),
         coordinador_asignado:personas!coordinador_asignado_id(id, nombre, apellido),
         asesor_asignado:personas!asesor_asignado_id(id, nombre, apellido)
@@ -272,11 +271,6 @@ export default async function PublicEventDetailPage({
   type Org = {
     id: string
     nombre: string
-    pago_alias?: string | null
-    pago_cbu?: string | null
-    pago_titular?: string | null
-    pago_banco?: string | null
-    pago_instrucciones?: string | null
   }
 
   const ev = evento as Record<string, unknown>
@@ -286,20 +280,6 @@ export default async function PublicEventDetailPage({
   const flyerH = ev.flyer_horizontal_url as string | null
   const flyerC = ev.flyer_cuadrado_url as string | null
   const montoInscripcion = ev.precio != null ? Number(ev.precio) : null
-
-  const mpDisponible = await hayCuentaCobroCentral()
-
-  // Datos de transferencia: preferir los de la fraternidad si tiene alias; si no, los de la confraternidad.
-  const orgPago = fraternidad?.pago_alias ? fraternidad : org
-  const datosPago = orgPago?.pago_alias
-    ? {
-        alias: orgPago.pago_alias as string,
-        cbu: orgPago.pago_cbu ?? null,
-        titular: orgPago.pago_titular ?? null,
-        banco: orgPago.pago_banco ?? null,
-        instrucciones: orgPago.pago_instrucciones ?? null,
-      }
-    : null
 
   const centralizadores = [
     { nombre: ev.centralizador_1_nombre as string | null, email: ev.centralizador_1_email as string | null, telefono: ev.centralizador_1_telefono as string | null },
@@ -456,13 +436,11 @@ export default async function PublicEventDetailPage({
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Precio</p>
                   <p className="text-sm font-medium text-foreground">${montoInscripcion.toLocaleString('es-AR')}</p>
-                  {inscripcionesAbiertas && (mpDisponible && datosPago ? (
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">Se abona con Mercado Pago o por transferencia al inscribirte</p>
-                  ) : mpDisponible ? (
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">Se abona con Mercado Pago al inscribirte</p>
-                  ) : datosPago ? (
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">Se abona por transferencia al inscribirte</p>
-                  ) : null)}
+                  {inscripcionesAbiertas && (
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      Registrar tu interés no tiene costo: te enviamos el link de pago cuando confirmemos tu lugar
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -540,9 +518,6 @@ export default async function PublicEventDetailPage({
                 <InteresModalWrapper
                   eventoId={evento.id}
                   eventoNombre={evento.nombre}
-                  montoInscripcion={montoInscripcion}
-                  mpDisponible={mpDisponible}
-                  datosPago={datosPago}
                   volverAlListadoHref="/#panel-eventos"
                 />
               </div>

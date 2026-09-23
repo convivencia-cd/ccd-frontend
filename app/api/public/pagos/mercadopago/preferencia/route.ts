@@ -54,40 +54,60 @@ export async function POST(request: Request) {
     )
   }
 
-  // Evitar preferencias duplicadas para una inscripción ya con pago en curso
-  const { data: pagoExistente } = await supabaseAdmin
+  // Un pago ya confirmado (o un comprobante de transferencia esperando
+  // verificación) sí bloquea. Un intento de Mercado Pago que quedó pendiente,
+  // en cambio, se reusa: el link del mail tiene que poder reintentarse cuando
+  // la persona abandona el checkout.
+  const { data: pagosPrevios } = await supabaseAdmin
     .from('pagos')
-    .select('id')
+    .select('id, estado_pago, medio_pago')
     .eq('evento_participante_id', eventoParticipanteId)
     .eq('concepto', 'inscripcion')
     .in('estado_pago', ['pendiente', 'confirmado'])
-    .maybeSingle()
 
-  if (pagoExistente) {
+  const pagoConfirmado = (pagosPrevios ?? []).find((p) => p.estado_pago === 'confirmado')
+  if (pagoConfirmado) {
+    return NextResponse.json({ error: 'Esta inscripción ya está paga.' }, { status: 409 })
+  }
+
+  const comprobanteEnRevision = (pagosPrevios ?? []).find((p) => p.medio_pago === 'transferencia')
+  if (comprobanteEnRevision) {
     return NextResponse.json(
-      { error: 'Ya hay un pago en curso para esta inscripción.' },
+      { error: 'Ya recibimos un comprobante para esta inscripción. Nos comunicamos para verificarlo.' },
       { status: 409 }
     )
   }
 
   const today = new Date().toISOString().split('T')[0]
+  const pagoPendiente = (pagosPrevios ?? []).find((p) => p.medio_pago === 'mercadopago')
 
-  const { data: pago, error: pagoError } = await supabaseAdmin
-    .from('pagos')
-    .insert({
-      evento_participante_id: eventoParticipanteId,
-      concepto: 'inscripcion',
-      monto,
-      medio_pago: 'mercadopago',
-      estado_pago: 'pendiente',
-      fecha_pago: today,
-      mp_organizacion_id: cuenta.organizacionId,
-    })
-    .select('id')
-    .single()
+  let pago: { id: string } | null = pagoPendiente ? { id: pagoPendiente.id as string } : null
 
-  if (pagoError || !pago) {
-    return NextResponse.json({ error: 'No se pudo registrar el pago. Intentá de nuevo.' }, { status: 400 })
+  if (pago) {
+    // El monto del evento pudo cambiar entre un intento y el siguiente.
+    await supabaseAdmin
+      .from('pagos')
+      .update({ monto, fecha_pago: today, mp_organizacion_id: cuenta.organizacionId })
+      .eq('id', pago.id)
+  } else {
+    const { data: pagoNuevo, error: pagoError } = await supabaseAdmin
+      .from('pagos')
+      .insert({
+        evento_participante_id: eventoParticipanteId,
+        concepto: 'inscripcion',
+        monto,
+        medio_pago: 'mercadopago',
+        estado_pago: 'pendiente',
+        fecha_pago: today,
+        mp_organizacion_id: cuenta.organizacionId,
+      })
+      .select('id')
+      .single()
+
+    if (pagoError || !pagoNuevo) {
+      return NextResponse.json({ error: 'No se pudo registrar el pago. Intentá de nuevo.' }, { status: 400 })
+    }
+    pago = pagoNuevo
   }
 
   const origin = getPublicOrigin(request)
@@ -107,10 +127,11 @@ export async function POST(request: Request) {
           },
         ],
         external_reference: pago.id,
+        // Vuelve al stepper de pago, que es donde arrancó el checkout.
         back_urls: {
-          success: `${origin}/e/${evento.id}?pago=success`,
-          pending: `${origin}/e/${evento.id}?pago=pending`,
-          failure: `${origin}/e/${evento.id}?pago=failure`,
+          success: `${origin}/pago/${eventoParticipanteId}?pago=success`,
+          pending: `${origin}/pago/${eventoParticipanteId}?pago=pending`,
+          failure: `${origin}/pago/${eventoParticipanteId}?pago=failure`,
         },
         notification_url: `${origin}/api/public/pagos/mercadopago/webhook?pago_id=${pago.id}`,
         auto_return: 'approved',
@@ -127,7 +148,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkout_url: checkoutUrl })
   } catch {
-    await supabaseAdmin.from('pagos').delete().eq('id', pago.id)
+    // Solo se limpia la fila si la creamos en esta llamada; una reusada ya
+    // existía antes y puede tener historial (mp_preference_id previo).
+    if (!pagoPendiente) await supabaseAdmin.from('pagos').delete().eq('id', pago.id)
     return NextResponse.json({ error: 'No se pudo iniciar el pago con Mercado Pago. Intentá de nuevo.' }, { status: 502 })
   }
 }

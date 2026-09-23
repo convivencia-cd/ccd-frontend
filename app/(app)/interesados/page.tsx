@@ -6,8 +6,8 @@ import { Calendar, MapPin, Mail, Phone, UserCheck, Search } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
-import { getUserContext, canPerform } from "@/lib/auth/context"
-import { eventoIdsComoCoordinadorOCentralizador } from "@/lib/eventos/roles"
+import { getUserContext } from "@/lib/auth/context"
+import { resolverAccesoInteresados } from "@/lib/interesados/access"
 import { formatDateLong, formatDateAR } from "@/lib/utils"
 import { apellidoNombreConApodo } from "@/lib/personas/nombre"
 import { SeguimientoActions } from "./seguimiento-actions"
@@ -15,27 +15,21 @@ import { EventoFilter } from "./_components/evento-filter"
 
 const contactoClases: Record<string, string> = {
   no_contactado: "bg-gray-100 text-gray-700",
-  contactado: "bg-blue-100 text-blue-800",
-  sin_respuesta: "bg-yellow-100 text-yellow-800",
-  confirmo: "bg-green-100 text-green-800",
-  declino: "bg-red-100 text-red-800",
+  confirmado: "bg-green-100 text-green-800",
+  cancelado: "bg-red-100 text-red-800",
 }
 
 const contactoLabels: Record<string, string> = {
   no_contactado: "No contactado",
-  contactado: "Contactado",
-  sin_respuesta: "Sin respuesta",
-  confirmo: "Confirmó",
-  declino: "Declinó",
+  confirmado: "Confirmado",
+  cancelado: "Cancelado",
 }
 
 const CONTACTO_FILTROS = [
   { value: "", label: "Todos los estados" },
   { value: "no_contactado", label: "No contactado" },
-  { value: "contactado", label: "Contactado" },
-  { value: "sin_respuesta", label: "Sin respuesta" },
-  { value: "confirmo", label: "Confirmó" },
-  { value: "declino", label: "Declinó" },
+  { value: "confirmado", label: "Confirmado" },
+  { value: "cancelado", label: "Cancelado" },
 ]
 
 export default async function InteresadosPage({
@@ -49,27 +43,9 @@ export default async function InteresadosPage({
   if (!ctx) redirect('/dashboard')
 
   // Enlace/Responsable (permiso de catálogo, scopeado a su organización) o
-  // Coordinador/Centralizador de algún evento puntual (columnas en eventos,
-  // ver lib/eventos/roles.ts) — sin ninguna de las dos, no ve esta sección.
-  const canViewAll = canPerform(ctx, 'view.interesados')
-
-  let allowedEventoIds: string[] | null = null // null = sin restricción (ve todo)
-  if (!ctx.is_admin) {
-    const eventoIdsPropios = ctx.persona_id
-      ? await eventoIdsComoCoordinadorOCentralizador(supabase, ctx.persona_id)
-      : []
-
-    let eventoIdsPorOrg: string[] = []
-    if (canViewAll && ctx.org_ids.length > 0) {
-      const orFilter = ctx.org_ids.map((id) => `organizacion_id.eq.${id},fraternidad_id.eq.${id}`).join(',')
-      const { data: eventosOrg } = await supabase.from('eventos').select('id').or(orFilter)
-      eventoIdsPorOrg = (eventosOrg ?? []).map((e) => e.id as string)
-    }
-
-    allowedEventoIds = [...new Set([...eventoIdsPropios, ...eventoIdsPorOrg])]
-  }
-
-  const hasAccess = ctx.is_admin || canViewAll || (allowedEventoIds !== null && allowedEventoIds.length > 0)
+  // Coordinador/Centralizador de algún evento puntual. Mismo criterio que usa
+  // el route handler que guarda el seguimiento.
+  const { hasAccess, allowedEventoIds } = await resolverAccesoInteresados(supabase, ctx)
   if (!hasAccess) redirect('/dashboard')
 
   // Relational search by persona name/email → resolve matching persona ids
@@ -104,7 +80,7 @@ export default async function InteresadosPage({
       .from("evento_participantes")
       .select(`
         id, fecha_inscripcion, notas,
-        estado_contacto, medio_contacto, fecha_contacto, notas_seguimiento,
+        estado_contacto, medio_contacto, fecha_contacto, notas_seguimiento, pago_link_enviado_en,
         persona:personas!persona_id(id, nombre, apellido, apodo, email, telefono, localidad, provincia, pais),
         evento:eventos!evento_id(id, nombre, fecha_inicio, organizacion:organizaciones!organizacion_id(nombre))
       `)
@@ -222,15 +198,18 @@ export default async function InteresadosPage({
                       {it.fecha_contacto
                         ? ` · Último contacto: ${formatDateLong(it.fecha_contacto)}`
                         : ""}
+                      {it.pago_link_enviado_en
+                        ? ` · Link de pago enviado: ${formatDateLong(it.pago_link_enviado_en)}`
+                        : ""}
                     </p>
                   </div>
 
                   <SeguimientoActions
                     participanteId={it.id}
-                    personaId={ctx?.persona_id ?? ""}
                     estadoContacto={it.estado_contacto}
                     medioContacto={it.medio_contacto}
                     notasSeguimiento={it.notas_seguimiento}
+                    email={it.persona?.email ?? null}
                   />
                 </div>
               </CardContent>

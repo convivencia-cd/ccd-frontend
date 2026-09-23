@@ -2,18 +2,15 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { InteresModal, type DatosPago } from './InteresModal'
+import { InteresModal } from './InteresModal'
 
 interface Props {
   eventoId: string
   eventoNombre: string
-  montoInscripcion?: number | null
-  mpDisponible?: boolean
-  datosPago?: DatosPago | null
   volverAlListadoHref?: string
 }
 
-export function InteresModalWrapper({ eventoId, eventoNombre, montoInscripcion, mpDisponible, datosPago, volverAlListadoHref }: Props) {
+export function InteresModalWrapper({ eventoId, eventoNombre, volverAlListadoHref }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -24,9 +21,6 @@ export function InteresModalWrapper({ eventoId, eventoNombre, montoInscripcion, 
       <InteresModal
         eventoId={eventoId}
         eventoNombre={eventoNombre}
-        montoInscripcion={montoInscripcion ?? null}
-        mpDisponible={mpDisponible ?? false}
-        datosPago={datosPago ?? null}
         open={open}
         onOpenChange={setOpen}
         volverAlListadoHref={volverAlListadoHref}

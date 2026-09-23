@@ -34,10 +34,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protect all app routes (everything except /auth/* and its APIs, the public
-  // event landing page, and the public APIs it calls to register interest / pay)
+  // event landing page, the payment stepper that interesados reach by email,
+  // and the public APIs they call to register interest / pay)
   const isPublicRoute =
     request.nextUrl.pathname.startsWith('/auth') ||
     request.nextUrl.pathname.startsWith('/e/') ||
+    request.nextUrl.pathname.startsWith('/pago/') ||
     request.nextUrl.pathname.startsWith('/api/public/') ||
     request.nextUrl.pathname.startsWith('/api/auth/') ||
     request.nextUrl.pathname === '/'

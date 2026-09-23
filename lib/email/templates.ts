@@ -147,6 +147,60 @@ export const inscripcionRegistrada = defineTemplate<InscripcionProps>({
   },
 })
 
+export type InteresConfirmadoProps = {
+  nombre: string
+  evento: string
+  fechaInicio?: string | null
+  fechaFin?: string | null
+  lugar?: string | null
+  /** Precio de la inscripción. Solo se muestra si además hay `pagoUrl`. */
+  monto?: number | null
+  /**
+   * Link al stepper público `/pago/[evento_participante_id]`. Si no viene
+   * (evento sin precio, o EQT sin Mercado Pago conectado) el mail sale igual
+   * como confirmación, pero sin botón de pago.
+   */
+  pagoUrl?: string
+}
+
+/**
+ * Lo manda un centralizador desde /interesados al pasar el interesado a
+ * "Confirmado": es la invitación a completar la inscripción y pagarla.
+ */
+export const interesConfirmado = defineTemplate<InteresConfirmadoProps>({
+  subject: p =>
+    p.pagoUrl ? `Confirmamos tu lugar en ${p.evento} — completá tu inscripción` : `Confirmamos tu lugar en ${p.evento}`,
+  preheader: p => (p.pagoUrl ? 'Completá tus datos y aboná la inscripción.' : p.evento),
+  tags: p => ({ categoria: 'interes', estado: p.pagoUrl ? 'con_pago' : 'sin_pago' }),
+  blocks: p => {
+    const datos = datosEvento({ nombre: p.nombre, evento: p.evento, fechaInicio: p.fechaInicio, fechaFin: p.fechaFin, lugar: p.lugar })
+    if (p.pagoUrl && p.monto != null && p.monto > 0) {
+      datos.push({ label: 'Inscripción', value: `$ ${formatMonto(p.monto)}` })
+    }
+
+    const blocks: EmailBlock[] = [
+      block.heading('¡Confirmamos tu lugar!'),
+      block.paragraph(
+        p.pagoUrl
+          ? `¡Hola, ${p.nombre}! Nos alegra muchísimo que quieras participar de ${p.evento}. Para completar tu inscripción, entrá al link de acá abajo: vas a poder terminar de cargar tus datos y abonar la inscripción.`
+          : `¡Hola, ${p.nombre}! Nos alegra muchísimo que quieras participar de ${p.evento}. Confirmamos tu lugar y un centralizador se va a comunicar con vos con los últimos detalles.`
+      ),
+      block.facts(datos),
+    ]
+
+    if (p.pagoUrl) {
+      blocks.push(block.button('Completar mi inscripción', p.pagoUrl))
+      blocks.push(
+        block.note(
+          'Tu lugar queda reservado cuando se acredita el pago. Si tenés cualquier dificultad con el link, respondé este correo y te ayudamos.'
+        )
+      )
+    }
+
+    return blocks
+  },
+})
+
 export const recordatorioEvento = defineTemplate<InscripcionProps & { diasRestantes?: number }>({
   subject: p => `Recordatorio: ${p.evento}`,
   preheader: p => (p.fechaInicio ? `Comienza el ${formatDateAR(p.fechaInicio)}` : p.evento),
@@ -308,6 +362,7 @@ export const templates = {
   accesoCreado,
   recuperarPassword,
   inscripcionRegistrada,
+  interesConfirmado,
   recordatorioEvento,
   pagoConfirmado,
   pagoRechazado,

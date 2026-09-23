@@ -6,8 +6,10 @@
 BEGIN;
 
 ALTER TABLE public.evento_participantes
+  -- Vocabulario reducido a 3 estados por 080_interesado_estados_contacto.sql
+  -- (antes: no_contactado / contactado / sin_respuesta / confirmo / declino).
   ADD COLUMN IF NOT EXISTS estado_contacto TEXT NOT NULL DEFAULT 'no_contactado'
-    CHECK (estado_contacto IN ('no_contactado', 'contactado', 'sin_respuesta', 'confirmo', 'declino')),
+    CHECK (estado_contacto IN ('no_contactado', 'confirmado', 'cancelado')),
   ADD COLUMN IF NOT EXISTS medio_contacto TEXT
     CHECK (medio_contacto IN ('telefono', 'email', 'whatsapp', 'personal', 'otro')),
   ADD COLUMN IF NOT EXISTS fecha_contacto TIMESTAMPTZ,
