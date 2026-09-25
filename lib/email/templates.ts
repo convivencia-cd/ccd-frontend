@@ -94,6 +94,37 @@ export const recuperarPassword = defineTemplate<RecuperarPasswordProps>({
   ],
 })
 
+export type AccesoParticipanteProps = {
+  nombre: string
+  evento: string
+  nombreUsuario: string
+  /** Link de un solo uso a `/auth/reset-password` para elegir la contraseña. */
+  crearPasswordUrl: string
+  /** `/auth/forgot-password`, por si el link directo ya venció. */
+  pedirNuevoLinkUrl: string
+  expiraEnMinutos?: number
+}
+
+/** Cuenta creada automáticamente al darle el presente en su primera convivencia. */
+export const accesoParticipante = defineTemplate<AccesoParticipanteProps>({
+  subject: () => 'Bienvenido a la plataforma de la Comunidad CcD',
+  preheader: p => `Tu usuario es ${p.nombreUsuario}`,
+  tags: () => ({ categoria: 'acceso' }),
+  blocks: p => [
+    block.heading(`¡Hola, ${p.nombre}!`),
+    block.paragraph(
+      `Gracias por ser parte de ${p.evento}. Te creamos una cuenta en la plataforma de la Comunidad CcD para que puedas ver los próximos eventos y anotarte más rápido la próxima vez.`
+    ),
+    block.facts([{ label: 'Usuario', value: p.nombreUsuario }]),
+    block.button('Crear mi contraseña', p.crearPasswordUrl),
+    block.note(
+      `El botón vence ${
+        p.expiraEnMinutos ? `en ${p.expiraEnMinutos} minutos` : 'en poco tiempo'
+      }. Si ya venció, pedí uno nuevo en ${p.pedirNuevoLinkUrl} ingresando tu usuario.`
+    ),
+  ],
+})
+
 // ─── Inscripciones ────────────────────────────────────────────────────────────
 
 export type InscripcionProps = {
@@ -360,6 +391,7 @@ export const eventoSuspendido = defineTemplate<EventoEstadoProps>({
 export const templates = {
   generico,
   accesoCreado,
+  accesoParticipante,
   recuperarPassword,
   inscripcionRegistrada,
   interesConfirmado,

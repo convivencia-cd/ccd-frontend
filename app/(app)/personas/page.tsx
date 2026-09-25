@@ -10,6 +10,7 @@ import PersonasTable from './_components/personas-table'
 import PersonasFilters from './_components/personas-filters'
 import DataPagination from '@/components/data-pagination'
 import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
+import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
 
 export default async function PersonasPage({
   searchParams,
@@ -21,6 +22,8 @@ export default async function PersonasPage({
     provincia?: string
     localidad?: string
     modo?: string
+    categoria?: string
+    convivente?: string
     ministerio_id?: string
     organizacion_id?: string
     persona?: string
@@ -35,7 +38,8 @@ export default async function PersonasPage({
   const estado_eclesial = params.estado_eclesial ?? ''
   const provincia = params.provincia ?? ''
   const localidad = params.localidad ?? ''
-  const modo = params.modo ?? ''
+  const filtrosPadron = leerFiltrosPadron(params)
+  const { modo, categoria, convivente } = filtrosPadron
   const ministerio_id = params.ministerio_id ?? ''
   const organizacion_id = params.organizacion_id ?? ''
   const initialPersonaId = params.persona ?? null
@@ -66,7 +70,7 @@ export default async function PersonasPage({
 
   // Relational filters: get persona ids matching modo/ministerio
   let modoIds: string[] | null = null
-  if (modo && modo !== 'convivente' && modo !== 'otro') {
+  if (modo) {
     const { data } = await supabase
       .from('persona_modos')
       .select('persona_id')
@@ -155,10 +159,8 @@ export default async function PersonasPage({
       const variantes = variantesDe(localidad, variantesLocalidad)
       query = variantes.length ? query.in('localidad', variantes) : query.ilike('localidad', localidad)
     }
-    // Convivente y Otro son categorías de persona, pero se presentan junto a los
-    // modos institucionales para que el filtro coincida con el lenguaje de la lista.
-    if (modo === 'convivente') query = query.in('tipo_persona', ['convivente', 'no_cecista'])
-    if (modo === 'otro') query = query.eq('tipo_persona', 'otro')
+    // Categoría + Convivente, y afuera los interesados que nunca asistieron.
+    query = aplicarFiltrosPadron(query, filtrosPadron)
     if (filterIds !== null) query = query.in('id', filterIds)
 
     const { data, count } = await query
@@ -234,7 +236,7 @@ export default async function PersonasPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   const hasFilters = !!(
-    q || provincia || localidad || modo || organizacion_id ||
+    q || provincia || localidad || modo || categoria || convivente || organizacion_id ||
     (canManage && (estado || estado_eclesial || ministerio_id))
   )
 
@@ -246,6 +248,8 @@ export default async function PersonasPage({
   if (provincia) exportParams.set('provincia', provincia)
   if (localidad) exportParams.set('localidad', localidad)
   if (modo) exportParams.set('modo', modo)
+  if (categoria) exportParams.set('categoria', categoria)
+  if (convivente) exportParams.set('convivente', convivente)
   if (canManage && ministerio_id) exportParams.set('ministerio_id', ministerio_id)
   if (organizacion_id) exportParams.set('organizacion_id', organizacion_id)
   const exportSearch = exportParams.size > 0 ? `?${exportParams.toString()}` : ''
@@ -293,6 +297,8 @@ export default async function PersonasPage({
               provincia,
               localidad,
               modo,
+              categoria,
+              convivente,
               ministerio_id: canManage ? ministerio_id : '',
               organizacion_id,
             }}

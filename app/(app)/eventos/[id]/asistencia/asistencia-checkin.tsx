@@ -74,6 +74,15 @@ export function AsistenciaCheckin({
           toast.info(`${data.nombre} ya estaba presente`)
         } else {
           toast.success(`${data.nombre} · asistencia registrada`)
+          if (data.acceso?.estado === 'creado') {
+            toast.info(
+              data.acceso.emailEnviado
+                ? `Se creó su cuenta (${data.acceso.nombreUsuario}) y le llegó el mail para elegir contraseña`
+                : `Se creó su cuenta (${data.acceso.nombreUsuario}), pero no se pudo mandar el mail`,
+            )
+          } else if (data.acceso?.estado === 'error') {
+            toast.warning(`No se pudo crear su cuenta: ${data.acceso.motivo}`)
+          }
         }
       } catch {
         toast.error('Error de red al registrar asistencia')

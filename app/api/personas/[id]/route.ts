@@ -72,6 +72,7 @@ export async function PATCH(
   }
   if (body.referente_comunidad !== undefined) updateData.referente_comunidad = body.referente_comunidad
   if (body.cecista_dedicado !== undefined) updateData.cecista_dedicado = body.cecista_dedicado
+  if (typeof body.es_convivente === 'boolean') updateData.es_convivente = body.es_convivente
   if (body.email_ccd !== undefined) updateData.email_ccd = body.email_ccd || null
   if (body.direccion_nro !== undefined) updateData.direccion_nro = body.direccion_nro || null
   if (body.codigo_postal !== undefined) updateData.codigo_postal = body.codigo_postal || null

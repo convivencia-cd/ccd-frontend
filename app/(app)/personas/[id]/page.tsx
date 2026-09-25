@@ -85,11 +85,12 @@ export default async function PersonaDetailPage({
     { data: historialAcompanamiento },
     { data: acompanaA },
     { data: votos },
+    { data: participacionesConvivente },
   ] = await Promise.all([
     supabase
       .from("personas")
       .select(
-        "id, nombre, apellido, apodo, email, email_ccd, telefono, tipo_documento, documento, fecha_nacimiento, direccion, direccion_nro, localidad, codigo_postal, provincia, pais, notas, estado, created_at, acepta_comunicaciones, estado_eclesial, estado_vida, diocesis, tipo_persona, parroquia, socio_asociacion, referente_comunidad, cecista_dedicado, intercesor_dies_natalis, nombre_usuario, nivel_estudios, anio_ingreso, acompanante_id, fecha_ingreso_comunidad, foto_url",
+        "id, nombre, apellido, apodo, email, email_ccd, telefono, tipo_documento, documento, fecha_nacimiento, direccion, direccion_nro, localidad, codigo_postal, provincia, pais, notas, estado, created_at, acepta_comunicaciones, estado_eclesial, estado_vida, diocesis, tipo_persona, parroquia, socio_asociacion, referente_comunidad, cecista_dedicado, intercesor_dies_natalis, nombre_usuario, nivel_estudios, anio_ingreso, acompanante_id, fecha_ingreso_comunidad, foto_url, es_convivente",
       )
       .eq("id", id)
       .single(),
@@ -124,6 +125,11 @@ export default async function PersonaDetailPage({
       .from("persona_votos")
       .select("tipo_voto, anio, perpetuo, temporal_cant_anios")
       .eq("persona_id", id),
+    supabase
+      .from("evento_participantes")
+      .select("id, estado_participacion, fecha_asistencia, evento:eventos!evento_id(id, nombre, fecha_inicio)")
+      .eq("persona_id", id)
+      .eq("rol_en_evento", "convivente"),
   ])
 
   if (error || !persona) notFound()
@@ -132,6 +138,22 @@ export default async function PersonaDetailPage({
   const canEditVotos = ctx ? canPerform(ctx, "votos.edit") : false
   const confraternidadOrg = (personaOrgs as any[])?.find((o) => o.tipo_relacion === "confraternidad")?.organizacion
   const fraternidadOrg = (personaOrgs as any[])?.find((o) => o.tipo_relacion === "fraternidad")?.organizacion
+
+  // Convivencias en las que fue convivente: las que tienen asistencia tomada
+  // (mismo criterio que el trigger de 082 que pone el tilde es_convivente).
+  const convivencias = ((participacionesConvivente ?? []) as unknown as {
+    id: string
+    estado_participacion: string
+    fecha_asistencia: string | null
+    evento: { id: string; nombre: string; fecha_inicio: string | null } | null
+  }[])
+    .filter(
+      (p) =>
+        p.fecha_asistencia ||
+        p.estado_participacion === "en_curso" ||
+        p.estado_participacion === "completado",
+    )
+    .sort((a, b) => (b.evento?.fecha_inicio ?? "").localeCompare(a.evento?.fecha_inicio ?? ""))
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -345,6 +367,10 @@ export default async function PersonaDetailPage({
               }
             />
             <Field
+              label="Convivente"
+              value={(persona as any).es_convivente ? "Sí" : "No"}
+            />
+            <Field
               label="Fecha de ingreso a la comunidad"
               value={formatDate((persona as any).fecha_ingreso_comunidad)}
             />
@@ -442,6 +468,43 @@ export default async function PersonaDetailPage({
                             Ver
                           </a>
                         ) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <div className="border-t border-border mt-4 pt-4 space-y-2">
+            <p className="text-sm font-medium text-foreground">Convivencias como convivente</p>
+            {convivencias.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {(persona as any).es_convivente
+                  ? "Hizo su convivencia antes de que existiera la plataforma."
+                  : "Todavía no participó de ninguna convivencia."}
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Evento</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Fecha</th>
+                    <th className="text-left py-2 font-medium text-muted-foreground">Asistencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {convivencias.map((c) => (
+                    <tr key={c.id} className="border-b border-border/50 last:border-0">
+                      <td className="py-2 pr-4 text-foreground">
+                        {c.evento ? (
+                          <Link href={`/eventos/${c.evento.id}`} className="text-primary hover:underline">
+                            {c.evento.nombre}
+                          </Link>
+                        ) : "—"}
+                      </td>
+                      <td className="py-2 pr-4 text-muted-foreground">{formatDate(c.evento?.fecha_inicio ?? null)}</td>
+                      <td className="py-2 text-muted-foreground">
+                        {c.fecha_asistencia ? formatDate(c.fecha_asistencia) : "—"}
                       </td>
                     </tr>
                   ))}
