@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Edit2, Calendar, MapPin, Users, Settings2 } from 'lucide-react'
+import { ArrowLeft, Edit2, Calendar, MapPin, Users, Settings2, Wallet } from 'lucide-react'
 import DiscernimientoPanel from './_components/approval-panel'
 import DatosNoticiasPannel from './_components/datos-noticias-panel'
 import AprobacionFinalPanel from './_components/aprobacion-final-panel'
@@ -26,9 +26,9 @@ import {
   esCentralizadorDeEvento,
   ROLES_SERVIDORES,
   type PreguntaInforme,
-  type Movimiento,
 } from '@/lib/eventos/cierre'
 import { canGestionarPension } from '@/lib/eventos/pension'
+import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
 import { formatDateAR } from '@/lib/utils'
 
 const estadoClases: Record<string, string> = {
@@ -279,36 +279,16 @@ export default async function EventoDetailPage({
     persona: { nombre: string; apellido: string; email: string | null; telefono: string | null } | null
   }
   let participantes: ParticipanteRow[] = []
-  let movimientos: Movimiento[] = []
-  const resumenPagos = {
-    inscripcion: { confirmado: 0, pendiente: 0 },
-    pension: { confirmado: 0, pendiente: 0 },
-  }
   if (showCierre) {
-    const [{ data: parts }, { data: movs }, { data: pagosEvento }] = await Promise.all([
-      supabase
-        .from('evento_participantes')
-        .select('persona_id, rol_en_evento, estado_participacion, persona:personas!persona_id(nombre, apellido, email, telefono)')
-        .eq('evento_id', id),
-      supabase
-        .from('evento_movimientos')
-        .select('*')
-        .eq('evento_id', id)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('pagos')
-        .select('monto, estado_pago, concepto, participante:evento_participantes!evento_participante_id!inner(evento_id)')
-        .eq('participante.evento_id', id),
-    ])
+    const { data: parts } = await supabase
+      .from('evento_participantes')
+      .select('persona_id, rol_en_evento, estado_participacion, persona:personas!persona_id(nombre, apellido, email, telefono)')
+      .eq('evento_id', id)
     participantes = (parts ?? []) as unknown as ParticipanteRow[]
-    movimientos = (movs ?? []) as Movimiento[]
-
-    for (const p of (pagosEvento ?? []) as { monto: number; estado_pago: string; concepto: string | null }[]) {
-      const c: 'inscripcion' | 'pension' = p.concepto === 'pension' ? 'pension' : 'inscripcion'
-      if (p.estado_pago === 'confirmado') resumenPagos[c].confirmado += Number(p.monto)
-      else if (p.estado_pago === 'pendiente') resumenPagos[c].pendiente += Number(p.monto)
-    }
   }
+
+  // Informe Económico: vive en su propia pantalla (/eventos/[id]/informe-economico).
+  const showIE = canVerInformeEconomico(ctx, cierreEvento)
 
   const conviventesCierre = participantes
     .filter(p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'cancelado')
@@ -639,6 +619,14 @@ export default async function EventoDetailPage({
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                 <Users className="h-4 w-4" />
                 Tomar asistencia
+              </Button>
+            </Link>
+          )}
+          {showIE && (
+            <Link href={`/eventos/${id}/informe-economico`}>
+              <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                <Wallet className="h-4 w-4" />
+                Informe económico
               </Button>
             </Link>
           )}
@@ -1223,8 +1211,7 @@ export default async function EventoDetailPage({
           servidores={servidoresCierre}
           cecistas={cecistasSoloList}
           preguntas={preguntasInforme}
-          movimientos={movimientos}
-          resumenPagos={resumenPagos}
+          canVerInformeEconomico={showIE}
           inicial={{
             cierre_foto_convivencia_url: (ev.cierre_foto_convivencia_url as string | null) ?? null,
             cierre_foto_servidores_url: (ev.cierre_foto_servidores_url as string | null) ?? null,

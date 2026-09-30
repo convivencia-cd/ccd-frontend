@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
 import { Download, Upload, Trash2, Users, FileText, Sparkles, Package, DollarSign, Camera, Lock } from 'lucide-react'
-import { CIERRE_BUCKET, type PreguntaInforme, type Movimiento } from '@/lib/eventos/cierre'
+import { CIERRE_BUCKET, type PreguntaInforme } from '@/lib/eventos/cierre'
 import { exportConviventesPDF, exportInformeCoordinadorPDF, exportInformeCarismasPDF, type EventoInfo } from '@/lib/eventos/cierre-pdf'
-import CierreEconomico from './cierre-economico'
 import { CerrarConvivenciaButton } from './cerrar-convivencia-button'
 
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
@@ -29,11 +29,8 @@ type Props = {
   servidores: Servidor[]
   cecistas: Persona[]
   preguntas: PreguntaInforme[]
-  movimientos: Movimiento[]
-  resumenPagos: {
-    inscripcion: { confirmado: number; pendiente: number }
-    pension: { confirmado: number; pendiente: number }
-  }
+  /** El Informe Económico vive en su propio panel del detalle; acá solo se linkea si el usuario lo ve. */
+  canVerInformeEconomico: boolean
   inicial: {
     cierre_foto_convivencia_url: string | null
     cierre_foto_servidores_url: string | null
@@ -65,7 +62,7 @@ function Section({ icon: Icon, title, badge, children }: { icon: React.ElementTy
 }
 
 export default function CierrePanel(props: Props) {
-  const { eventoId, estado, eventoInfo, canEditar, canVerConfidencial, canEditarConfidencial, canCerrar, conviventes, servidores, cecistas, preguntas, movimientos, resumenPagos, inicial } = props
+  const { eventoId, estado, eventoInfo, canEditar, canVerConfidencial, canEditarConfidencial, canCerrar, conviventes, servidores, cecistas, preguntas, canVerInformeEconomico, inicial } = props
   const router = useRouter()
   const supabase = createClient()
 
@@ -212,13 +209,14 @@ export default function CierrePanel(props: Props) {
 
       {/* 2. Informe económico */}
       <Section icon={DollarSign} title="Informe económico">
-        <CierreEconomico
-          eventoId={eventoId}
-          eventoInfo={eventoInfo}
-          movimientosIniciales={movimientos}
-          resumenPagos={resumenPagos}
-          readOnly={!canEditar}
-        />
+        <p className="text-sm text-muted-foreground">
+          El registro de ingresos y egresos (Caja, Banco, Mercado Pago) lo cargan el/los Centralizador(es) y el Tesorero en su propia pantalla.
+        </p>
+        {canVerInformeEconomico && (
+          <Link href={`/eventos/${eventoId}/informe-economico`} className="text-sm font-medium text-primary hover:underline">
+            Ir al Informe Económico →
+          </Link>
+        )}
       </Section>
 
       {/* 3 y 5. Fotos */}

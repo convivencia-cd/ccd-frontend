@@ -30,6 +30,8 @@ export type Permission =
   | 'event.update'
   | 'event.manage_participants'
   | 'payment.verify'       // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
+  | 'informe_economico.edit' // cargar movimientos del Informe Económico del evento (Tesoreros) — scopeado a la org del evento
+  | 'informe_economico.view' // ver (solo lectura) el Informe Económico del evento — scopeado a la org del evento
   | 'organization.create' // solo admin
   | 'organization.update'
   | 'organizaciones.export' // exportar listado de organizaciones a Excel
@@ -77,6 +79,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.update',
     'event.manage_participants',
     'payment.verify',
+    'informe_economico.edit',
+    'informe_economico.view',
     'organization.create',
     'organization.update',
     'organizaciones.export',
