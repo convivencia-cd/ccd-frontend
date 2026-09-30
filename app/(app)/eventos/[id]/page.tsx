@@ -18,7 +18,8 @@ import { FinalizarEventoButton } from './_components/finalizar-evento-button'
 import FlyerUploadPanel from './_components/flyer-upload-panel'
 import { muestraFlyers } from '@/lib/eventos/flyers'
 import CierrePanel from './_components/cierre-panel'
-import PensionBecasPanel from './_components/pension-becas-panel'
+import { puedeGestionarInteresado } from '@/lib/interesados/access'
+import { InteresadoCard, INTERESADO_SELECT } from '../../interesados/_components/interesado-card'
 import {
   canEditarCierre,
   canVerCierre,
@@ -28,7 +29,6 @@ import {
   ROLES_SERVIDORES,
   type PreguntaInforme,
 } from '@/lib/eventos/cierre'
-import { canGestionarPension } from '@/lib/eventos/pension'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
 import { formatDateAR } from '@/lib/utils'
 
@@ -251,26 +251,19 @@ export default async function EventoDetailPage({
   }
   const showCierre = canVerCierre(ctx, cierreEvento)
 
-  // ─── Becas en Pensión (independiente del cierre: aplica con el evento en vivo) ───
-  const canPension = canGestionarPension(ctx, cierreEvento)
+  // Becas en Pensión se gestiona desde /eventos/[id]/gestion.
 
-  type ParticipantePensionRow = {
-    id: string
-    valor_inscripcion: number | null
-    valor_pension: number | null
-    beca_pension: number
-    notas_beca: string | null
-    persona: { id: string; nombre: string; apellido: string } | null
-  }
-  let participantesPension: ParticipantePensionRow[] = []
-  if (canPension) {
-    const { data: pensionData } = await supabase
+  // ─── Interesados del evento: mismo seguimiento que /interesados, a mano ───
+  const canInteresados = ctx ? await puedeGestionarInteresado(supabase, ctx, id) : false
+  let interesadosEvento: unknown[] = []
+  if (canInteresados) {
+    const { data: interesadosData } = await supabase
       .from('evento_participantes')
-      .select('id, valor_inscripcion, valor_pension, beca_pension, notas_beca, persona:personas!persona_id(id, nombre, apellido)')
+      .select(INTERESADO_SELECT)
       .eq('evento_id', id)
-      .eq('rol_en_evento', 'convivente')
-      .neq('estado_participacion', 'cancelado')
-    participantesPension = (pensionData ?? []) as unknown as ParticipantePensionRow[]
+      .eq('estado_participacion', 'interesado')
+      .order('fecha_inscripcion', { ascending: false })
+    interesadosEvento = interesadosData ?? []
   }
 
   type ParticipanteRow = {
@@ -488,7 +481,8 @@ export default async function EventoDetailPage({
   // Gestión del Evento: administrador, timonel, responsable, enlace o centralizador,
   // solo mientras el evento está publicado o en curso.
   const canGestion = ctx &&
-    (evento.estado === 'publicado' || evento.estado === 'en_curso') &&
+    // finalizado incluido: Becas en Pensión vive en Gestión y sigue editable hasta el cierre.
+    (evento.estado === 'publicado' || evento.estado === 'en_curso' || evento.estado === 'finalizado') &&
     (
       canPerform(ctx, 'event.update', evento.organizacion_id ?? null) ||
       (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false) ||
@@ -1175,23 +1169,26 @@ export default async function EventoDetailPage({
 
       </div>
 
-      {/* Becas en Pensión — visible mientras el evento está publicado/en curso/finalizado */}
-      {canPension && (
-        <PensionBecasPanel
-          eventoId={id}
-          precioEvento={{
-            cuota_inscripcion: Number((evento as Record<string, unknown>).precio ?? 0),
-            pension: Number((evento as Record<string, unknown>).pension ?? 0),
-          }}
-          participantes={participantesPension.map(p => ({
-            id: p.id,
-            persona: p.persona,
-            valor_inscripcion: p.valor_inscripcion,
-            valor_pension: p.valor_pension,
-            beca_pension: p.beca_pension,
-            notas_beca: p.notas_beca,
-          }))}
-        />
+      {/* Interesados — seguimiento de contacto de este evento */}
+      {canInteresados && interesadosEvento.length > 0 && (
+        <Card className="border-border bg-card">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+            <CardTitle className="text-foreground">
+              Interesados ({interesadosEvento.length})
+            </CardTitle>
+            <Link
+              href={`/interesados?evento_id=${id}`}
+              className="text-sm text-primary hover:underline"
+            >
+              Ver en Interesados
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {interesadosEvento.map((it) => (
+              <InteresadoCard key={(it as { id: string }).id} it={it} mostrarEvento={false} />
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* Cierre de la Convivencia — visible en finalizado/cerrado a quien tenga acceso */}
