@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
+import { camposFaltantesSolicitud, mensajeFaltantesSolicitud } from '@/lib/eventos/solicitud-requeridos'
 
 type ResultadoDiscernimiento =
   | 'aprobado_sin_modificaciones'
@@ -86,7 +87,7 @@ export async function POST(
   const { data: evento, error: eventoError } = await supabase
     .from('eventos')
     .select(`
-      id, estado, organizacion_id,
+      id, estado, organizacion_id, fraternidad_id, tipo, tipo_evento_id,
       requiere_discernimiento_confra, requiere_discernimiento_eqt,
       nombre, fecha_inicio, fecha_fin,
       ciudad, provincia_evento, pais_evento, codigo_postal, diocesis,
@@ -172,6 +173,14 @@ export async function POST(
       valor_nuevo: valorNuevo,
       modificado_por: ctx.persona_id,
     })
+  }
+
+  // No avanza si la solicitud (con los cambios del aprobador) quedó incompleta.
+  if (accion === 'aprobar') {
+    const faltantes = camposFaltantesSolicitud({ ...evento, ...fieldUpdates })
+    if (faltantes.length > 0) {
+      return NextResponse.json({ error: mensajeFaltantesSolicitud(faltantes) }, { status: 422 })
+    }
   }
 
   // Compute next state

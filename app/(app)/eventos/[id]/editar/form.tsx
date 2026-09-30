@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client"
 import { LocationFields } from "@/components/location-fields"
 import { Combobox } from "@/components/ui/combobox"
 import FlyerUploadPanel from "../_components/flyer-upload-panel"
+import { muestraFlyers } from "@/lib/eventos/flyers"
 
 type OrgOption = { id: string; nombre: string; tipo: string }
 type FechaRow = { id?: string; fecha_inicio: string; fecha_fin: string }
@@ -37,6 +38,8 @@ export default function EditarEventoForm({
   const [casasRetiro, setCasasRetiro] = useState<OrgOption[]>([])
   const [fechasEjecucion, setFechasEjecucion] = useState<FechaRow[]>([])
   const [flyerUrls, setFlyerUrls] = useState<{ horizontal: string | null; cuadrado: string | null }>({ horizontal: null, cuadrado: null })
+  // Estado persistido (no el del select), para decidir si se muestran los flyers.
+  const [estadoGuardado, setEstadoGuardado] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     nombre: "",
     tipo: "convivencia",
@@ -122,6 +125,7 @@ export default function EditarEventoForm({
           provincia_evento: evento.provincia_evento ?? "",
           pais_evento: evento.pais_evento ?? "Argentina",
         })
+        setEstadoGuardado(evento.estado ?? null)
         setFlyerUrls({
           horizontal: (evento as Record<string, unknown>).flyer_horizontal_url as string | null ?? null,
           cuadrado: (evento as Record<string, unknown>).flyer_cuadrado_url as string | null ?? null,
@@ -689,7 +693,7 @@ export default function EditarEventoForm({
         </CardContent>
       </Card>
 
-      {isAdmin && (
+      {isAdmin && muestraFlyers(estadoGuardado) && (
         <FlyerUploadPanel
           eventoId={id}
           flyerHorizontalUrl={flyerUrls.horizontal}
