@@ -10,7 +10,13 @@ import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink
 import { formatDateAR } from '@/lib/utils'
 import { esCentralizadorDeEvento, ROLES_SERVIDORES, formatMonto } from '@/lib/eventos/cierre'
 import { canGestionarPension } from '@/lib/eventos/pension'
+import { canGestionarAsignaciones, canGestionarParticipantes, ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
+import { cargarGruposDelEvento } from '@/lib/eventos/grupos'
 import PensionBecasPanel from '../_components/pension-becas-panel'
+import EquipoEventoPanel, {
+  type AsignacionesEvento,
+  type ParticipanteEquipo,
+} from '../_components/equipo-evento-panel'
 import { CopyLinkButton } from './_components/copy-link-button'
 
 const estadoClases: Record<string, string> = {
@@ -35,13 +41,6 @@ const participacionLabel: Record<string, string> = {
   en_curso: 'Conviviente',
 }
 
-const rolServidorLabel: Record<string, string> = {
-  coordinador: 'Coordinador',
-  asesor: 'Asesor',
-  centralizador: 'Centralizador',
-  equipo_auxiliar: 'Equipo Auxiliar',
-}
-
 type ParticipanteRow = {
   id: string
   persona_id: string
@@ -51,6 +50,8 @@ type ParticipanteRow = {
   valor_inscripcion: number | null
   valor_pension: number | null
   beca_pension: number
+  grupo_id: string | null
+  notas: string | null
   notas_beca: string | null
   persona: { id: string; nombre: string; apellido: string; email: string | null; telefono: string | null } | null
 }
@@ -70,8 +71,11 @@ export default async function EventoGestionPage({
     .select(`
       id, nombre, tipo, estado, fecha_inicio, fecha_fin, ciudad, provincia_evento,
       precio, pension, cupo_maximo,
-      organizacion_id, fraternidad_id,
-      coordinador_asignado_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id,
+      organizacion_id, fraternidad_id, tipo_evento_id,
+      coordinador_asignado_id, asesor_asignado_id,
+      centralizador_1_persona_id, centralizador_1_nombre, centralizador_1_email, centralizador_1_telefono,
+      centralizador_2_persona_id, centralizador_2_nombre, centralizador_2_email, centralizador_2_telefono,
+      centralizador_3_persona_id, centralizador_3_nombre, centralizador_3_email, centralizador_3_telefono,
       confraternidad:organizaciones!organizacion_id(id, nombre),
       fraternidad:organizaciones!fraternidad_id(id, nombre)
     `)
@@ -120,7 +124,7 @@ export default async function EventoGestionPage({
   const { data: participantesRaw } = await supabase
     .from('evento_participantes')
     .select(
-      'id, persona_id, rol_en_evento, estado_participacion, fecha_inscripcion, valor_inscripcion, valor_pension, beca_pension, notas_beca, persona:personas!persona_id(id, nombre, apellido, email, telefono)'
+      'id, persona_id, rol_en_evento, estado_participacion, fecha_inscripcion, valor_inscripcion, valor_pension, beca_pension, grupo_id, notas, notas_beca, persona:personas!persona_id(id, nombre, apellido, email, telefono)'
     )
     .eq('evento_id', id)
     .order('fecha_inscripcion', { ascending: false })
@@ -154,6 +158,15 @@ export default async function EventoGestionPage({
     if (p.estado_pago === 'confirmado') resumenPagos[c].confirmado += Number(p.monto)
     else if (p.estado_pago === 'pendiente') resumenPagos[c].pendiente += Number(p.monto)
   }
+
+  // Editar el equipo del evento: las asignaciones (coordinador/asesor/centralizadores)
+  // quedan para quien tenga event.update; el padrón, también para el centralizador.
+  const canAsignaciones = canGestionarAsignaciones(ctx, cierreEvento)
+  const canParticipantes = canGestionarParticipantes(ctx, cierreEvento)
+
+  const { grupos, nombresGrupos } = canParticipantes
+    ? await cargarGruposDelEvento(supabase, id, (evento as Record<string, unknown>).tipo_evento_id as string | null)
+    : { grupos: [], nombresGrupos: [] }
 
   const canPension = canGestionarPension(ctx, cierreEvento)
   const participantesPension = canPension
@@ -217,7 +230,7 @@ export default async function EventoGestionPage({
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div>
               <p className="text-xs text-muted-foreground">Enlace público de inscripción</p>
-              <p className="text-sm text-foreground">/e/{id}</p>
+              <p className="text-sm text-muted-foreground">Compartilo con quienes se quieran inscribir.</p>
             </div>
             <CopyLinkButton path={`/e/${id}`} />
           </div>
@@ -254,89 +267,109 @@ export default async function EventoGestionPage({
         </CardContent>
       </Card>
 
+      {/* Equipo y padrón editables. Reemplazan a las tarjetas de solo lectura de
+          más abajo para quien puede gestionar el evento. */}
+      {(canAsignaciones || canParticipantes) && (
+        <EquipoEventoPanel
+          eventoId={id}
+          asignaciones={evento as unknown as AsignacionesEvento}
+          participantes={participantes as unknown as ParticipanteEquipo[]}
+          grupos={grupos}
+          nombresGrupos={nombresGrupos}
+          canAsignaciones={canAsignaciones}
+          canParticipantes={canParticipantes}
+        />
+      )}
+
       {/* Convivientes: interesados / inscriptos / en curso */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-foreground">
-            <Users className="h-5 w-5 text-primary" />
-            Convivientes
-          </CardTitle>
-          <CardDescription>
-            {conteoConvivientes.interesado} interesados · {conteoConvivientes.inscripto} inscriptos · {conteoConvivientes.en_curso} convivientes
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {conviventes.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay convivientes registrados.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">Apellido, Nombre</th>
-                    <th className="px-3 py-2 font-medium">Contacto</th>
-                    <th className="px-3 py-2 font-medium">Fecha inscripción</th>
-                    <th className="px-3 py-2 font-medium">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {conviventes.map(p => (
-                    <tr key={p.id} className="border-b border-border/60 hover:bg-muted/40">
-                      <td className="px-3 py-2 font-medium text-foreground">
-                        {p.persona ? `${p.persona.apellido}, ${p.persona.nombre}` : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {p.persona?.telefono ?? p.persona?.email ?? '—'}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {p.fecha_inscripcion ? formatDateAR(p.fecha_inscripcion) : '—'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${participacionClases[p.estado_participacion] ?? ''}`}>
-                          {participacionLabel[p.estado_participacion] ?? p.estado_participacion}
-                        </span>
-                      </td>
+      {!canParticipantes && (
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <Users className="h-5 w-5 text-primary" />
+              Convivientes
+            </CardTitle>
+            <CardDescription>
+              {conteoConvivientes.interesado} interesados · {conteoConvivientes.inscripto} inscriptos · {conteoConvivientes.en_curso} convivientes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {conviventes.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay convivientes registrados.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-3 py-2 font-medium">Apellido, Nombre</th>
+                      <th className="px-3 py-2 font-medium">Contacto</th>
+                      <th className="px-3 py-2 font-medium">Fecha inscripción</th>
+                      <th className="px-3 py-2 font-medium">Estado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {conviventes.map(p => (
+                      <tr key={p.id} className="border-b border-border/60 hover:bg-muted/40">
+                        <td className="px-3 py-2 font-medium text-foreground">
+                          {p.persona ? `${p.persona.apellido}, ${p.persona.nombre}` : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {p.persona?.telefono ?? p.persona?.email ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {p.fecha_inscripcion ? formatDateAR(p.fecha_inscripcion) : '—'}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${participacionClases[p.estado_participacion] ?? ''}`}>
+                            {participacionLabel[p.estado_participacion] ?? p.estado_participacion}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Equipos asignados */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-foreground">
-            <ClipboardList className="h-5 w-5 text-primary" />
-            Equipos Asignados
-          </CardTitle>
-          <CardDescription>{equipos.length} servidores registrados en el evento.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {equipos.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay equipo asignado.</p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(['coordinador', 'asesor', 'centralizador', 'equipo_auxiliar'] as const).map(rol => {
-                const lista = equipos.filter(p => p.rol_en_evento === rol)
-                if (lista.length === 0) return null
-                return (
-                  <div key={rol} className="rounded-lg border border-border p-4 space-y-1.5">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{rolServidorLabel[rol]}</p>
-                    {lista.map(p => (
-                      <p key={p.id} className="text-sm text-foreground">
-                        {p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}
+      {!canParticipantes && (
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Equipos Asignados
+            </CardTitle>
+            <CardDescription>{equipos.length} servidores registrados en el evento.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {equipos.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay equipo asignado.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {ROLES_SERVIDORES.map(rol => {
+                  const lista = equipos.filter(p => p.rol_en_evento === rol)
+                  if (lista.length === 0) return null
+                  return (
+                    <div key={rol} className="rounded-lg border border-border p-4 space-y-1.5">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        {ROLES_EVENTO_LABEL[rol] ?? rol}
                       </p>
-                    ))}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      {lista.map(p => (
+                        <p key={p.id} className="text-sm text-foreground">
+                          {p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}
+                        </p>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Becas en Pensión */}
       {canPension && (

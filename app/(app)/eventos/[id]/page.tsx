@@ -16,6 +16,7 @@ import { PublicarButton } from './_components/publicar-button'
 import { IniciarEventoButton } from './_components/iniciar-evento-button'
 import { FinalizarEventoButton } from './_components/finalizar-evento-button'
 import FlyerUploadPanel from './_components/flyer-upload-panel'
+import { muestraFlyers } from '@/lib/eventos/flyers'
 import CierrePanel from './_components/cierre-panel'
 import PensionBecasPanel from './_components/pension-becas-panel'
 import {
@@ -1228,8 +1229,8 @@ export default async function EventoDetailPage({
         />
       )}
 
-      {/* Flyers — admin only */}
-      {ctx?.is_admin && (
+      {/* Flyers — admin only, desde Pendiente Datos Noticias */}
+      {ctx?.is_admin && muestraFlyers(evento.estado) && (
         <FlyerUploadPanel
           eventoId={id}
           flyerHorizontalUrl={(ev.flyer_horizontal_url as string | null) ?? null}

@@ -42,6 +42,11 @@ export async function POST(request: Request) {
   if (body.estado_vida) insertData.estado_vida = body.estado_vida
   if (body.diocesis) insertData.diocesis = body.diocesis
   if (body.tipo_persona) insertData.tipo_persona = body.tipo_persona
+  // Un no cecista cargado a mano en /personas se asume convivente (hizo su
+  // convivencia fuera de la plataforma); si no, desaparecería del listado al
+  // guardarlo, porque /personas oculta a los no cecistas sin el tilde (082).
+  insertData.es_convivente =
+    typeof body.es_convivente === 'boolean' ? body.es_convivente : body.tipo_persona === 'no_cecista'
   if (body.parroquia) insertData.parroquia = body.parroquia
   // "Socio Activo" solo lo pueden tocar ministerios de conducción/tesorería
   // (mismo permiso que /api/personas/me/socio-activo).

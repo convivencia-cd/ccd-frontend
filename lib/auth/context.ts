@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 
+/** `ministerios.codigo_interno` del acceso mínimo de conviventes no cecistas (migración 082). */
+export const CODIGO_MINISTERIO_PARTICIPANTE = 'PAR'
+
 // Re-export from permissions so callers only need one import
 export { canPerform, hasPermission, enforceEventoEstado } from './permissions'
 export type { Permission, SystemRole } from './permissions'
@@ -43,6 +46,9 @@ export type UserContext = {
   ministerios: UserMinistry[]
   /** IDs de ministerio (asignaciones_ministerio activas) — usado para permisos por categoría (ej. tipo_evento_roles_solicitantes). */
   ministerio_ids: string[]
+  /** false si la cuenta es solo de Participante (convivente no cecista, ver migración 082):
+   *  sin rol técnico ni otro ministerio. Misma regla que `es_usuario_interno()` en la 083. */
+  es_interno: boolean
 }
 
 /**
@@ -120,6 +126,7 @@ export async function getUserContext(): Promise<UserContext | null> {
   let ministerioIsAdmin = false
   let ministerioOrgIds: string[] = []
   const ministerios: UserMinistry[] = []
+  let tieneMinisterioInterno = false
 
   const persona_id = perfil?.persona_id ?? null
   if (persona_id) {
@@ -130,6 +137,7 @@ export async function getUserContext(): Promise<UserContext | null> {
         ministerio_id,
         ministerio:ministerios!ministerio_id(
           nombre,
+          codigo_interno,
           nivel_acceso,
           ministerio_permisos(permiso:permisos!permiso_id(clave))
         )
@@ -141,6 +149,7 @@ export async function getUserContext(): Promise<UserContext | null> {
     for (const a of asignaciones ?? []) {
       const min = a.ministerio as any
       if (!min) continue
+      if (min.codigo_interno !== CODIGO_MINISTERIO_PARTICIPANTE) tieneMinisterioInterno = true
       const nivelAcceso = min.nivel_acceso ?? 0
       if (min.nombre) {
         ministerios.push({
@@ -200,5 +209,6 @@ export async function getUserContext(): Promise<UserContext | null> {
     ministerio_nombre: ministeriosOrdenados[0]?.nombre ?? null,
     ministerios: ministeriosOrdenados,
     ministerio_ids: [...new Set(ministeriosOrdenados.map(m => m.id))],
+    es_interno: userRoles.length > 0 || tieneMinisterioInterno,
   }
 }

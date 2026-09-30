@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
+import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext()
@@ -20,7 +21,12 @@ export async function GET(req: NextRequest) {
   const estado_eclesial = searchParams.get('estado_eclesial') ?? ''
   const provincia = searchParams.get('provincia') ?? ''
   const localidad = searchParams.get('localidad') ?? ''
-  const modo = searchParams.get('modo') ?? ''
+  const filtrosPadron = leerFiltrosPadron({
+    modo: searchParams.get('modo'),
+    categoria: searchParams.get('categoria'),
+    convivente: searchParams.get('convivente'),
+  })
+  const { modo } = filtrosPadron
   const ministerio_id = searchParams.get('ministerio_id') ?? ''
   const organizacion_id = searchParams.get('organizacion_id') ?? ''
 
@@ -28,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   // Relational filters: get matching persona ids
   let modoIds: string[] | null = null
-  if (modo && modo !== 'convivente' && modo !== 'otro') {
+  if (modo) {
     const { data } = await supabase
       .from('persona_modos')
       .select('persona_id')
@@ -103,8 +109,7 @@ export async function GET(req: NextRequest) {
       const variantes = variantesDe(localidad, variantesLocalidad)
       q_ = variantes.length ? q_.in('localidad', variantes) : q_.ilike('localidad', localidad)
     }
-    if (modo === 'convivente') q_ = q_.in('tipo_persona', ['convivente', 'no_cecista'])
-    if (modo === 'otro') q_ = q_.eq('tipo_persona', 'otro')
+    q_ = aplicarFiltrosPadron(q_, filtrosPadron)
     if (idChunk) q_ = q_.in('id', idChunk)
 
     return q_

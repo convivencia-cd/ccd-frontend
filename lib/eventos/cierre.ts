@@ -1,16 +1,48 @@
-import type { UserContext } from '@/lib/auth/context'
-import { canPerform } from '@/lib/auth/permissions'
+import type { UserContext } from "@/lib/auth/context"
+import { canPerform } from "@/lib/auth/permissions"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 /** Bucket de Storage para las fotos del cierre (convivencia + servidores). */
-export const CIERRE_BUCKET = 'eventos-cierre'
+export const CIERRE_BUCKET = "eventos-cierre"
 
 /** Porcentaje de Diezmo al Equipo Timón sobre el saldo positivo del evento (ver lib/eventos/informe-economico.ts). */
 export const DIEZMO_PCT = 0.2
 
-/** Roles operativos que integran el "Equipo de Servidores" (para el informe de carismas). */
-export const ROLES_SERVIDORES = ['coordinador', 'asesor', 'centralizador', 'equipo_auxiliar'] as const
+/** Subtipos de movimiento de ingreso. */
+export const SUBTIPOS_INGRESO = [
+  { value: "pago", label: "Pago (pensiones de conviventes)" },
+  { value: "otros_ingresos", label: "Otros ingresos (bolsillo de Dios)" },
+  { value: "donacion", label: "Donación" },
+] as const
+
+/**
+ * Categorías predefinidas para movimientos de egreso.
+ * TODO: confirmar el listado definitivo con el equipo.
+ */
+export const CATEGORIAS_EGRESO = [
+  "Alojamiento / Casa",
+  "Comida",
+  "Enfermería",
+  "Librería",
+  "Limpieza",
+  "Materiales / Manuales",
+  "Transporte",
+  "Varios",
+] as const
+
+/**
+ * Roles operativos que integran el "Equipo de Servidores" (para el informe de
+ * carismas): todo el Equipo del Evento menos los conviventes.
+ */
+export const ROLES_SERVIDORES = [
+  "coordinador",
+  "asesor",
+  "centralizador",
+  "musica",
+  "servidor",
+  "equipo_auxiliar",
+] as const
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -18,7 +50,26 @@ export type PreguntaInforme = { id: string; texto: string }
 
 /** Formatea un monto con separador de miles (sin símbolo de moneda fijo). */
 export function formatMonto(n: number): string {
-  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)
+  return new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n || 0)
+}
+
+// ─── Cálculo económico ────────────────────────────────────────────────────────
+
+export function calcularResumenEconomico(
+  movimientos: Pick<Movimiento, "tipo" | "monto">[],
+) {
+  const ingresos = movimientos
+    .filter((m) => m.tipo === "ingreso")
+    .reduce((sum, m) => sum + Number(m.monto || 0), 0)
+  const egresos = movimientos
+    .filter((m) => m.tipo === "egreso")
+    .reduce((sum, m) => sum + Number(m.monto || 0), 0)
+  const saldo = ingresos - egresos
+  const diezmo = saldo > 0 ? saldo * DIEZMO_PCT : 0
+  return { ingresos, egresos, saldo, diezmo }
 }
 
 // ─── Autorización del cierre ──────────────────────────────────────────────────
@@ -34,7 +85,10 @@ type CierreEvento = {
 }
 
 /** El usuario es el coordinador asignado del evento. */
-export function esCoordinador(ctx: UserContext | null, evento: CierreEvento): boolean {
+export function esCoordinador(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
   return !!ctx?.persona_id && ctx.persona_id === evento.coordinador_asignado_id
 }
 
@@ -47,7 +101,12 @@ export function esCoordinador(ctx: UserContext | null, evento: CierreEvento): bo
  */
 export function esCentralizadorDeEvento(
   ctx: UserContext | null,
-  evento: Pick<CierreEvento, 'centralizador_1_persona_id' | 'centralizador_2_persona_id' | 'centralizador_3_persona_id'>
+  evento: Pick<
+    CierreEvento,
+    | "centralizador_1_persona_id"
+    | "centralizador_2_persona_id"
+    | "centralizador_3_persona_id"
+  >,
 ): boolean {
   if (!ctx?.persona_id) return false
   return (
@@ -62,13 +121,18 @@ export function esCentralizadorDeEvento(
  * tiene sus propios permisos (lib/eventos/informe-economico.ts).
  * Solo mientras el evento está 'finalizado' (una vez 'cerrado' queda bloqueado).
  */
-export function canEditarCierre(ctx: UserContext | null, evento: CierreEvento): boolean {
-  if (!ctx || evento.estado !== 'finalizado') return false
+export function canEditarCierre(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
+  if (!ctx || evento.estado !== "finalizado") return false
   return (
     esCoordinador(ctx, evento) ||
     esCentralizadorDeEvento(ctx, evento) ||
-    canPerform(ctx, 'event.update', evento.organizacion_id) ||
-    (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false)
+    canPerform(ctx, "event.update", evento.organizacion_id) ||
+    (evento.fraternidad_id
+      ? canPerform(ctx, "event.update", evento.fraternidad_id)
+      : false)
   )
 }
 
@@ -77,31 +141,45 @@ export function canEditarCierre(ctx: UserContext | null, evento: CierreEvento): 
  * Solo: coordinador del evento, Equipo Timón, responsables de confraternidad,
  * enlaces de fraternidad y delegado EqT (todos con event.approve_confra scopeado o approve_eqt).
  */
-export function canVerInformesConfidenciales(ctx: UserContext | null, evento: CierreEvento): boolean {
+export function canVerInformesConfidenciales(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
   if (!ctx) return false
   return (
     esCoordinador(ctx, evento) ||
-    canPerform(ctx, 'event.approve_eqt') ||
-    canPerform(ctx, 'event.approve_confra', evento.organizacion_id) ||
-    (evento.fraternidad_id ? canPerform(ctx, 'event.approve_confra', evento.fraternidad_id) : false)
+    canPerform(ctx, "event.approve_eqt") ||
+    canPerform(ctx, "event.approve_confra", evento.organizacion_id) ||
+    (evento.fraternidad_id
+      ? canPerform(ctx, "event.approve_confra", evento.fraternidad_id)
+      : false)
   )
 }
 
 /** Solo Equipo Timón puede cerrar la convivencia (finalizado → cerrado). */
-export function canCerrarConvivencia(ctx: UserContext | null, evento: CierreEvento): boolean {
-  if (!ctx || evento.estado !== 'finalizado') return false
-  return canPerform(ctx, 'event.approve_eqt')
+export function canCerrarConvivencia(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
+  if (!ctx || evento.estado !== "finalizado") return false
+  return canPerform(ctx, "event.approve_eqt")
 }
 
 /** El panel de cierre es visible en finalizado o cerrado, a quien tenga alguna capacidad sobre él. */
-export function canVerCierre(ctx: UserContext | null, evento: CierreEvento): boolean {
+export function canVerCierre(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
   if (!ctx) return false
-  if (evento.estado !== 'finalizado' && evento.estado !== 'cerrado') return false
+  if (evento.estado !== "finalizado" && evento.estado !== "cerrado")
+    return false
   return (
     esCoordinador(ctx, evento) ||
     esCentralizadorDeEvento(ctx, evento) ||
     canVerInformesConfidenciales(ctx, evento) ||
-    canPerform(ctx, 'event.update', evento.organizacion_id) ||
-    (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false)
+    canPerform(ctx, "event.update", evento.organizacion_id) ||
+    (evento.fraternidad_id
+      ? canPerform(ctx, "event.update", evento.fraternidad_id)
+      : false)
   )
 }

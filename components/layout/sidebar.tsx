@@ -46,6 +46,7 @@ export interface SidebarPermissions {
   canViewCasasRetiro: boolean
   canViewInteresados: boolean
   isAdmin: boolean
+  esInterno: boolean
 }
 
 interface NavItem {
@@ -56,6 +57,19 @@ interface NavItem {
 }
 
 function buildNavItems(p: SidebarPermissions): NavItem[] {
+  // Cuenta de Participante (convivente no cecista): no ve pantallas internas.
+  if (!p.esInterno) {
+    return p.canViewPublicados
+      ? [
+          {
+            icon: <Globe className="h-5 w-5" />,
+            label: "Eventos Publicados",
+            href: "/eventos/publicados",
+          },
+        ]
+      : []
+  }
+
   return [
     {
       icon: <LayoutDashboard className="h-5 w-5" />,

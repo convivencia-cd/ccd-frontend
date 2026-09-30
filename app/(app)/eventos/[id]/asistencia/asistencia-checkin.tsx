@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { Html5Qrcode } from 'html5-qrcode'
+import { ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
 
 interface Participante {
   id: string
@@ -16,14 +17,6 @@ interface Participante {
   fecha_asistencia: string | null
   asistencia_metodo: string | null
   persona: { id: string; nombre: string; apellido: string; email: string | null } | null
-}
-
-const rolLabel: Record<string, string> = {
-  convivente: 'Conviviente',
-  coordinador: 'Coordinador',
-  asesor: 'Asesor',
-  centralizador: 'Centralizador',
-  equipo_auxiliar: 'Equipo Auxiliar',
 }
 
 const QR_READER_ID = 'qr-reader'
@@ -81,6 +74,15 @@ export function AsistenciaCheckin({
           toast.info(`${data.nombre} ya estaba presente`)
         } else {
           toast.success(`${data.nombre} · asistencia registrada`)
+          if (data.acceso?.estado === 'creado') {
+            toast.info(
+              data.acceso.emailEnviado
+                ? `Se creó su cuenta (${data.acceso.nombreUsuario}) y le llegó el mail para elegir contraseña`
+                : `Se creó su cuenta (${data.acceso.nombreUsuario}), pero no se pudo mandar el mail`,
+            )
+          } else if (data.acceso?.estado === 'error') {
+            toast.warning(`No se pudo crear su cuenta: ${data.acceso.motivo}`)
+          }
         }
       } catch {
         toast.error('Error de red al registrar asistencia')
@@ -247,7 +249,7 @@ export function AsistenciaCheckin({
                     {p.persona ? `${p.persona.apellido}, ${p.persona.nombre}` : '—'}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {rolLabel[p.rol_en_evento] ?? p.rol_en_evento}
+                    {ROLES_EVENTO_LABEL[p.rol_en_evento] ?? p.rol_en_evento}
                     {p.persona?.email ? ` · ${p.persona.email}` : ''}
                   </p>
                 </div>

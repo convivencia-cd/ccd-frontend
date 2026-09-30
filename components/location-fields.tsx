@@ -32,6 +32,8 @@ interface LocationFieldsProps {
   onCodigoPostalChange?: (val: string) => void
   onDiocesisChange?: (val: string) => void
   disabled?: boolean
+  /** Marca los campos con " *" (solo visual; la validación la hace quien usa el componente). */
+  required?: boolean
   paisLabel?: string
   provinciaLabel?: string
 }
@@ -59,10 +61,12 @@ export function LocationFields({
   onCodigoPostalChange,
   onDiocesisChange,
   disabled,
+  required = false,
   paisLabel = "País",
   provinciaLabel = "Provincia",
 }: LocationFieldsProps) {
   const isArgentina = pais === "Argentina"
+  const req = required ? " *" : ""
 
   // Provincias / estados del país seleccionado (Argentina se resuelve por API, más abajo).
   const subdivisiones = React.useMemo<ComboboxOption[] | null>(() => {
@@ -153,7 +157,7 @@ export function LocationFields({
     <div className="space-y-4">
       {/* País */}
       <div className="space-y-2">
-        <Label>{paisLabel}</Label>
+        <Label>{paisLabel}{req}</Label>
         <Combobox
           value={pais}
           onSelect={handlePaisChange}
@@ -167,7 +171,7 @@ export function LocationFields({
 
       {/* Provincia */}
       <div className="space-y-2">
-        <Label>{provinciaLabel}</Label>
+        <Label>{provinciaLabel}{req}</Label>
         {isArgentina ? (
           <Combobox
             value={provincia}
@@ -203,7 +207,7 @@ export function LocationFields({
       {/* Ciudad + CP */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label>Ciudad</Label>
+          <Label>Ciudad{req}</Label>
           {isArgentina ? (
             <Combobox
               value={localidad}
@@ -227,7 +231,7 @@ export function LocationFields({
         </div>
         {onCodigoPostalChange !== undefined && (
           <div className="space-y-2">
-            <Label htmlFor="codigo_postal">CP</Label>
+            <Label htmlFor="codigo_postal">CP{req}</Label>
             <Input
               id="codigo_postal"
               name="codigo_postal"
@@ -243,7 +247,7 @@ export function LocationFields({
       {/* Diócesis */}
       {onDiocesisChange !== undefined && (
         <div className="space-y-2">
-          <Label htmlFor="diocesis">Diócesis</Label>
+          <Label htmlFor="diocesis">Diócesis{req}</Label>
           <DiocesisCombobox
             value={diocesis ?? ""}
             onChange={onDiocesisChange}

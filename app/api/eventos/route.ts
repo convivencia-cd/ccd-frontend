@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { translateSupabaseError } from '@/lib/errors/supabase'
 import { puedeSolicitarTipoEvento } from '@/lib/auth/tipos-eventos-permitidos'
+import { camposFaltantesSolicitud, mensajeFaltantesSolicitud } from '@/lib/eventos/solicitud-requeridos'
 
 export async function POST(request: Request) {
   const ctx = await getUserContext()
@@ -33,6 +34,13 @@ export async function POST(request: Request) {
 
   // Admins can set any state; regular users always submit as 'solicitud'
   const estado = ctx.is_admin && body.estado ? body.estado : 'solicitud'
+
+  if (estado === 'solicitud') {
+    const faltantes = camposFaltantesSolicitud(body)
+    if (faltantes.length > 0) {
+      return NextResponse.json({ error: mensajeFaltantesSolicitud(faltantes) }, { status: 400 })
+    }
+  }
 
   const today = new Date().toISOString().split('T')[0]
 

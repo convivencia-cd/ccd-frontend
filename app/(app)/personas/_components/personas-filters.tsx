@@ -57,6 +57,8 @@ type Props = {
     provincia: string
     localidad: string
     modo: string
+    categoria: string
+    convivente: string
     ministerio_id: string
     organizacion_id: string
   }
@@ -244,16 +246,27 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
           </select>
         )}
 
+        <select name="categoria" defaultValue={defaults.categoria} className={selectClass}>
+          <option value="">Categoría</option>
+          <option value="cecista">Cecista</option>
+          <option value="no_cecista">No cecista</option>
+          <option value="otro">Otro</option>
+        </select>
+
+        <select name="convivente" defaultValue={defaults.convivente} className={selectClass}>
+          <option value="">Convivente</option>
+          <option value="si">Convivente: sí</option>
+          <option value="no">Convivente: no</option>
+        </select>
+
         <select name="modo" defaultValue={defaults.modo} className={selectClass}>
           <option value="">Modo de participación</option>
-          <option value="convivente">Convivente</option>
           <option value="colaborador">Colaborador</option>
           <option value="servidor">Servidor</option>
           <option value="asesor">Asesor</option>
           <option value="familiar">Familiar</option>
           <option value="orante">Orante</option>
           <option value="intercesor">Intercesor</option>
-          <option value="otro">Otro</option>
         </select>
 
         {canManage && (

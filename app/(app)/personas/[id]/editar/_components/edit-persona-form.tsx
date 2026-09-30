@@ -42,6 +42,7 @@ type Persona = {
   socio_asociacion: boolean | null
   referente_comunidad: boolean | null
   cecista_dedicado: boolean | null
+  es_convivente?: boolean | null
   intercesor_dies_natalis: string | null
   nombre_usuario: string | null
   nivel_estudios: string | null
@@ -190,6 +191,7 @@ export function EditPersonaForm({
     socio_asociacion: persona.socio_asociacion ?? false,
     referente_comunidad: persona.referente_comunidad ?? false,
     cecista_dedicado: persona.cecista_dedicado ?? false,
+    es_convivente: persona.es_convivente ?? false,
     intercesor_dies_natalis: persona.intercesor_dies_natalis ?? "",
     nombre_usuario: persona.nombre_usuario ?? "",
     nivel_estudios: persona.nivel_estudios ?? "",
@@ -808,6 +810,20 @@ export function EditPersonaForm({
                     className="h-4 w-4 rounded border-border"
                   />
                   <Label htmlFor="referente_comunidad">Referente de Comunidad</Label>
+                </div>
+                {/* Todo cecista es convivente (lo fuerza un trigger de la 082); a mano
+                    se tilda para no cecistas que hicieron su convivencia antes de la plataforma. */}
+                <div className="flex items-center gap-2">
+                  <input
+                    id="es_convivente"
+                    name="es_convivente"
+                    type="checkbox"
+                    checked={basicData.tipo_persona === "cecista" || basicData.es_convivente}
+                    onChange={handleBasicChange}
+                    disabled={basicLoading || basicData.tipo_persona === "cecista"}
+                    className="h-4 w-4 rounded border-border disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                  <Label htmlFor="es_convivente">Convivente</Label>
                 </div>
                 <div className={cn('space-y-1', !canEditSocioActivo && 'rounded-md bg-muted p-3')}>
                   <div className="flex items-center gap-2">

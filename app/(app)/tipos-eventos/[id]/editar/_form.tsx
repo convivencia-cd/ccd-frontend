@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tag, ArrowLeft, Users, FileText, Plus, Trash2 } from 'lucide-react'
+import { Tag, ArrowLeft, Users, FileText, Plus, Trash2, UsersRound } from 'lucide-react'
 
 interface Ministerio {
   id: string
@@ -38,6 +38,7 @@ export default function EditarTipoEventoForm() {
   const [rolesOpciones, setRolesOpciones] = useState<Ministerio[]>([])
   const [rolesSeleccionados, setRolesSeleccionados] = useState<Set<string>>(new Set())
   const [preguntas, setPreguntas] = useState<Pregunta[]>([])
+  const [nombresGrupos, setNombresGrupos] = useState<string[]>([])
 
   useEffect(() => {
     fetch(`/api/tipos-eventos/${id}`)
@@ -54,6 +55,9 @@ export default function EditarTipoEventoForm() {
             activo: data.activo ?? true,
           })
           setPreguntas(Array.isArray(data.preguntas_informe) ? data.preguntas_informe : [])
+          setNombresGrupos(
+            Array.isArray(data.nombres_grupos) ? data.nombres_grupos.map((n: unknown) => String(n)) : []
+          )
         }
         setLoadingData(false)
       })
@@ -86,6 +90,11 @@ export default function EditarTipoEventoForm() {
     setPreguntas(prev => prev.map(p => (p.id === pid ? { ...p, texto } : p)))
   const removePregunta = (pid: string) => setPreguntas(prev => prev.filter(p => p.id !== pid))
 
+  const addNombreGrupo = () => setNombresGrupos(prev => [...prev, ''])
+  const updateNombreGrupo = (i: number, nombre: string) =>
+    setNombresGrupos(prev => prev.map((n, idx) => (idx === i ? nombre : n)))
+  const removeNombreGrupo = (i: number) => setNombresGrupos(prev => prev.filter((_, idx) => idx !== i))
+
   const toggleRol = (ministerioId: string) => {
     setRolesSeleccionados(prev => {
       const next = new Set(prev)
@@ -105,7 +114,11 @@ export default function EditarTipoEventoForm() {
         fetch(`/api/tipos-eventos/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...formData, preguntas_informe: preguntas.filter(p => p.texto.trim()) }),
+          body: JSON.stringify({
+            ...formData,
+            preguntas_informe: preguntas.filter(p => p.texto.trim()),
+            nombres_grupos: nombresGrupos.map(n => n.trim()).filter(Boolean),
+          }),
         }),
         fetch(`/api/tipos-eventos/${id}/roles-solicitantes`, {
           method: 'PUT',
@@ -350,6 +363,48 @@ export default function EditarTipoEventoForm() {
               ))}
               <Button type="button" variant="outline" size="sm" onClick={addPregunta} className="gap-1">
                 <Plus className="h-4 w-4" /> Agregar pregunta
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <UsersRound className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base font-semibold">Nombres de Grupo</CardTitle>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              De esta lista se eligen los nombres al armar los grupos de cada evento de este tipo (ej.: Jerusalem).
+              Dentro de un mismo evento cada nombre se usa una sola vez.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {nombresGrupos.length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay nombres de grupo definidos todavía.</p>
+              )}
+              {nombresGrupos.map((nombre, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-5 shrink-0 text-xs text-muted-foreground">{i + 1}.</span>
+                  <input
+                    value={nombre}
+                    onChange={e => updateNombreGrupo(i, e.target.value)}
+                    placeholder="Jerusalem"
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeNombreGrupo(i)}
+                    className="text-destructive hover:opacity-70"
+                    title="Eliminar nombre"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addNombreGrupo} className="gap-1">
+                <Plus className="h-4 w-4" /> Agregar nombre
               </Button>
             </div>
           </CardContent>

@@ -140,7 +140,9 @@ export default async function EventosPublicadosPage() {
                 {/* Card footer */}
                 <div className="px-5 pb-5 pt-3 border-t border-border">
                   <Link
-                    href={`/eventos/${evento.id}`}
+                    // Un Participante (convivente no cecista) no entra a la ficha
+                    // interna: va a la página pública, donde puede anotarse.
+                    href={ctx.es_interno ? `/eventos/${evento.id}` : `/e/${evento.id}`}
                     className="inline-flex w-full items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 transition-colors"
                   >
                     Ver detalles

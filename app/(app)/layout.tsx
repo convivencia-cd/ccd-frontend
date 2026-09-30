@@ -37,6 +37,7 @@ export default async function AppLayout({
     canViewCasasRetiro:    canPerform(ctx, 'view.casas_retiro'),
     canViewInteresados:    canPerform(ctx, 'view.interesados') || esCoordinadorOCentralizador,
     isAdmin:               ctx.is_admin,
+    esInterno:             ctx.es_interno,
   }
 
   return (

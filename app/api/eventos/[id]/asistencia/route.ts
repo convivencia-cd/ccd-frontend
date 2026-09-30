@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
+import { getPublicOrigin } from '@/lib/http'
+import {
+  crearAccesoParticipante,
+  type ResultadoAccesoParticipante,
+} from '@/lib/personas/acceso-participante'
 
 export async function POST(
   request: Request,
@@ -30,7 +36,7 @@ export async function POST(
   // The event must be publishable/running to take attendance
   const { data: evento, error: eventoError } = await supabase
     .from('eventos')
-    .select('id, estado, organizacion_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
+    .select('id, nombre, estado, organizacion_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
     .eq('id', id)
     .single()
 
@@ -61,7 +67,7 @@ export async function POST(
   // The QR must belong to a participant of THIS event
   const { data: participante, error: partError } = await supabase
     .from('evento_participantes')
-    .select('id, evento_id, estado_participacion, persona:personas!persona_id(id, nombre, apellido)')
+    .select('id, evento_id, estado_participacion, rol_en_evento, persona:personas!persona_id(id, nombre, apellido)')
     .eq('id', participanteId)
     .eq('evento_id', id)
     .single()
@@ -73,7 +79,7 @@ export async function POST(
     )
   }
 
-  const persona = participante.persona as unknown as { nombre: string; apellido: string } | null
+  const persona = participante.persona as unknown as { id: string; nombre: string; apellido: string } | null
   const nombre = persona ? `${persona.nombre} ${persona.apellido}` : 'Participante'
 
   // Already present → idempotent success
@@ -104,5 +110,28 @@ export async function POST(
     return NextResponse.json({ error: updateError.message }, { status: 400 })
   }
 
-  return NextResponse.json({ estado: 'en_curso', nombre, already: false })
+  // Primera asistencia de un convivente no cecista: pasa a estar registrado en
+  // el sistema con una cuenta de Participante (el tilde es_convivente lo pone
+  // el trigger de 082). Es best-effort: si falla, la asistencia ya quedó
+  // tomada y no se revierte.
+  let acceso: ResultadoAccesoParticipante | null = null
+  if (participante.rol_en_evento === 'convivente' && persona?.id) {
+    try {
+      const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+      acceso = await crearAccesoParticipante(supabaseAdmin, {
+        personaId: persona.id,
+        eventoNombre: evento.nombre ?? 'la convivencia',
+        origin: getPublicOrigin(request),
+      })
+    } catch (err) {
+      console.error('[asistencia] error creando el acceso de participante:', err)
+      acceso = { estado: 'error', motivo: 'Error inesperado creando la cuenta' }
+    }
+  }
+
+  return NextResponse.json({ estado: 'en_curso', nombre, already: false, acceso })
 }
