@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink, UserCheck } from 'lucide-react'
 import { formatDateAR } from '@/lib/utils'
 import { esCentralizadorDeEvento, ROLES_SERVIDORES, formatMonto } from '@/lib/eventos/cierre'
 import { canGestionarPension } from '@/lib/eventos/pension'
@@ -18,15 +18,20 @@ import EquipoEventoPanel, {
   type ParticipanteEquipo,
 } from '../_components/equipo-evento-panel'
 import { CopyLinkButton } from './_components/copy-link-button'
+import { ContactoPersona } from '../_components/participantes-evento-card'
+import { puedeGestionarInteresado } from '@/lib/interesados/access'
+import { InteresadoCard, INTERESADO_SELECT } from '../../../interesados/_components/interesado-card'
 
 const estadoClases: Record<string, string> = {
   publicado: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   en_curso: 'bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
+  finalizado: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 }
 
 const estadoLabel: Record<string, string> = {
   publicado: 'Publicado',
   en_curso: 'En Curso',
+  finalizado: 'Finalizado',
 }
 
 const participacionClases: Record<string, string> = {
@@ -38,7 +43,7 @@ const participacionClases: Record<string, string> = {
 const participacionLabel: Record<string, string> = {
   interesado: 'Interesado',
   inscripto: 'Inscripto',
-  en_curso: 'Conviviente',
+  en_curso: 'Convivente',
 }
 
 type ParticipanteRow = {
@@ -104,7 +109,8 @@ export default async function EventoGestionPage({
   const confraternidad = evento.confraternidad as { id: string; nombre: string } | null
   const fraternidad = evento.fraternidad as { id: string; nombre: string } | null
 
-  const disponible = evento.estado === 'publicado' || evento.estado === 'en_curso'
+  // finalizado: Becas en Pensión sigue editable hasta el cierre y vive acá.
+  const disponible = ['publicado', 'en_curso', 'finalizado'].includes(evento.estado)
 
   if (!disponible) {
     return (
@@ -114,8 +120,8 @@ export default async function EventoGestionPage({
           Volver a {evento.nombre}
         </Link>
         <div className="rounded-lg border border-border bg-muted p-6 text-sm text-muted-foreground">
-          La Gestión del Evento solo está disponible mientras el evento está <strong>publicado</strong> o{' '}
-          <strong>en curso</strong>. Estado actual: <strong>{evento.estado}</strong>.
+          La Gestión del Evento solo está disponible mientras el evento está <strong>publicado</strong>,{' '}
+          <strong>en curso</strong> o <strong>finalizado</strong>. Estado actual: <strong>{evento.estado}</strong>.
         </div>
       </div>
     )
@@ -134,14 +140,27 @@ export default async function EventoGestionPage({
   const conviventes = participantes.filter(
     p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'cancelado'
   )
+  // Interesados van en su propio panel (con seguimiento); acá, inscriptos y conviventes.
+  const inscriptos = conviventes.filter(p => p.estado_participacion !== 'interesado')
+
+  const canInteresados = await puedeGestionarInteresado(supabase, ctx, id)
+  let interesados: unknown[] = []
+  if (canInteresados) {
+    const { data: interesadosData } = await supabase
+      .from('evento_participantes')
+      .select(INTERESADO_SELECT)
+      .eq('evento_id', id)
+      .eq('estado_participacion', 'interesado')
+      .order('fecha_inscripcion', { ascending: false })
+    interesados = interesadosData ?? []
+  }
   const equipos = participantes.filter(
     p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado'
   )
 
-  const conteoConvivientes = {
-    interesado: conviventes.filter(p => p.estado_participacion === 'interesado').length,
-    inscripto: conviventes.filter(p => p.estado_participacion === 'inscripto').length,
-    en_curso: conviventes.filter(p => p.estado_participacion === 'en_curso').length,
+  const conteoInscriptos = {
+    inscripto: inscriptos.filter(p => p.estado_participacion === 'inscripto').length,
+    en_curso: inscriptos.filter(p => p.estado_participacion === 'en_curso').length,
   }
 
   const { data: pagosEvento } = await supabase
@@ -267,6 +286,33 @@ export default async function EventoGestionPage({
         </CardContent>
       </Card>
 
+      {/* Interesados — seguimiento de contacto de este evento */}
+      {canInteresados && (
+        <Card className="border-border bg-card">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+            <div className="space-y-1.5">
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <UserCheck className="h-5 w-5 text-primary" />
+                Interesados ({interesados.length})
+              </CardTitle>
+              <CardDescription>Personas que manifestaron interés. Registrá el contacto y enviá el link de pago.</CardDescription>
+            </div>
+            <Link href={`/interesados?evento_id=${id}`} className="text-sm text-primary hover:underline">
+              Ver en Interesados
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {interesados.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Todavía no hay interesados en este evento.</p>
+            ) : (
+              interesados.map(it => (
+                <InteresadoCard key={(it as { id: string }).id} it={it} mostrarEvento={false} />
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Equipo y padrón editables. Reemplazan a las tarjetas de solo lectura de
           más abajo para quien puede gestionar el evento. */}
       {(canAsignaciones || canParticipantes) && (
@@ -281,21 +327,21 @@ export default async function EventoGestionPage({
         />
       )}
 
-      {/* Convivientes: interesados / inscriptos / en curso */}
+      {/* Inscriptos: inscriptos / conviventes (presente dado) */}
       {!canParticipantes && (
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-primary" />
-              Convivientes
+              Inscriptos
             </CardTitle>
             <CardDescription>
-              {conteoConvivientes.interesado} interesados · {conteoConvivientes.inscripto} inscriptos · {conteoConvivientes.en_curso} convivientes
+              {conteoInscriptos.inscripto} inscriptos · {conteoInscriptos.en_curso} conviventes (con el presente dado)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {conviventes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay convivientes registrados.</p>
+            {inscriptos.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay inscriptos.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -308,13 +354,13 @@ export default async function EventoGestionPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {conviventes.map(p => (
+                    {inscriptos.map(p => (
                       <tr key={p.id} className="border-b border-border/60 hover:bg-muted/40">
                         <td className="px-3 py-2 font-medium text-foreground">
                           {p.persona ? `${p.persona.apellido}, ${p.persona.nombre}` : '—'}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
-                          {p.persona?.telefono ?? p.persona?.email ?? '—'}
+                          <ContactoPersona persona={p.persona} />
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
                           {p.fecha_inscripcion ? formatDateAR(p.fecha_inscripcion) : '—'}

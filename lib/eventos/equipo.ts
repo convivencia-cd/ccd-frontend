@@ -29,7 +29,7 @@ export const ROLES_SERVIDOR_OPCIONES = [
  * "Equipo Auxiliar" y se detallan en `notas`.
  */
 export const ROLES_EVENTO_LABEL: Record<string, string> = {
-  convivente: 'Conviviente',
+  convivente: 'Convivente',
   coordinador: 'Coordinador',
   asesor: 'Asesor',
   centralizador: 'Centralizador',
@@ -45,7 +45,7 @@ export const MAX_MINISTERIO_MUSICA = 2
 export const ESTADOS_PARTICIPACION_OPCIONES = [
   { value: 'interesado', label: 'Interesado' },
   { value: 'inscripto', label: 'Inscripto' },
-  { value: 'en_curso', label: 'Conviviente' },
+  { value: 'en_curso', label: 'Convivente' },
   { value: 'completado', label: 'Completado' },
   { value: 'lista_espera', label: 'Lista de espera' },
   { value: 'cancelado', label: 'Cancelado' },

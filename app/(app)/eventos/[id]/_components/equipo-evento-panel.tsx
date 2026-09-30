@@ -62,7 +62,11 @@ export default function EquipoEventoPanel({
   const refrescar = () => router.refresh()
 
   const equipo = participantes.filter(p => ROLES_SERVIDOR.includes(p.rol_en_evento))
-  const inscriptos = participantes.filter(p => p.rol_en_evento === 'convivente')
+  // Los interesados tienen su propio panel (seguimiento de contacto): acá van
+  // solo quienes ya se inscribieron o dieron el presente.
+  const inscriptos = participantes.filter(
+    p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'interesado'
+  )
   const servidoresDeGrupo = equipo.filter(
     p => p.rol_en_evento === 'servidor' && p.estado_participacion !== 'cancelado'
   )

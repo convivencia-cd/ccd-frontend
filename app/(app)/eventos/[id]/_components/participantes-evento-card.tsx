@@ -41,6 +41,17 @@ export type ParticipanteEquipo = {
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
 const selectClass = 'rounded border border-border bg-background px-2 py-1 text-sm text-foreground'
 
+/** Teléfono y email, los dos: con uno solo el centralizador se quedaba sin el otro medio. */
+export function ContactoPersona({ persona }: { persona: { email: string | null; telefono: string | null } | null }) {
+  if (!persona?.telefono && !persona?.email) return <>—</>
+  return (
+    <div className="space-y-0.5">
+      {persona.telefono && <p>{persona.telefono}</p>}
+      {persona.email && <p>{persona.email}</p>}
+    </div>
+  )
+}
+
 function nombreDe(p: ParticipanteEquipo): string {
   return p.persona ? `${p.persona.apellido}, ${p.persona.nombre}` : '—'
 }
@@ -83,7 +94,6 @@ export default function ParticipantesEventoCard({
   const dadosDeBaja = filas.filter(p => p.estado_participacion === 'cancelado')
 
   const conteo = {
-    interesado: activos.filter(p => p.estado_participacion === 'interesado').length,
     inscripto: activos.filter(p => p.estado_participacion === 'inscripto').length,
     en_curso: activos.filter(p => p.estado_participacion === 'en_curso').length,
   }
@@ -167,7 +177,7 @@ export default function ParticipantesEventoCard({
         <CardDescription>
           {esEquipo
             ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al evento son los de "Asignaciones del Evento".`
-            : `${conteo.interesado} interesados · ${conteo.inscripto} inscriptos · ${conteo.en_curso} convivientes`}
+            : `${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados se siguen en su propio panel.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -213,7 +223,7 @@ export default function ParticipantesEventoCard({
                     ) : (
                       <>
                         <td className="px-3 py-2 text-muted-foreground">
-                          {p.persona?.telefono ?? p.persona?.email ?? '—'}
+                          <ContactoPersona persona={p.persona} />
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
                           {p.fecha_inscripcion ? formatDateAR(p.fecha_inscripcion) : '—'}
