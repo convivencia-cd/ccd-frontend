@@ -74,6 +74,8 @@ export type EventoInfo = {
   nombre: string
   fecha_inicio: string | null
   confraternidad_nombre: string | null
+  /** Casa de retiro / ciudad — encabezado de los informes para Equipo Timón. */
+  lugar?: string | null
 }
 
 // ─── Listado de conviventes ───────────────────────────────────────────────────
@@ -94,39 +96,81 @@ export async function exportConviventesPDF(
   doc.save(nombreArchivo(evento, 'conviventes'))
 }
 
-// ─── Informe del Coordinador (confidencial) ───────────────────────────────────
+// ─── Informes confidenciales: mismo formato que los Word de la Comunidad ──────
 
-export async function exportInformeCoordinadorPDF(
+function centrado(c: Cursor, text: string, opts?: { size?: number; bold?: boolean }) {
+  const pageW = c.doc.internal.pageSize.getWidth()
+  c.doc.setFontSize(opts?.size ?? 11)
+  c.doc.setFont('helvetica', opts?.bold ? 'bold' : 'normal')
+  ensureSpace(c, LINE)
+  c.doc.text(text, pageW / 2, c.y, { align: 'center' })
+  c.y += LINE
+}
+
+/** Encabezado de los Word: título centrado + Cc / Fecha / Lugar / Confraternidad. */
+function encabezadoPlanilla(c: Cursor, titulos: string[], evento: EventoInfo) {
+  titulos.forEach((t, i) => centrado(c, t, { size: i === 0 ? 15 : 12, bold: true }))
+  centrado(c, '(Para Equipo Timón)', { size: 10 })
+  c.y += 3
+  const fecha = evento.fecha_inicio ? formatDateAR(evento.fecha_inicio.split('T')[0]) : '—'
+  writeWrapped(c, `Cc: ${evento.nombre}`, { size: 11 })
+  writeWrapped(c, `Fecha de inicio: ${fecha}`, { size: 11 })
+  writeWrapped(c, `Lugar: ${evento.lugar || '—'}`, { size: 11 })
+  writeWrapped(c, `Confraternidad: ${evento.confraternidad_nombre || '—'}`, { size: 11, gap: 2 })
+  const pageW = c.doc.internal.pageSize.getWidth()
+  c.doc.setDrawColor(180)
+  c.doc.line(MARGIN, c.y, pageW - MARGIN, c.y)
+  c.y += 7
+}
+
+function firma(c: Cursor, texto: string) {
+  ensureSpace(c, 30)
+  c.y += 16
+  c.doc.setDrawColor(120)
+  c.doc.line(MARGIN, c.y, MARGIN + 70, c.y)
+  c.y += 5
+  writeWrapped(c, texto, { size: 10 })
+}
+
+export const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV']
+
+// ─── Informe de la CcD para Equipo Timón (confidencial) ───────────────────────
+
+export async function exportInformeEqtPDF(
   evento: EventoInfo,
   preguntas: PreguntaInforme[],
   respuestas: Record<string, string>,
 ) {
   const doc = await nuevoDoc()
   const c: Cursor = { doc, y: MARGIN }
-  encabezado(c, 'Informe del Coordinador', evento)
-  writeWrapped(c, 'CONFIDENCIAL', { size: 9, bold: true, gap: 3 })
+  encabezadoPlanilla(c, ['INFORME DE LA CcD'], evento)
   preguntas.forEach((p, i) => {
-    writeWrapped(c, `${i + 1}. ${p.texto}`, { size: 11, bold: true })
+    writeWrapped(c, `${ROMANOS[i] ?? i + 1}) ${p.texto}`, { size: 11, bold: true })
     writeWrapped(c, respuestas?.[p.id] || '—', { size: 11, gap: 4 })
   })
-  doc.save(nombreArchivo(evento, 'informe-coordinador'))
+  firma(c, 'Firma y aclaración — Coordinador')
+  doc.save(nombreArchivo(evento, 'informe-equipo-timon'))
 }
 
-// ─── Informe de Carismas (confidencial) ───────────────────────────────────────
+// ─── Planilla de Carismas de Servidores (confidencial) ────────────────────────
+
+const ETIQUETA_CARISMA: Record<string, string> = { servidor: 'SERVIDOR', asesor: 'ASESOR', coordinador: 'COORDINADOR' }
 
 export async function exportInformeCarismasPDF(
   evento: EventoInfo,
-  carismas: { nombre: string; texto: string }[],
+  carismas: { nombre: string; apellido: string; rol: string; fraternidad: string | null; texto: string }[],
 ) {
   const doc = await nuevoDoc()
   const c: Cursor = { doc, y: MARGIN }
-  encabezado(c, 'Informe de Carismas del Equipo', evento)
-  writeWrapped(c, 'CONFIDENCIAL', { size: 9, bold: true, gap: 3 })
+  encabezadoPlanilla(c, ['EVALUACIÓN', '(CARISMA DE SERVIDORES)'], evento)
   carismas.forEach(item => {
-    writeWrapped(c, item.nombre, { size: 11, bold: true })
+    const etiqueta = ETIQUETA_CARISMA[item.rol] ?? item.rol.toUpperCase()
+    const quien = `${item.apellido}, ${item.nombre} — Fraternidad: ${item.fraternidad || 'sin fraternidad registrada'}`
+    writeWrapped(c, `${etiqueta}: ${quien}`, { size: 11, bold: true })
     writeWrapped(c, item.texto || '—', { size: 11, gap: 4 })
   })
-  doc.save(nombreArchivo(evento, 'informe-carismas'))
+  firma(c, 'Firma del Coordinador')
+  doc.save(nombreArchivo(evento, 'planilla-carismas'))
 }
 
 // ─── Informe económico (réplica de la hoja "Informe Economico" + registro por medio) ─

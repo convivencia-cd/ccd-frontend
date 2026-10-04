@@ -23,13 +23,18 @@ import { InteresadoCard, INTERESADO_SELECT } from '../../interesados/_components
 import {
   canEditarCierre,
   canVerCierre,
-  canVerInformesConfidenciales,
+  canVerCarismas,
+  canVerInformeEqt,
+  canEditarInformesConfidenciales,
   canCerrarConvivencia,
+  canSubirFotosCierre,
   esCentralizadorDeEvento,
-  ROLES_SERVIDORES,
+  ROLES_CARISMAS,
   type PreguntaInforme,
 } from '@/lib/eventos/cierre'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
+import { cargarCarismas, cargarInformeEqt } from '@/lib/eventos/informes-cierre'
+import { cargarFotosCierre } from '@/lib/eventos/fotos-cierre'
 import { formatDateAR } from '@/lib/utils'
 
 const estadoClases: Record<string, string> = {
@@ -110,8 +115,6 @@ export default async function EventoDetailPage({
       manuales_stock, manuales_necesarios, manuales_solicitados,
       tipo_evento_id,
       fecha_cierre, cerrado_por,
-      cierre_foto_convivencia_url, cierre_foto_servidores_url,
-      informe_coordinador_respuestas, informe_carismas,
       cierre_bolso_manuales_completo, cierre_manuales_saldo_final,
       cierre_manuales_recibidos_de, cierre_manuales_entrego_a, cierre_manuales_notas,
       tipo_evento:tipos_eventos!tipo_evento_id(preguntas_informe),
@@ -295,14 +298,44 @@ export default async function EventoDetailPage({
       rol: p.rol_en_evento,
     }))
 
-  const servidoresCierre = participantes
-    .filter(p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado')
+  // Planilla de Carismas: servidores, asesor y coordinador (en ese orden), con
+  // la fraternidad de cada uno ("no omitir los apellidos ni la fraternidad").
+  const evaluadosCierre = participantes
+    .filter(p => (ROLES_CARISMAS as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado')
+    .map(p => ({ persona_id: p.persona_id, rol_en_evento: p.rol_en_evento, persona: p.persona ? { nombre: p.persona.nombre, apellido: p.persona.apellido } : null }))
+  // El asesor y el coordinador asignados viven en columnas de `eventos`: se
+  // suman si no están ya cargados como participantes.
+  if (showCierre) {
+    const asignados = evento as unknown as Record<'asesor_asignado' | 'coordinador_asignado', { id: string; nombre: string; apellido: string } | null>
+    for (const [rol, persona] of [['asesor', asignados.asesor_asignado], ['coordinador', asignados.coordinador_asignado]] as const) {
+      if (persona && !evaluadosCierre.some(p => p.persona_id === persona.id)) {
+        evaluadosCierre.push({ persona_id: persona.id, rol_en_evento: rol, persona: { nombre: persona.nombre, apellido: persona.apellido } })
+      }
+    }
+  }
+  const fraternidadPorPersona = new Map<string, string>()
+  if (evaluadosCierre.length > 0) {
+    const { data: membresias } = await supabase
+      .from('persona_organizacion')
+      .select('persona_id, organizacion:organizaciones!organizacion_id(nombre)')
+      .in('persona_id', evaluadosCierre.map(p => p.persona_id))
+      .eq('tipo_relacion', 'fraternidad')
+      .is('fecha_fin', null)
+    for (const m of (membresias ?? []) as unknown as { persona_id: string; organizacion: { nombre: string } | null }[]) {
+      if (m.organizacion?.nombre) fraternidadPorPersona.set(m.persona_id, m.organizacion.nombre)
+    }
+  }
+  const servidoresCierre = evaluadosCierre
     .map(p => ({
       persona_id: p.persona_id,
       nombre: p.persona?.nombre ?? '',
       apellido: p.persona?.apellido ?? '',
       rol: p.rol_en_evento,
+      fraternidad: fraternidadPorPersona.get(p.persona_id) ?? null,
     }))
+    .sort((a, b) =>
+      (ROLES_CARISMAS as readonly string[]).indexOf(a.rol) - (ROLES_CARISMAS as readonly string[]).indexOf(b.rol) ||
+      a.apellido.localeCompare(b.apellido) || a.nombre.localeCompare(b.nombre))
 
   const tipoEvento = (evento as Record<string, unknown>).tipo_evento as { preguntas_informe: PreguntaInforme[] } | null
   const preguntasInforme: PreguntaInforme[] = Array.isArray(tipoEvento?.preguntas_informe) ? tipoEvento!.preguntas_informe : []
@@ -504,8 +537,19 @@ export default async function EventoDetailPage({
 
   // Cierre de convivencia
   const canEditarCierrePanel = canEditarCierre(ctx, cierreEvento)
-  const canVerConfidencial = canVerInformesConfidenciales(ctx, cierreEvento)
-  const canEditarConfidencial = canVerConfidencial && evento.estado === 'finalizado'
+  const canVerCarismasCierre = canVerCarismas(ctx, cierreEvento)
+  const canVerInformeEqtCierre = canVerInformeEqt(ctx, cierreEvento)
+  const canEditarConfidencial = canEditarInformesConfidenciales(ctx, cierreEvento)
+  // Confidenciales: viven en evento_informes_cierre (RLS cerrada) y solo se leen
+  // si el usuario puede verlos, así no viajan al cliente.
+  const [informeEqtCierre, carismasCierre, fotosCierre] = showCierre
+    ? await Promise.all([
+        canVerInformeEqtCierre ? cargarInformeEqt(id) : Promise.resolve(null),
+        canVerCarismasCierre ? cargarCarismas(id) : Promise.resolve(null),
+        cargarFotosCierre(supabase, id),
+      ])
+    : [null, null, []]
+  const canSubirFotos = canSubirFotosCierre(ctx, cierreEvento)
   const canCerrar = canCerrarConvivencia(ctx, cierreEvento)
 
   const ESTADOS_TERMINALES = ['suspendido', 'cancelado', 'finalizado', 'cerrado', 'rechazado']
@@ -1200,28 +1244,30 @@ export default async function EventoDetailPage({
             nombre: evento.nombre,
             fecha_inicio: evento.fecha_inicio ?? null,
             confraternidad_nombre: confraternidad?.nombre ?? null,
+            lugar: casaRetiro
+              ? [casaRetiro.nombre, casaRetiro.ciudad].filter(Boolean).join(', ')
+              : (ev.ciudad as string | null) ?? null,
           }}
           canEditar={!!canEditarCierrePanel}
-          canVerConfidencial={!!canVerConfidencial}
+          canVerCarismas={!!canVerCarismasCierre}
+          canVerInformeEqt={!!canVerInformeEqtCierre}
           canEditarConfidencial={!!canEditarConfidencial}
           canCerrar={!!canCerrar}
+          canSubirFotos={!!canSubirFotos}
+          fotos={fotosCierre}
           conviventes={conviventesCierre}
           servidores={servidoresCierre}
           cecistas={cecistasSoloList}
           preguntas={preguntasInforme}
           canVerInformeEconomico={showIE}
           inicial={{
-            cierre_foto_convivencia_url: (ev.cierre_foto_convivencia_url as string | null) ?? null,
-            cierre_foto_servidores_url: (ev.cierre_foto_servidores_url as string | null) ?? null,
             cierre_bolso_manuales_completo: (ev.cierre_bolso_manuales_completo as boolean | null) ?? null,
             cierre_manuales_saldo_final: (ev.cierre_manuales_saldo_final as number | null) ?? null,
             cierre_manuales_recibidos_de: (ev.cierre_manuales_recibidos_de as string | null) ?? null,
             cierre_manuales_entrego_a: (ev.cierre_manuales_entrego_a as string | null) ?? null,
             cierre_manuales_notas: (ev.cierre_manuales_notas as string | null) ?? null,
-            // Confidenciales: solo se envían al cliente si el usuario tiene permiso de verlos —
-            // de lo contrario viajarían en el payload aunque la UI las oculte.
-            informe_coordinador_respuestas: canVerConfidencial ? (ev.informe_coordinador_respuestas as Record<string, string> | null) ?? null : null,
-            informe_carismas: canVerConfidencial ? (ev.informe_carismas as { persona_id: string; texto: string }[] | null) ?? null : null,
+            informe_coordinador_respuestas: informeEqtCierre,
+            informe_carismas: carismasCierre,
           }}
         />
       )}

@@ -3,8 +3,16 @@ import { canPerform } from "@/lib/auth/permissions"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-/** Bucket de Storage para las fotos del cierre (convivencia + servidores). */
+/** Bucket de Storage (público) para las fotos del cierre. */
 export const CIERRE_BUCKET = "eventos-cierre"
+
+/** Fotos mínimas para poder cerrar la convivencia (tarjeta #44). */
+export const MIN_FOTOS_CIERRE = 3
+
+/** Tamaño máximo por foto del cierre. */
+export const MAX_FOTO_CIERRE_BYTES = 10 * 1024 * 1024
+
+export const FOTO_CIERRE_MIME = ["image/jpeg", "image/png", "image/webp"] as const
 
 /** Porcentaje de Diezmo al Equipo Timón sobre el saldo positivo del evento (ver lib/eventos/informe-economico.ts). */
 export const DIEZMO_PCT = 0.2
@@ -43,6 +51,12 @@ export const ROLES_SERVIDORES = [
   "servidor",
   "equipo_auxiliar",
 ] as const
+
+/**
+ * Roles que se evalúan en la "Planilla de Carismas de Servidores", en el orden
+ * de la planilla: servidores, asesor y coordinador.
+ */
+export const ROLES_CARISMAS = ["servidor", "asesor", "coordinador"] as const
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -136,23 +150,80 @@ export function canEditarCierre(
   )
 }
 
+type PermisoCierre =
+  | "cierre.view_carismas"
+  | "cierre.view_informe_responsables"
+  | "cierre.view_informe_eqt"
+  | "cierre.upload_fotos"
+
+function tienePermisoCierre(
+  ctx: UserContext,
+  permiso: PermisoCierre,
+  evento: CierreEvento,
+): boolean {
+  return (
+    canPerform(ctx, permiso, evento.organizacion_id) ||
+    (evento.fraternidad_id
+      ? canPerform(ctx, permiso, evento.fraternidad_id)
+      : false)
+  )
+}
+
 /**
- * Puede ver/editar los informes confidenciales (Coordinador + Carismas, puntos 6 y 7).
- * Solo: coordinador del evento, Equipo Timón, responsables de confraternidad,
- * enlaces de fraternidad y delegado EqT (todos con event.approve_confra scopeado o approve_eqt).
+ * Puede ver el Informe de Carismas: el coordinador del evento (lo completa) y
+ * quien tenga cierre.view_carismas scopeado (asignable desde el catálogo).
  */
-export function canVerInformesConfidenciales(
+export function canVerCarismas(
   ctx: UserContext | null,
   evento: CierreEvento,
 ): boolean {
   if (!ctx) return false
   return (
     esCoordinador(ctx, evento) ||
-    canPerform(ctx, "event.approve_eqt") ||
-    canPerform(ctx, "event.approve_confra", evento.organizacion_id) ||
-    (evento.fraternidad_id
-      ? canPerform(ctx, "event.approve_confra", evento.fraternidad_id)
-      : false)
+    tienePermisoCierre(ctx, "cierre.view_carismas", evento)
+  )
+}
+
+/**
+ * Puede ver el "Informe de la CcD (para Equipo Timón)": el coordinador del
+ * evento (lo completa) y quien tenga cierre.view_informe_eqt scopeado.
+ * El informe para Responsables (cierre.view_informe_responsables) todavía no existe.
+ */
+export function canVerInformeEqt(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
+  if (!ctx) return false
+  return (
+    esCoordinador(ctx, evento) ||
+    tienePermisoCierre(ctx, "cierre.view_informe_eqt", evento)
+  )
+}
+
+/**
+ * Completa los informes confidenciales (para Equipo Timón + Carismas): solo el
+ * coordinador del evento (y el admin técnico como respaldo), mientras está 'finalizado'.
+ */
+export function canEditarInformesConfidenciales(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
+  if (!ctx || evento.estado !== "finalizado") return false
+  return esCoordinador(ctx, evento) || ctx.is_admin
+}
+
+/**
+ * Sube/quita fotos del cierre: el centralizador del evento o quien tenga
+ * cierre.upload_fotos scopeado. Solo mientras el evento está 'finalizado'.
+ */
+export function canSubirFotosCierre(
+  ctx: UserContext | null,
+  evento: CierreEvento,
+): boolean {
+  if (!ctx || evento.estado !== "finalizado") return false
+  return (
+    esCentralizadorDeEvento(ctx, evento) ||
+    tienePermisoCierre(ctx, "cierre.upload_fotos", evento)
   )
 }
 
@@ -176,7 +247,11 @@ export function canVerCierre(
   return (
     esCoordinador(ctx, evento) ||
     esCentralizadorDeEvento(ctx, evento) ||
-    canVerInformesConfidenciales(ctx, evento) ||
+    canVerCarismas(ctx, evento) ||
+    canVerInformeEqt(ctx, evento) ||
+    canSubirFotosCierre(ctx, evento) ||
+    // Quien cierra la convivencia (canCerrarConvivencia) tiene que ver el panel.
+    canPerform(ctx, "event.approve_eqt") ||
     canPerform(ctx, "event.update", evento.organizacion_id) ||
     (evento.fraternidad_id
       ? canPerform(ctx, "event.update", evento.fraternidad_id)
