@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { FileText, Check, X, ExternalLink } from 'lucide-react'
+import { FileText, Check, X, ExternalLink, Paperclip } from 'lucide-react'
 import { formatDateAR } from '@/lib/utils'
 
 function isPdfUrl(url: string) {
@@ -24,6 +24,7 @@ export type PagoPendiente = {
   fecha_pago: string | null
   comprobante_signed_url: string | null
   concepto: string
+  medio_pago: string
   persona: string
   evento: string
 }
@@ -31,6 +32,12 @@ export type PagoPendiente = {
 const conceptoLabel: Record<string, string> = {
   inscripcion: 'Inscripción',
   pension: 'Pensión',
+}
+
+const medioLabel: Record<string, string> = {
+  transferencia: 'Transferencia',
+  efectivo: 'Efectivo',
+  otro: 'Otro',
 }
 
 export function VerificacionPendientes({
@@ -72,6 +79,27 @@ export function VerificacionPendientes({
     }
   }
 
+  async function adjuntar(id: string, file: File | undefined) {
+    if (!file) return
+    setError(null)
+    setLoadingId(id)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`/api/pagos/${id}/comprobante`, { method: 'POST', body: fd })
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.error ?? 'No se pudo subir el comprobante.')
+      } else {
+        router.refresh()
+      }
+    } catch {
+      setError('Error de conexión. Intentá de nuevo.')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
   if (pagos.length === 0 && !mostrarVacio) return null
 
   return (
@@ -79,7 +107,7 @@ export function VerificacionPendientes({
       <CardHeader>
         <CardTitle className="text-foreground">Pendientes de verificación</CardTitle>
         <CardDescription>
-          Comprobantes de transferencia que esperan tu aprobación
+          Pagos cargados como pendientes (con o sin comprobante) que esperan tu aprobación
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -98,6 +126,9 @@ export function VerificacionPendientes({
                 <span className="mt-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                   {conceptoLabel[p.concepto] ?? p.concepto}
                 </span>
+                <span className="mt-1 ml-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {medioLabel[p.medio_pago] ?? p.medio_pago}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-foreground">${Number(p.monto).toFixed(2)}</span>
@@ -113,7 +144,17 @@ export function VerificacionPendientes({
                   Ver comprobante
                 </button>
               ) : (
-                <p className="text-sm text-muted-foreground">Sin comprobante</p>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-primary hover:underline">
+                  <Paperclip className="h-4 w-4" />
+                  Sin comprobante — adjuntar
+                  <input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={loadingId === p.id}
+                    onChange={(e) => adjuntar(p.id, e.target.files?.[0])}
+                  />
+                </label>
               )}
               <div className="flex gap-2 pt-1">
                 <Button

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { PagoStepper, type DatosPago, type PersonaDatos } from './_components/pago-stepper'
-import { hayCuentaCobroCentral } from '@/lib/mercadopago/org-account'
+import { hayCuentaCobroCentral, obtenerDatosTransferenciaCentral } from '@/lib/mercadopago/org-account'
 
 // El precio, los datos de la persona y el estado del pago cambian fuera de
 // esta página (centralizador, webhook de Mercado Pago) — nunca cachear.
@@ -91,9 +91,7 @@ export default async function PagoInscripcionPage({
       ),
       evento:eventos!evento_id(
         id, nombre, fecha_inicio, fecha_fin, precio, ciudad, provincia_evento,
-        casa_retiro:casas_retiro!casa_retiro_id(nombre),
-        organizacion:organizaciones!organizacion_id(pago_alias, pago_cbu, pago_titular, pago_banco, pago_instrucciones),
-        fraternidad:organizaciones!fraternidad_id(pago_alias, pago_cbu, pago_titular, pago_banco, pago_instrucciones)
+        casa_retiro:casas_retiro!casa_retiro_id(nombre)
       )
     `)
     .eq('id', id)
@@ -111,8 +109,6 @@ export default async function PagoInscripcionPage({
     ciudad: string | null
     provincia_evento: string | null
     casa_retiro: { nombre: string } | null
-    organizacion: Record<string, string | null> | null
-    fraternidad: Record<string, string | null> | null
   } | null
 
   if (!persona || !evento) notFound()
@@ -152,20 +148,12 @@ export default async function PagoInscripcionPage({
     )
   }
 
-  const mpDisponible = await hayCuentaCobroCentral()
-
-  // Transferencia: preferir los datos de la fraternidad si tiene alias; si no,
-  // los de la confraternidad. Mismo criterio que /e/[id].
-  const orgPago = evento.fraternidad?.pago_alias ? evento.fraternidad : evento.organizacion
-  const datosPago: DatosPago | null = orgPago?.pago_alias
-    ? {
-        alias: orgPago.pago_alias,
-        cbu: orgPago.pago_cbu ?? null,
-        titular: orgPago.pago_titular ?? null,
-        banco: orgPago.pago_banco ?? null,
-        instrucciones: orgPago.pago_instrucciones ?? null,
-      }
-    : null
+  // Las inscripciones se cobran siempre en la cuenta central (Equipo Timón),
+  // tanto por Mercado Pago como por transferencia.
+  const [mpDisponible, datosPago]: [boolean, DatosPago | null] = await Promise.all([
+    hayCuentaCobroCentral(),
+    obtenerDatosTransferenciaCentral(),
+  ])
 
   const BannerIcon = banner?.icon
 

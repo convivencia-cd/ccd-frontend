@@ -165,17 +165,22 @@ export default async function EventoGestionPage({
 
   const { data: pagosEvento } = await supabase
     .from('pagos')
-    .select('monto, estado_pago, concepto, participante:evento_participantes!evento_participante_id!inner(evento_id)')
+    .select('monto, estado_pago, concepto, evento_participante_id, participante:evento_participantes!evento_participante_id!inner(evento_id)')
     .eq('participante.evento_id', id)
 
   const resumenPagos = {
     inscripcion: { confirmado: 0, pendiente: 0 },
     pension: { confirmado: 0, pendiente: 0 },
   }
-  for (const p of (pagosEvento ?? []) as { monto: number; estado_pago: string; concepto: string | null }[]) {
+  // Pensión ya cobrada (pagos confirmados) por participante, para el panel de becas.
+  const pensionPagada = new Map<string, number>()
+  for (const p of (pagosEvento ?? []) as { monto: number; estado_pago: string; concepto: string | null; evento_participante_id: string }[]) {
     const c: 'inscripcion' | 'pension' = p.concepto === 'pension' ? 'pension' : 'inscripcion'
     if (p.estado_pago === 'confirmado') resumenPagos[c].confirmado += Number(p.monto)
     else if (p.estado_pago === 'pendiente') resumenPagos[c].pendiente += Number(p.monto)
+    if (c === 'pension' && p.estado_pago === 'confirmado') {
+      pensionPagada.set(p.evento_participante_id, (pensionPagada.get(p.evento_participante_id) ?? 0) + Number(p.monto))
+    }
   }
 
   // Editar el equipo del evento: las asignaciones (coordinador/asesor/centralizadores)
@@ -196,6 +201,7 @@ export default async function EventoGestionPage({
         valor_pension: p.valor_pension,
         beca_pension: p.beca_pension,
         notas_beca: p.notas_beca,
+        pagado_pension: pensionPagada.get(p.id) ?? 0,
       }))
     : []
 

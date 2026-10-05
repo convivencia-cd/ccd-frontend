@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
+import { valorPensionEfectivo, calcularSaldoPension } from '@/lib/eventos/pension'
 import { resolverCuentaEvento } from '@/lib/mercadopago/org-account'
 import { getPublicOrigin } from '@/lib/http'
 
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   const { data: participante } = await supabaseAdmin
     .from('evento_participantes')
     .select(
-      'id, evento:eventos!evento_id(id, nombre, pension, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id)'
+      'id, valor_pension, beca_pension, evento:eventos!evento_id(id, nombre, pension, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id)'
     )
     .eq('id', eventoParticipanteId)
     .single()
@@ -70,9 +71,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No tenés permiso para generar pagos de pensión de este evento' }, { status: 403 })
   }
 
-  const monto = Number(evento.pension ?? 0)
-  if (monto <= 0) {
+  // Se cobra el Saldo de Pensión del participante (valor propio o precio del
+  // evento, menos la beca), no el precio general.
+  const valorPension = valorPensionEfectivo(participante.valor_pension, evento.pension)
+  if (valorPension <= 0) {
     return NextResponse.json({ error: 'Este evento no tiene precio de pensión configurado.' }, { status: 400 })
+  }
+  const monto = calcularSaldoPension(valorPension, Number(participante.beca_pension || 0))
+  if (monto <= 0) {
+    return NextResponse.json(
+      { error: 'La beca cubre toda la pensión de este participante: no hay saldo para cobrar.' },
+      { status: 400 }
+    )
   }
 
   const cuenta = await resolverCuentaEvento(evento.organizacion_id, evento.fraternidad_id)
@@ -83,21 +93,77 @@ export async function POST(request: Request) {
     )
   }
 
-  // Evitar preferencias duplicadas para una pensión ya con pago en curso
-  // (scopeado por concepto: un pago de inscripción confirmado no debe bloquear la pensión).
-  const { data: pagoExistente } = await supabaseAdmin
+  // Pagos de pensión en curso (scopeado por concepto: un pago de inscripción
+  // confirmado no debe bloquear la pensión).
+  const { data: pagosExistentes } = await supabaseAdmin
     .from('pagos')
-    .select('id')
+    .select('id, estado_pago, medio_pago, monto, mp_preference_id, mp_organizacion_id')
     .eq('evento_participante_id', eventoParticipanteId)
     .eq('concepto', 'pension')
     .in('estado_pago', ['pendiente', 'confirmado'])
-    .maybeSingle()
 
-  if (pagoExistente) {
+  const existentes = pagosExistentes ?? []
+  if (existentes.some((p) => p.estado_pago === 'confirmado')) {
     return NextResponse.json(
-      { error: 'Ya hay un pago de pensión en curso para este participante.' },
+      { error: 'Este participante ya tiene un pago de pensión confirmado.' },
       { status: 409 }
     )
+  }
+  if (existentes.some((p) => p.medio_pago !== 'mercadopago')) {
+    return NextResponse.json(
+      { error: 'Este participante ya tiene un pago de pensión pendiente de verificación.' },
+      { status: 409 }
+    )
+  }
+
+  const origin = getPublicOrigin(request)
+  const client = new MercadoPagoConfig({ accessToken: cuenta.accessToken })
+  const preference = new Preference(client)
+
+  const urlDe = (pref: { init_point?: string; sandbox_init_point?: string }) =>
+    process.env.VERCEL_ENV === 'production' ? pref.init_point : (pref.sandbox_init_point ?? pref.init_point)
+
+  const crearPreferencia = (pagoId: string) =>
+    preference.create({
+      body: {
+        items: [
+          {
+            id: pagoId,
+            title: `Pensión — ${evento.nombre}`,
+            quantity: 1,
+            unit_price: monto,
+            currency_id: 'ARS',
+          },
+        ],
+        external_reference: pagoId,
+        notification_url: `${origin}/api/public/pagos/mercadopago/webhook?pago_id=${pagoId}`,
+      },
+    })
+
+  // Ya hay un link pendiente: se devuelve el mismo si el monto y la cuenta siguen
+  // vigentes; si cambiaron (p. ej. se cargó una beca), se regenera sobre el mismo pago.
+  const pendiente = existentes[0]
+  if (pendiente) {
+    try {
+      const vigente =
+        pendiente.mp_preference_id &&
+        Number(pendiente.monto) === monto &&
+        pendiente.mp_organizacion_id === cuenta.organizacionId
+
+      if (vigente) {
+        const actual = await preference.get({ preferenceId: pendiente.mp_preference_id })
+        return NextResponse.json({ checkout_url: urlDe(actual) })
+      }
+
+      const result = await crearPreferencia(pendiente.id)
+      await supabaseAdmin
+        .from('pagos')
+        .update({ monto, mp_preference_id: result.id, mp_organizacion_id: cuenta.organizacionId })
+        .eq('id', pendiente.id)
+      return NextResponse.json({ checkout_url: urlDe(result) })
+    } catch {
+      return NextResponse.json({ error: 'No se pudo recuperar el link de Mercado Pago. Intentá de nuevo.' }, { status: 502 })
+    }
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -120,34 +186,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No se pudo registrar el pago. Intentá de nuevo.' }, { status: 400 })
   }
 
-  const origin = getPublicOrigin(request)
-  const client = new MercadoPagoConfig({ accessToken: cuenta.accessToken })
-  const preference = new Preference(client)
-
   try {
-    const result = await preference.create({
-      body: {
-        items: [
-          {
-            id: pago.id,
-            title: `Pensión — ${evento.nombre}`,
-            quantity: 1,
-            unit_price: monto,
-            currency_id: 'ARS',
-          },
-        ],
-        external_reference: pago.id,
-        notification_url: `${origin}/api/public/pagos/mercadopago/webhook?pago_id=${pago.id}`,
-      },
-    })
+    const result = await crearPreferencia(pago.id)
 
     await supabaseAdmin.from('pagos').update({ mp_preference_id: result.id }).eq('id', pago.id)
 
-    const checkoutUrl = process.env.VERCEL_ENV === 'production'
-      ? result.init_point
-      : (result.sandbox_init_point ?? result.init_point)
-
-    return NextResponse.json({ checkout_url: checkoutUrl })
+    return NextResponse.json({ checkout_url: urlDe(result) })
   } catch {
     await supabaseAdmin.from('pagos').delete().eq('id', pago.id)
     return NextResponse.json({ error: 'No se pudo iniciar el pago con Mercado Pago. Intentá de nuevo.' }, { status: 502 })

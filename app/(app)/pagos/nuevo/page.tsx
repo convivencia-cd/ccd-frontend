@@ -25,6 +25,8 @@ export default function NewPagoPage() {
   const [error, setError] = useState('')
   const [participantes, setParticipantes] = useState<ParticipanteOption[]>([])
   const [linkPension, setLinkPension] = useState('')
+  const [comprobante, setComprobante] = useState<File | null>(null)
+  const [pagoRegistrado, setPagoRegistrado] = useState(false)
   const router = useRouter()
   const [formData, setFormData] = useState({
     evento_participante_id: '',
@@ -87,7 +89,7 @@ export default function NewPagoPage() {
       if (formData.referencia) insertData.referencia = formData.referencia
       if (formData.notas) insertData.notas = formData.notas
 
-      const { error: pagoError } = await supabase.from('pagos').insert(insertData)
+      const { data: pago, error: pagoError } = await supabase.from('pagos').insert(insertData).select('id').single()
       if (pagoError) throw pagoError
 
       if (formData.estado_pago === 'confirmado' && formData.concepto === 'inscripcion') {
@@ -96,6 +98,21 @@ export default function NewPagoPage() {
           .update({ estado_participacion: 'inscripto' })
           .eq('id', formData.evento_participante_id)
           .eq('estado_participacion', 'interesado')
+      }
+
+      if (comprobante && formData.medio_pago === 'transferencia') {
+        const fd = new FormData()
+        fd.append('file', comprobante)
+        const res = await fetch(`/api/pagos/${pago.id}/comprobante`, { method: 'POST', body: fd })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          // El pago ya quedó cargado: se bloquea el reenvío para no duplicarlo.
+          setPagoRegistrado(true)
+          setError(
+            `El pago se registró, pero no se pudo subir el comprobante (${data.error ?? 'error desconocido'}). Podés adjuntarlo desde Pagos, en "Pendientes de verificación".`
+          )
+          return
+        }
       }
 
       router.push('/pagos')
@@ -205,7 +222,7 @@ export default function NewPagoPage() {
                 />
                 {esPensionMercadopago && (
                   <p className="text-xs text-muted-foreground">
-                    Se usa el precio de pensión configurado en el evento.
+                    Se cobra el Saldo de Pensión del participante (valor de pensión menos beca).
                   </p>
                 )}
               </div>
@@ -268,6 +285,22 @@ export default function NewPagoPage() {
               />
             </div>
 
+            {/* Comprobante */}
+            {formData.medio_pago === 'transferencia' && (
+              <div className="space-y-2">
+                <Label htmlFor="comprobante">Comprobante de transferencia</Label>
+                <Input
+                  id="comprobante"
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  onChange={e => setComprobante(e.target.files?.[0] ?? null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  PDF, JPG, PNG o WebP, hasta 10 MB. Si lo cargás como Pendiente, queda en la cola de verificación.
+                </p>
+              </div>
+            )}
+
             {/* Notas */}
             <div className="space-y-2">
               <Label htmlFor="notas">Notas</Label>
@@ -283,7 +316,7 @@ export default function NewPagoPage() {
 
             {/* Buttons */}
             <div className="flex gap-3 pt-6">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || pagoRegistrado}>
                 {loading
                   ? 'Guardando...'
                   : esPensionMercadopago
