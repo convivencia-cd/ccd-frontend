@@ -24,7 +24,7 @@ import {
   canEditarCierre,
   canVerCierre,
   canVerCarismas,
-  canVerInformeEqt,
+  canVerInformeCcd,
   canEditarInformesConfidenciales,
   canCerrarConvivencia,
   canSubirFotosCierre,
@@ -33,7 +33,7 @@ import {
   type PreguntaInforme,
 } from '@/lib/eventos/cierre'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
-import { cargarCarismas, cargarInformeEqt } from '@/lib/eventos/informes-cierre'
+import { cargarCarismas, cargarInformeCcd } from '@/lib/eventos/informes-cierre'
 import { cargarFotosCierre } from '@/lib/eventos/fotos-cierre'
 import { formatDateAR } from '@/lib/utils'
 
@@ -538,17 +538,19 @@ export default async function EventoDetailPage({
   // Cierre de convivencia
   const canEditarCierrePanel = canEditarCierre(ctx, cierreEvento)
   const canVerCarismasCierre = canVerCarismas(ctx, cierreEvento)
-  const canVerInformeEqtCierre = canVerInformeEqt(ctx, cierreEvento)
+  const canVerInformeEqtCierre = canVerInformeCcd(ctx, cierreEvento, 'eqt')
+  const canVerInformeResponsablesCierre = canVerInformeCcd(ctx, cierreEvento, 'responsables')
   const canEditarConfidencial = canEditarInformesConfidenciales(ctx, cierreEvento)
   // Confidenciales: viven en evento_informes_cierre (RLS cerrada) y solo se leen
   // si el usuario puede verlos, así no viajan al cliente.
-  const [informeEqtCierre, carismasCierre, fotosCierre] = showCierre
+  const [informeEqtCierre, informeResponsablesCierre, carismasCierre, fotosCierre] = showCierre
     ? await Promise.all([
-        canVerInformeEqtCierre ? cargarInformeEqt(id) : Promise.resolve(null),
+        canVerInformeEqtCierre ? cargarInformeCcd(id, 'eqt') : Promise.resolve(null),
+        canVerInformeResponsablesCierre ? cargarInformeCcd(id, 'responsables') : Promise.resolve(null),
         canVerCarismasCierre ? cargarCarismas(id) : Promise.resolve(null),
         cargarFotosCierre(supabase, id),
       ])
-    : [null, null, []]
+    : [null, null, null, []]
   const canSubirFotos = canSubirFotosCierre(ctx, cierreEvento)
   const canCerrar = canCerrarConvivencia(ctx, cierreEvento)
 
@@ -1251,6 +1253,7 @@ export default async function EventoDetailPage({
           canEditar={!!canEditarCierrePanel}
           canVerCarismas={!!canVerCarismasCierre}
           canVerInformeEqt={!!canVerInformeEqtCierre}
+          canVerInformeResponsables={!!canVerInformeResponsablesCierre}
           canEditarConfidencial={!!canEditarConfidencial}
           canCerrar={!!canCerrar}
           canSubirFotos={!!canSubirFotos}
@@ -1266,7 +1269,8 @@ export default async function EventoDetailPage({
             cierre_manuales_recibidos_de: (ev.cierre_manuales_recibidos_de as string | null) ?? null,
             cierre_manuales_entrego_a: (ev.cierre_manuales_entrego_a as string | null) ?? null,
             cierre_manuales_notas: (ev.cierre_manuales_notas as string | null) ?? null,
-            informe_coordinador_respuestas: informeEqtCierre,
+            informe_eqt_respuestas: informeEqtCierre,
+            informe_responsables_respuestas: informeResponsablesCierre,
             informe_carismas: carismasCierre,
           }}
         />

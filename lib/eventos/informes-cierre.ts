@@ -1,12 +1,15 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
-// Informes confidenciales del cierre (para Equipo Timón + Carismas) — tabla
-// evento_informes_cierre (migración 086). La tabla tiene RLS cerrada: solo se
-// accede desde acá, con service role, DESPUÉS de chequear permisos con
-// canVerCarismas / canVerInformeEqt / canEditarInformesConfidenciales
+// Informes confidenciales del cierre (para Responsables, para Equipo Timón y
+// Carismas) — tabla evento_informes_cierre (migración 086). La tabla tiene RLS
+// cerrada: solo se accede desde acá, con service role, DESPUÉS de chequear
+// permisos con canVerCarismas / canVerInformeCcd / canEditarInformesConfidenciales
 // (lib/eventos/cierre.ts). Solo importar desde Server Components o Route Handlers.
 
 export type Carisma = { persona_id: string; texto: string }
+
+/** Destino del "Informe de la CcD": mismas preguntas, el coordinador completa uno para cada uno. */
+export type DestinoInforme = 'responsables' | 'eqt'
 
 function adminClient() {
   return createAdminClient(
@@ -16,13 +19,13 @@ function adminClient() {
   )
 }
 
-/** Respuestas del Informe de la CcD para Equipo Timón: { [pregunta_id]: respuesta }. */
-export async function cargarInformeEqt(eventoId: string): Promise<Record<string, string> | null> {
+/** Respuestas de un Informe de la CcD: { [pregunta_id]: respuesta }. */
+export async function cargarInformeCcd(eventoId: string, destino: DestinoInforme): Promise<Record<string, string> | null> {
   const { data, error } = await adminClient()
     .from('evento_informes_cierre')
     .select('contenido')
     .eq('evento_id', eventoId)
-    .eq('tipo', 'eqt')
+    .eq('tipo', destino)
     .maybeSingle()
   if (error) throw error
   return (data?.contenido as Record<string, string> | undefined) ?? null
@@ -41,8 +44,9 @@ export async function cargarCarismas(eventoId: string): Promise<Carisma[]> {
   }))
 }
 
-export async function guardarInformeEqt(
+export async function guardarInformeCcd(
   eventoId: string,
+  destino: DestinoInforme,
   respuestas: Record<string, string>,
   personaId: string | null,
 ): Promise<void> {
@@ -56,7 +60,7 @@ export async function guardarInformeEqt(
     .from('evento_informes_cierre')
     .select('id')
     .eq('evento_id', eventoId)
-    .eq('tipo', 'eqt')
+    .eq('tipo', destino)
     .maybeSingle()
   if (selError) throw selError
 
@@ -67,7 +71,7 @@ export async function guardarInformeEqt(
         .eq('id', existente.id)
     : await supabase
         .from('evento_informes_cierre')
-        .insert({ evento_id: eventoId, tipo: 'eqt', contenido: limpio, created_by: personaId, updated_by: personaId })
+        .insert({ evento_id: eventoId, tipo: destino, contenido: limpio, created_by: personaId, updated_by: personaId })
   if (error) throw error
 }
 

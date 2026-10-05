@@ -185,23 +185,28 @@ export function canVerCarismas(
 }
 
 /**
- * Puede ver el "Informe de la CcD (para Equipo Timón)": el coordinador del
- * evento (lo completa) y quien tenga cierre.view_informe_eqt scopeado.
- * El informe para Responsables (cierre.view_informe_responsables) todavía no existe.
+ * Puede ver un "Informe de la CcD": el coordinador del evento (completa los dos)
+ * y quien tenga el permiso de ese destino scopeado —
+ * cierre.view_informe_responsables o cierre.view_informe_eqt.
  */
-export function canVerInformeEqt(
+export function canVerInformeCcd(
   ctx: UserContext | null,
   evento: CierreEvento,
+  destino: "responsables" | "eqt",
 ): boolean {
   if (!ctx) return false
   return (
     esCoordinador(ctx, evento) ||
-    tienePermisoCierre(ctx, "cierre.view_informe_eqt", evento)
+    tienePermisoCierre(
+      ctx,
+      destino === "eqt" ? "cierre.view_informe_eqt" : "cierre.view_informe_responsables",
+      evento,
+    )
   )
 }
 
 /**
- * Completa los informes confidenciales (para Equipo Timón + Carismas): solo el
+ * Completa los informes confidenciales (los dos de la CcD + Carismas): solo el
  * coordinador del evento (y el admin técnico como respaldo), mientras está 'finalizado'.
  */
 export function canEditarInformesConfidenciales(
@@ -248,7 +253,8 @@ export function canVerCierre(
     esCoordinador(ctx, evento) ||
     esCentralizadorDeEvento(ctx, evento) ||
     canVerCarismas(ctx, evento) ||
-    canVerInformeEqt(ctx, evento) ||
+    canVerInformeCcd(ctx, evento, "responsables") ||
+    canVerInformeCcd(ctx, evento, "eqt") ||
     canSubirFotosCierre(ctx, evento) ||
     // Quien cierra la convivencia (canCerrarConvivencia) tiene que ver el panel.
     canPerform(ctx, "event.approve_eqt") ||

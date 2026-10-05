@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
-import { Download, Users, FileText, Sparkles, Package, DollarSign, Camera, Lock } from 'lucide-react'
+import { Copy, Download, Users, FileText, Sparkles, Package, DollarSign, Camera, Lock } from 'lucide-react'
 import type { PreguntaInforme } from '@/lib/eventos/cierre'
 import type { FotoCierre } from '@/lib/eventos/fotos-cierre'
 import { FotosCierre } from './fotos-cierre'
-import { exportConviventesPDF, exportInformeEqtPDF, exportInformeCarismasPDF, ROMANOS, type EventoInfo } from '@/lib/eventos/cierre-pdf'
+import { exportConviventesPDF, exportInformeCcdPDF, exportInformeCarismasPDF, ROMANOS, type EventoInfo } from '@/lib/eventos/cierre-pdf'
 import { CerrarConvivenciaButton } from './cerrar-convivencia-button'
 
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
@@ -25,6 +25,7 @@ type Props = {
   canEditar: boolean
   canVerCarismas: boolean
   canVerInformeEqt: boolean
+  canVerInformeResponsables: boolean
   /** Solo el coordinador del evento completa los informes confidenciales. */
   canEditarConfidencial: boolean
   canCerrar: boolean
@@ -42,7 +43,8 @@ type Props = {
     cierre_manuales_recibidos_de: string | null
     cierre_manuales_entrego_a: string | null
     cierre_manuales_notas: string | null
-    informe_coordinador_respuestas: Record<string, string> | null
+    informe_eqt_respuestas: Record<string, string> | null
+    informe_responsables_respuestas: Record<string, string> | null
     informe_carismas: { persona_id: string; texto: string }[] | null
   }
 }
@@ -64,8 +66,67 @@ function Section({ icon: Icon, title, badge, children }: { icon: React.ElementTy
   )
 }
 
+function InformeCcd({ titulo, preguntas, respuestas, onChange, otras, canEditar, guardando, bloqueado, onGuardar, onExportar }: {
+  titulo: string
+  preguntas: PreguntaInforme[]
+  respuestas: Record<string, string>
+  onChange: (fn: (prev: Record<string, string>) => Record<string, string>) => void
+  /** El otro informe de la CcD, para copiar sus respuestas a las vacías de este. */
+  otras: { nombre: string; respuestas: Record<string, string> } | null
+  canEditar: boolean
+  guardando: boolean
+  bloqueado: boolean
+  onGuardar: () => void
+  onExportar: () => void
+}) {
+  // Solo completa las respuestas vacías: nunca pisa lo que ya está escrito.
+  const copiables = otras
+    ? preguntas.filter(q => !(respuestas[q.id] ?? '').trim() && (otras.respuestas[q.id] ?? '').trim()).length
+    : 0
+
+  return (
+    <Section icon={FileText} title={titulo} badge="Confidencial">
+      {preguntas.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No hay preguntas definidas para este tipo de evento. Configuralas en Tipos de Evento.</p>
+      ) : preguntas.map((q, i) => (
+        <div key={q.id} className="space-y-1">
+          <p className="text-sm font-medium text-foreground">{ROMANOS[i] ?? i + 1}) {q.texto}</p>
+          <textarea
+            className={`${inputClass} min-h-16`}
+            value={respuestas[q.id] ?? ''}
+            disabled={!canEditar}
+            onChange={e => onChange(prev => ({ ...prev, [q.id]: e.target.value }))}
+          />
+        </div>
+      ))}
+      <div className="flex flex-wrap gap-2">
+        {canEditar && (
+          <Button size="sm" onClick={onGuardar} disabled={bloqueado}>
+            {guardando ? 'Guardando...' : 'Guardar informe'}
+          </Button>
+        )}
+        {canEditar && otras && copiables > 0 && (
+          <Button size="sm" variant="outline" className="gap-1 bg-transparent" disabled={bloqueado}
+            onClick={() => onChange(prev => {
+              const next = { ...prev }
+              for (const q of preguntas) {
+                if (!(next[q.id] ?? '').trim() && (otras.respuestas[q.id] ?? '').trim()) next[q.id] = otras.respuestas[q.id]
+              }
+              return next
+            })}>
+            <Copy className="h-4 w-4" /> Completar vacías con el informe para {otras.nombre} ({copiables})
+          </Button>
+        )}
+        <Button size="sm" variant="outline" className="gap-1 bg-transparent" onClick={onExportar}>
+          <Download className="h-4 w-4" /> Exportar PDF
+        </Button>
+      </div>
+    </Section>
+  )
+}
+
 export default function CierrePanel(props: Props) {
-  const { eventoId, estado, eventoInfo, canEditar, canVerCarismas, canVerInformeEqt, canEditarConfidencial, canCerrar, canSubirFotos, fotos, conviventes, servidores, cecistas, preguntas, canVerInformeEconomico, inicial } = props
+  const { eventoId, estado, eventoInfo, canEditar, canVerCarismas, canVerInformeEqt, canVerInformeResponsables, canEditarConfidencial, canCerrar, canSubirFotos, fotos, conviventes, servidores, cecistas, preguntas, canVerInformeEconomico, inicial } = props
   const router = useRouter()
 
   const cerrado = estado === 'cerrado'
@@ -81,7 +142,8 @@ export default function CierrePanel(props: Props) {
   const [notasMateriales, setNotasMateriales] = useState(inicial.cierre_manuales_notas ?? '')
 
   // ── Informes confidenciales ──
-  const [respuestas, setRespuestas] = useState<Record<string, string>>(inicial.informe_coordinador_respuestas ?? {})
+  const [respuestasEqt, setRespuestasEqt] = useState<Record<string, string>>(inicial.informe_eqt_respuestas ?? {})
+  const [respuestasResponsables, setRespuestasResponsables] = useState<Record<string, string>>(inicial.informe_responsables_respuestas ?? {})
   const [carismas, setCarismas] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {}
     for (const c of inicial.informe_carismas ?? []) map[c.persona_id] = c.texto
@@ -124,10 +186,6 @@ export default function CierrePanel(props: Props) {
       cierre_manuales_entrego_a: entregoA || null,
       cierre_manuales_notas: notasMateriales || null,
     }, 'materiales', 'Materiales guardados.')
-  }
-
-  function guardarInformeCoordinador() {
-    patchCierre({ informe_coordinador_respuestas: respuestas }, 'coordinador', 'Informe del coordinador guardado.')
   }
 
   function guardarCarismas() {
@@ -190,34 +248,35 @@ export default function CierrePanel(props: Props) {
         <FotosCierre eventoId={eventoId} fotos={fotos} canSubir={canSubirFotos} />
       </Section>
 
-      {/* 6. Informe de la CcD para Equipo Timón (confidencial) */}
+      {/* 6. Informes de la CcD: uno para Responsables y otro para Equipo Timón,
+          mismas preguntas, el coordinador completa los dos (confidenciales) */}
+      {canVerInformeResponsables && (
+        <InformeCcd
+          titulo="Informe de la CcD (para Responsables)"
+          preguntas={preguntas}
+          respuestas={respuestasResponsables}
+          onChange={setRespuestasResponsables}
+          otras={canVerInformeEqt ? { nombre: 'Equipo Timón', respuestas: respuestasEqt } : null}
+          canEditar={canEditarConfidencial}
+          guardando={saving === 'responsables'}
+          bloqueado={saving !== null}
+          onGuardar={() => patchCierre({ informe_responsables_respuestas: respuestasResponsables }, 'responsables', 'Informe para Responsables guardado.')}
+          onExportar={() => exportInformeCcdPDF(eventoInfo, 'responsables', preguntas, respuestasResponsables)}
+        />
+      )}
       {canVerInformeEqt && (
-        <Section icon={FileText} title="Informe de la CcD (para Equipo Timón)" badge="Confidencial">
-          {preguntas.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No hay preguntas definidas para este tipo de evento. Configuralas en Tipos de Evento.</p>
-          ) : preguntas.map((q, i) => (
-            <div key={q.id} className="space-y-1">
-              <p className="text-sm font-medium text-foreground">{ROMANOS[i] ?? i + 1}) {q.texto}</p>
-              <textarea
-                className={`${inputClass} min-h-16`}
-                value={respuestas[q.id] ?? ''}
-                disabled={!canEditarConfidencial}
-                onChange={e => setRespuestas(prev => ({ ...prev, [q.id]: e.target.value }))}
-              />
-            </div>
-          ))}
-          <div className="flex flex-wrap gap-2">
-            {canEditarConfidencial && (
-              <Button size="sm" onClick={guardarInformeCoordinador} disabled={saving !== null}>
-                {saving === 'coordinador' ? 'Guardando...' : 'Guardar informe'}
-              </Button>
-            )}
-            <Button size="sm" variant="outline" className="gap-1 bg-transparent"
-              onClick={() => exportInformeEqtPDF(eventoInfo, preguntas, respuestas)}>
-              <Download className="h-4 w-4" /> Exportar PDF
-            </Button>
-          </div>
-        </Section>
+        <InformeCcd
+          titulo="Informe de la CcD (para Equipo Timón)"
+          preguntas={preguntas}
+          respuestas={respuestasEqt}
+          onChange={setRespuestasEqt}
+          otras={canVerInformeResponsables ? { nombre: 'Responsables', respuestas: respuestasResponsables } : null}
+          canEditar={canEditarConfidencial}
+          guardando={saving === 'eqt'}
+          bloqueado={saving !== null}
+          onGuardar={() => patchCierre({ informe_eqt_respuestas: respuestasEqt }, 'eqt', 'Informe para Equipo Timón guardado.')}
+          onExportar={() => exportInformeCcdPDF(eventoInfo, 'eqt', preguntas, respuestasEqt)}
+        />
       )}
 
       {/* 7. Planilla de Carismas de Servidores (confidencial) */}

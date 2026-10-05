@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
 import { canEditarCierre, canEditarInformesConfidenciales, ROLES_CARISMAS } from '@/lib/eventos/cierre'
-import { guardarCarismas, guardarInformeEqt } from '@/lib/eventos/informes-cierre'
+import { guardarCarismas, guardarInformeCcd } from '@/lib/eventos/informes-cierre'
 
 // Guarda los datos del cierre: materiales/manuales (en `eventos`) y los
 // informes confidenciales (en evento_informes_cierre, ver lib/eventos/informes-cierre.ts).
@@ -45,19 +45,24 @@ export async function PATCH(
 
   // Informes confidenciales (6 y 7) — solo el coordinador del evento. Van a
   // evento_informes_cierre (RLS cerrada, service role), no a `eventos`.
-  const tocaCoordinador = 'informe_coordinador_respuestas' in body
+  const tocaEqt = 'informe_eqt_respuestas' in body
+  const tocaResponsables = 'informe_responsables_respuestas' in body
   const tocaCarismas = 'informe_carismas' in body
-  if ((tocaCoordinador || tocaCarismas) && !canEditarInformesConfidenciales(ctx, evento)) {
+  const tocaConfidenciales = tocaEqt || tocaResponsables || tocaCarismas
+  if (tocaConfidenciales && !canEditarInformesConfidenciales(ctx, evento)) {
     return NextResponse.json({ error: 'Solo el coordinador del evento completa los informes confidenciales' }, { status: 403 })
   }
 
-  if (Object.keys(update).length === 0 && !tocaCoordinador && !tocaCarismas) {
+  if (Object.keys(update).length === 0 && !tocaConfidenciales) {
     return NextResponse.json({ error: 'Nada para actualizar' }, { status: 400 })
   }
 
   try {
-    if (tocaCoordinador) {
-      await guardarInformeEqt(id, body.informe_coordinador_respuestas ?? {}, ctx.persona_id)
+    if (tocaEqt) {
+      await guardarInformeCcd(id, 'eqt', body.informe_eqt_respuestas ?? {}, ctx.persona_id)
+    }
+    if (tocaResponsables) {
+      await guardarInformeCcd(id, 'responsables', body.informe_responsables_respuestas ?? {}, ctx.persona_id)
     }
     if (tocaCarismas) {
       const { data: equipo, error: equipoError } = await supabase

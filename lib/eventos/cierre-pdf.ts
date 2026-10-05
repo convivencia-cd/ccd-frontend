@@ -108,9 +108,9 @@ function centrado(c: Cursor, text: string, opts?: { size?: number; bold?: boolea
 }
 
 /** Encabezado de los Word: título centrado + Cc / Fecha / Lugar / Confraternidad. */
-function encabezadoPlanilla(c: Cursor, titulos: string[], evento: EventoInfo) {
+function encabezadoPlanilla(c: Cursor, titulos: string[], evento: EventoInfo, destinatario: string) {
   titulos.forEach((t, i) => centrado(c, t, { size: i === 0 ? 15 : 12, bold: true }))
-  centrado(c, '(Para Equipo Timón)', { size: 10 })
+  centrado(c, `(${destinatario})`, { size: 10 })
   c.y += 3
   const fecha = evento.fecha_inicio ? formatDateAR(evento.fecha_inicio.split('T')[0]) : '—'
   writeWrapped(c, `Cc: ${evento.nombre}`, { size: 11 })
@@ -134,22 +134,23 @@ function firma(c: Cursor, texto: string) {
 
 export const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV']
 
-// ─── Informe de la CcD para Equipo Timón (confidencial) ───────────────────────
+// ─── Informe de la CcD: para Responsables o para Equipo Timón (confidencial) ──
 
-export async function exportInformeEqtPDF(
+export async function exportInformeCcdPDF(
   evento: EventoInfo,
+  destino: 'responsables' | 'eqt',
   preguntas: PreguntaInforme[],
   respuestas: Record<string, string>,
 ) {
   const doc = await nuevoDoc()
   const c: Cursor = { doc, y: MARGIN }
-  encabezadoPlanilla(c, ['INFORME DE LA CcD'], evento)
+  encabezadoPlanilla(c, ['INFORME DE LA CcD'], evento, destino === 'eqt' ? 'Para Equipo Timón' : 'Para los Responsables correspondientes')
   preguntas.forEach((p, i) => {
     writeWrapped(c, `${ROMANOS[i] ?? i + 1}) ${p.texto}`, { size: 11, bold: true })
     writeWrapped(c, respuestas?.[p.id] || '—', { size: 11, gap: 4 })
   })
   firma(c, 'Firma y aclaración — Coordinador')
-  doc.save(nombreArchivo(evento, 'informe-equipo-timon'))
+  doc.save(nombreArchivo(evento, destino === 'eqt' ? 'informe-equipo-timon' : 'informe-responsables'))
 }
 
 // ─── Planilla de Carismas de Servidores (confidencial) ────────────────────────
@@ -162,7 +163,7 @@ export async function exportInformeCarismasPDF(
 ) {
   const doc = await nuevoDoc()
   const c: Cursor = { doc, y: MARGIN }
-  encabezadoPlanilla(c, ['EVALUACIÓN', '(CARISMA DE SERVIDORES)'], evento)
+  encabezadoPlanilla(c, ['EVALUACIÓN', '(CARISMA DE SERVIDORES)'], evento, 'Para Equipo Timón')
   carismas.forEach(item => {
     const etiqueta = ETIQUETA_CARISMA[item.rol] ?? item.rol.toUpperCase()
     const quien = `${item.apellido}, ${item.nombre} — Fraternidad: ${item.fraternidad || 'sin fraternidad registrada'}`
