@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PersonaCombobox, type PersonaOption } from '@/components/persona-combobox'
-import { ClipboardList, Plus, UserMinus, Users } from 'lucide-react'
+import { ClipboardList, FileText, Plus, UserMinus, Users } from 'lucide-react'
+import FichaInscripcionDialog from './ficha-inscripcion-dialog'
 import { AREAS_EQUIPO, ESTADOS_PARTICIPACION_OPCIONES, ROLES_SERVIDOR_OPCIONES } from '@/lib/eventos/equipo'
 import { formatDateAR } from '@/lib/utils'
 
@@ -89,6 +90,7 @@ export default function ParticipantesEventoCard({
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [aBaja, setABaja] = useState<ParticipanteEquipo | null>(null)
+  const [ficha, setFicha] = useState<ParticipanteEquipo | null>(null)
 
   const activos = filas.filter(p => p.estado_participacion !== 'cancelado')
   const dadosDeBaja = filas.filter(p => p.estado_participacion === 'cancelado')
@@ -172,18 +174,18 @@ export default function ParticipantesEventoCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           {esEquipo ? <ClipboardList className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
-          {esEquipo ? 'Equipo del Evento' : 'Inscriptos'}
+          {esEquipo ? 'Equipo del Evento' : 'Participantes'}
         </CardTitle>
         <CardDescription>
           {esEquipo
             ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al evento son los de "Asignaciones del Evento".`
-            : `${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados se siguen en su propio panel.`}
+            : `${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados se siguen desde el detalle del evento.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {activos.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            {esEquipo ? 'Todavía no hay equipo cargado.' : 'Todavía no hay inscriptos.'}
+            {esEquipo ? 'Todavía no hay equipo cargado.' : 'Todavía no hay participantes.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -199,7 +201,7 @@ export default function ParticipantesEventoCard({
                       <th className="px-3 py-2 font-medium">Fecha inscripción</th>
                     </>
                   )}
-                  <th className="px-3 py-2 font-medium">Estado</th>
+                  {!esEquipo && <th className="px-3 py-2 font-medium">Estado</th>}
                   {!esEquipo && grupos.length > 0 && <th className="px-3 py-2 font-medium">Grupo</th>}
                   <th className="px-3 py-2 font-medium">Nota</th>
                   <th className="px-3 py-2 text-right font-medium">Acciones</th>
@@ -230,20 +232,23 @@ export default function ParticipantesEventoCard({
                         </td>
                       </>
                     )}
-                    <td className="px-3 py-2">
-                      <select
-                        className={selectClass}
-                        value={p.estado_participacion}
-                        disabled={ocupado === p.id}
-                        onChange={e => actualizar(p.id, { estado_participacion: e.target.value })}
-                      >
-                        {ESTADOS_PARTICIPACION_OPCIONES.map(e => (
-                          <option key={e.value} value={e.value}>
-                            {e.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                    {/* El estado es del ciclo de inscripción: al equipo no le aplica. */}
+                    {!esEquipo && (
+                      <td className="px-3 py-2">
+                        <select
+                          className={selectClass}
+                          value={p.estado_participacion}
+                          disabled={ocupado === p.id}
+                          onChange={e => actualizar(p.id, { estado_participacion: e.target.value })}
+                        >
+                          {ESTADOS_PARTICIPACION_OPCIONES.map(e => (
+                            <option key={e.value} value={e.value}>
+                              {e.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     {!esEquipo && grupos.length > 0 && (
                       <td className="px-3 py-2">
                         <select
@@ -262,7 +267,13 @@ export default function ParticipantesEventoCard({
                       </td>
                     )}
                     <td className="px-3 py-2 text-muted-foreground">{p.notas ?? '—'}</td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      {!esEquipo && (
+                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => setFicha(p)}>
+                          <FileText className="h-3.5 w-3.5" />
+                          Ficha
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -290,7 +301,7 @@ export default function ParticipantesEventoCard({
 
         <div className="space-y-3 rounded-md border border-dashed border-border p-3">
           <p className="text-xs font-medium uppercase tracking-wide text-foreground">
-            {esEquipo ? 'Sumar al equipo' : 'Agregar inscripto'}
+            {esEquipo ? 'Sumar al equipo' : 'Agregar participante'}
           </p>
           <PersonaCombobox
             value={nuevaPersona}
@@ -305,13 +316,15 @@ export default function ParticipantesEventoCard({
                 <OpcionesDeRol />
               </select>
             )}
-            <select className={selectClass} value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
-              {ESTADOS_PARTICIPACION_OPCIONES.filter(e => e.value !== 'cancelado').map(e => (
-                <option key={e.value} value={e.value}>
-                  {e.label}
-                </option>
-              ))}
-            </select>
+            {!esEquipo && (
+              <select className={selectClass} value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
+                {ESTADOS_PARTICIPACION_OPCIONES.filter(e => e.value !== 'cancelado').map(e => (
+                  <option key={e.value} value={e.value}>
+                    {e.label}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               className={`${inputClass} min-w-40 flex-1`}
               value={nuevasNotas}
@@ -334,6 +347,15 @@ export default function ParticipantesEventoCard({
 
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
+
+      {!esEquipo && (
+        <FichaInscripcionDialog
+          eventoId={eventoId}
+          participanteId={ficha?.id ?? null}
+          nombre={ficha ? nombreDe(ficha) : ''}
+          onClose={() => setFicha(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={aBaja !== null}

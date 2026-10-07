@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink, UserCheck } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink } from 'lucide-react'
 import { formatDateAR } from '@/lib/utils'
 import { esCentralizadorDeEvento, ROLES_SERVIDORES, formatMonto } from '@/lib/eventos/cierre'
 import { canGestionarPension } from '@/lib/eventos/pension'
@@ -19,8 +19,6 @@ import EquipoEventoPanel, {
 } from '../_components/equipo-evento-panel'
 import { CopyLinkButton } from './_components/copy-link-button'
 import { ContactoPersona } from '../_components/participantes-evento-card'
-import { puedeGestionarInteresado } from '@/lib/interesados/access'
-import { InteresadoCard, INTERESADO_SELECT } from '../../../interesados/_components/interesado-card'
 
 const estadoClases: Record<string, string> = {
   publicado: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
@@ -140,20 +138,9 @@ export default async function EventoGestionPage({
   const conviventes = participantes.filter(
     p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'cancelado'
   )
-  // Interesados van en su propio panel (con seguimiento); acá, inscriptos y conviventes.
+  // Los interesados se siguen desde el detalle del evento (card #57); acá,
+  // inscriptos y conviventes.
   const inscriptos = conviventes.filter(p => p.estado_participacion !== 'interesado')
-
-  const canInteresados = await puedeGestionarInteresado(supabase, ctx, id)
-  let interesados: unknown[] = []
-  if (canInteresados) {
-    const { data: interesadosData } = await supabase
-      .from('evento_participantes')
-      .select(INTERESADO_SELECT)
-      .eq('evento_id', id)
-      .eq('estado_participacion', 'interesado')
-      .order('fecha_inscripcion', { ascending: false })
-    interesados = interesadosData ?? []
-  }
   const equipos = participantes.filter(
     p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado'
   )
@@ -292,54 +279,15 @@ export default async function EventoGestionPage({
         </CardContent>
       </Card>
 
-      {/* Interesados — seguimiento de contacto de este evento */}
-      {canInteresados && (
-        <Card className="border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <div className="space-y-1.5">
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <UserCheck className="h-5 w-5 text-primary" />
-                Interesados ({interesados.length})
-              </CardTitle>
-              <CardDescription>Personas que manifestaron interés. Registrá el contacto y enviá el link de pago.</CardDescription>
-            </div>
-            <Link href={`/interesados?evento_id=${id}`} className="text-sm text-primary hover:underline">
-              Ver en Interesados
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {interesados.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Todavía no hay interesados en este evento.</p>
-            ) : (
-              interesados.map(it => (
-                <InteresadoCard key={(it as { id: string }).id} it={it} mostrarEvento={false} />
-              ))
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Equipo y padrón editables. Reemplazan a las tarjetas de solo lectura de
-          más abajo para quien puede gestionar el evento. */}
-      {(canAsignaciones || canParticipantes) && (
-        <EquipoEventoPanel
-          eventoId={id}
-          asignaciones={evento as unknown as AsignacionesEvento}
-          participantes={participantes as unknown as ParticipanteEquipo[]}
-          grupos={grupos}
-          nombresGrupos={nombresGrupos}
-          canAsignaciones={canAsignaciones}
-          canParticipantes={canParticipantes}
-        />
-      )}
-
-      {/* Inscriptos: inscriptos / conviventes (presente dado) */}
+      {/* Participantes (solo lectura): inscriptos / conviventes (presente dado).
+          Va arriba de todo; quien puede editar el padrón ve la versión editable,
+          también primera, dentro de EquipoEventoPanel. */}
       {!canParticipantes && (
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-primary" />
-              Inscriptos
+              Participantes
             </CardTitle>
             <CardDescription>
               {conteoInscriptos.inscripto} inscriptos · {conteoInscriptos.en_curso} conviventes (con el presente dado)
@@ -347,7 +295,7 @@ export default async function EventoGestionPage({
           </CardHeader>
           <CardContent>
             {inscriptos.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay inscriptos.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay participantes.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -384,6 +332,21 @@ export default async function EventoGestionPage({
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Equipo y padrón editables. Reemplazan a las tarjetas de solo lectura
+          para quien puede gestionar el evento. */}
+      {(canAsignaciones || canParticipantes) && (
+        <EquipoEventoPanel
+          eventoId={id}
+          asignaciones={evento as unknown as AsignacionesEvento}
+          participantes={participantes as unknown as ParticipanteEquipo[]}
+          grupos={grupos}
+          nombresGrupos={nombresGrupos}
+          canAsignaciones={canAsignaciones}
+          canParticipantes={canParticipantes}
+          participantesPrimero
+        />
       )}
 
       {/* Equipos asignados */}

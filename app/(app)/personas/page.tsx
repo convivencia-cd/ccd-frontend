@@ -293,12 +293,10 @@ export default async function PersonasPage({
             defaults={{
               q,
               estado: canManage ? estado : '',
-              estado_eclesial: canManage ? estado_eclesial : '',
               provincia,
               localidad,
               modo,
               categoria,
-              convivente,
               ministerio_id: canManage ? ministerio_id : '',
               organizacion_id,
             }}

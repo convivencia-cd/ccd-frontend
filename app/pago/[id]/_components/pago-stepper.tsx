@@ -5,8 +5,9 @@ import { AlertCircle, Check, CheckCircle2, Copy, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { LocationFields } from '@/components/location-fields'
 import { formatDateAR } from '@/lib/utils'
+import { DatosInscripcionForm, type PersonaDatos } from './datos-inscripcion-form'
+import type { EventoRealizado, InscripcionDatos } from '@/lib/eventos/inscripcion-datos'
 
 export type DatosPago = {
   alias: string
@@ -16,22 +17,7 @@ export type DatosPago = {
   instrucciones: string | null
 }
 
-export type PersonaDatos = {
-  id: string
-  nombre: string
-  apellido: string
-  email: string | null
-  telefono: string | null
-  tipo_documento: string | null
-  documento: string | null
-  fecha_nacimiento: string | null
-  direccion: string | null
-  direccion_nro: string | null
-  localidad: string | null
-  codigo_postal: string | null
-  provincia: string | null
-  pais: string | null
-}
+export type { PersonaDatos }
 
 type EventoResumen = {
   id: string
@@ -49,22 +35,13 @@ interface Props {
   mpDisponible: boolean
   datosPago: DatosPago | null
   comprobanteEnRevision: boolean
+  inscripcionInicial: InscripcionDatos | null
+  tiposRealizables: { id: string; nombre: string }[]
+  eventosRealizados: EventoRealizado[]
 }
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024
 const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
-
-const TIPOS_DOCUMENTO = [
-  { value: 'dni', label: 'DNI' },
-  { value: 'pasaporte', label: 'Pasaporte' },
-  { value: 'cedula', label: 'Cédula' },
-  { value: 'otro', label: 'Otro' },
-]
-
-/** Un dato ya cargado se muestra, pero no se puede pisar desde el link. */
-function yaCargado(valor: string | null | undefined) {
-  return !!valor && valor.trim() !== ''
-}
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false)
@@ -124,60 +101,25 @@ function StepHeader({ paso }: { paso: 1 | 2 }) {
   )
 }
 
-export function PagoStepper({ participanteId, persona, evento, mpDisponible, datosPago, comprobanteEnRevision }: Props) {
+export function PagoStepper({
+  participanteId,
+  persona,
+  evento,
+  mpDisponible,
+  datosPago,
+  comprobanteEnRevision,
+  inscripcionInicial,
+  tiposRealizables,
+  eventosRealizados,
+}: Props) {
   const [paso, setPaso] = useState<1 | 2>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [comprobanteEnviado, setComprobanteEnviado] = useState(false)
 
-  const [form, setForm] = useState({
-    telefono: persona.telefono ?? '',
-    tipo_documento: persona.tipo_documento ?? 'dni',
-    documento: persona.documento ?? '',
-    fecha_nacimiento: persona.fecha_nacimiento ?? '',
-    direccion: persona.direccion ?? '',
-    direccion_nro: persona.direccion_nro ?? '',
-    pais: persona.pais ?? 'Argentina',
-    provincia: persona.provincia ?? '',
-    localidad: persona.localidad ?? '',
-    codigo_postal: persona.codigo_postal ?? '',
-  })
-
-  const set = (campo: keyof typeof form) => (valor: string) => setForm((prev) => ({ ...prev, [campo]: valor }))
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-
-  // El país arranca en "Argentina" aunque la ficha lo tenga vacío, así que la
-  // ubicación se bloquea solo si ya había una provincia cargada.
-  const ubicacionBloqueada = yaCargado(persona.provincia) && yaCargado(persona.localidad)
-
   const montoLabel = evento.monto != null ? `$${evento.monto.toLocaleString('es-AR')}` : null
   const hayMedioDePago = mpDisponible || !!datosPago
-
-  async function handleSubmitDatos(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch(`/api/public/inscripcion/${participanteId}/datos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'No se pudieron guardar tus datos. Intentá de nuevo.')
-      } else {
-        setPaso(2)
-      }
-    } catch {
-      setError('Error de conexión. Verificá tu internet e intentá de nuevo.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handlePagarMercadoPago() {
     setLoading(true)
@@ -264,131 +206,14 @@ export function PagoStepper({ participanteId, persona, evento, mpDisponible, dat
       <StepHeader paso={paso} />
 
       {paso === 1 ? (
-        <form onSubmit={handleSubmitDatos} className="space-y-5 rounded-xl border border-border p-5">
-          <p className="text-sm text-muted-foreground">
-            Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción.
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="nombre">Nombre</Label>
-              <Input id="nombre" value={persona.nombre} disabled />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="apellido">Apellido</Label>
-              <Input id="apellido" value={persona.apellido} disabled />
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" value={persona.email ?? ''} disabled />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="telefono">
-                Teléfono {!yaCargado(persona.telefono) && <span className="text-destructive">*</span>}
-              </Label>
-              <Input
-                id="telefono"
-                name="telefono"
-                type="tel"
-                value={form.telefono}
-                onChange={handleChange}
-                required
-                disabled={loading || yaCargado(persona.telefono)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="fecha_nacimiento">Fecha de nacimiento</Label>
-              <Input
-                id="fecha_nacimiento"
-                name="fecha_nacimiento"
-                type="date"
-                value={form.fecha_nacimiento}
-                onChange={handleChange}
-                disabled={loading || yaCargado(persona.fecha_nacimiento)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="tipo_documento">Tipo de documento</Label>
-              <select
-                id="tipo_documento"
-                name="tipo_documento"
-                value={form.tipo_documento}
-                onChange={handleChange}
-                disabled={loading || yaCargado(persona.documento)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {TIPOS_DOCUMENTO.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="documento">
-                Número de documento {!yaCargado(persona.documento) && <span className="text-destructive">*</span>}
-              </Label>
-              <Input
-                id="documento"
-                name="documento"
-                value={form.documento}
-                onChange={handleChange}
-                inputMode="numeric"
-                required
-                disabled={loading || yaCargado(persona.documento)}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-            <div className="grid gap-1.5">
-              <Label htmlFor="direccion">Dirección</Label>
-              <Input
-                id="direccion"
-                name="direccion"
-                value={form.direccion}
-                onChange={handleChange}
-                disabled={loading || yaCargado(persona.direccion)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="direccion_nro">Número</Label>
-              <Input
-                id="direccion_nro"
-                name="direccion_nro"
-                value={form.direccion_nro}
-                onChange={handleChange}
-                className="sm:w-28"
-                disabled={loading || yaCargado(persona.direccion_nro)}
-              />
-            </div>
-          </div>
-
-          <LocationFields
-            pais={form.pais}
-            provincia={form.provincia}
-            localidad={form.localidad}
-            codigoPostal={form.codigo_postal}
-            onPaisChange={set('pais')}
-            onProvinciaChange={set('provincia')}
-            onLocalidadChange={set('localidad')}
-            onCodigoPostalChange={set('codigo_postal')}
-            disabled={loading || ubicacionBloqueada}
-          />
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-            {loading ? 'Guardando...' : 'Continuar al pago'}
-          </Button>
-        </form>
+        <DatosInscripcionForm
+          participanteId={participanteId}
+          persona={persona}
+          inscripcionInicial={inscripcionInicial}
+          tiposRealizables={tiposRealizables}
+          eventosRealizados={eventosRealizados}
+          onGuardado={() => setPaso(2)}
+        />
       ) : (
         <div className="space-y-4">
           <div className="rounded-xl border border-border bg-muted/40 p-5">

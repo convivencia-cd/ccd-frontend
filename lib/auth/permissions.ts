@@ -29,7 +29,8 @@ export type Permission =
   | 'event.request_suspend' // solicitar la suspensión de un evento (enlaces/responsables/delegados) — asignable
   | 'event.update'
   | 'event.manage_participants'
-  | 'payment.verify'       // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
+  | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
+  | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
   | 'informe_economico.edit' // cargar movimientos del Informe Económico del evento (Tesoreros) — scopeado a la org del evento
   | 'informe_economico.view' // ver (solo lectura) el Informe Económico del evento — scopeado a la org del evento
   | 'cierre.view_carismas'             // ver el Informe de Carismas del cierre — scopeado a la org del evento
@@ -82,6 +83,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.request_suspend',
     'event.update',
     'event.manage_participants',
+    'inscripcion.view_datos_sensibles',
     'payment.verify',
     'informe_economico.edit',
     'informe_economico.view',

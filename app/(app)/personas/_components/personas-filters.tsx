@@ -53,12 +53,10 @@ type Props = {
   defaults: {
     q: string
     estado: string
-    estado_eclesial: string
     provincia: string
     localidad: string
     modo: string
     categoria: string
-    convivente: string
     ministerio_id: string
     organizacion_id: string
   }
@@ -253,12 +251,6 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
           <option value="otro">Otro</option>
         </select>
 
-        <select name="convivente" defaultValue={defaults.convivente} className={selectClass}>
-          <option value="">Convivente</option>
-          <option value="si">Convivente: sí</option>
-          <option value="no">Convivente: no</option>
-        </select>
-
         <select name="modo" defaultValue={defaults.modo} className={selectClass}>
           <option value="">Modo de participación</option>
           <option value="colaborador">Colaborador</option>
@@ -268,18 +260,6 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
           <option value="orante">Orante</option>
           <option value="intercesor">Intercesor</option>
         </select>
-
-        {canManage && (
-          <select name="estado_eclesial" defaultValue={defaults.estado_eclesial} className={selectClass}>
-            <option value="">Estado eclesiástico</option>
-            <option value="laico">Laico</option>
-            <option value="religioso">Religioso/a</option>
-            <option value="diacono">Diácono</option>
-            <option value="sacerdote">Sacerdote</option>
-            <option value="obispo">Obispo</option>
-            <option value="cardenal">Cardenal</option>
-          </select>
-        )}
 
         <div>
           <input type="hidden" name="provincia" value={provincia} />
