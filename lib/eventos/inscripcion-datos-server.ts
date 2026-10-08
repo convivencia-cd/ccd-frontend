@@ -101,3 +101,31 @@ export async function agregarEventosRealizados(personaId: string, eventos: Event
     .upsert(filas, { onConflict: 'persona_id,tipo_evento_id' })
   if (error) throw error
 }
+
+/**
+ * Restricciones alimentarias y detalle de dieta de varios participantes a la
+ * vez (export de dietas, card #54). Quien no completó el link no aparece en el
+ * mapa.
+ */
+export async function cargarDietasDeParticipantes(
+  participanteIds: string[],
+): Promise<Map<string, Pick<InscripcionDatos, 'restricciones_alimentarias' | 'dieta_detalle'>>> {
+  const dietas = new Map<string, Pick<InscripcionDatos, 'restricciones_alimentarias' | 'dieta_detalle'>>()
+  if (participanteIds.length === 0) return dietas
+  const { data, error } = await adminClient()
+    .from('evento_inscripcion_datos')
+    .select('evento_participante_id, restricciones_alimentarias, dieta_detalle')
+    .in('evento_participante_id', participanteIds)
+  if (error) throw error
+  for (const fila of (data ?? []) as {
+    evento_participante_id: string
+    restricciones_alimentarias: string[] | null
+    dieta_detalle: string | null
+  }[]) {
+    dietas.set(fila.evento_participante_id, {
+      restricciones_alimentarias: Array.isArray(fila.restricciones_alimentarias) ? fila.restricciones_alimentarias : [],
+      dieta_detalle: fila.dieta_detalle,
+    })
+  }
+  return dietas
+}

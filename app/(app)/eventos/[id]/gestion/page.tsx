@@ -18,6 +18,7 @@ import EquipoEventoPanel, {
   type ParticipanteEquipo,
 } from '../_components/equipo-evento-panel'
 import { CopyLinkButton } from './_components/copy-link-button'
+import { ExportacionesCard } from './_components/exportaciones-card'
 import { ContactoPersona } from '../_components/participantes-evento-card'
 
 const estadoClases: Record<string, string> = {
@@ -385,6 +386,9 @@ export default async function EventoGestionPage({
           </CardContent>
         </Card>
       )}
+
+      {/* Cartelitos (Word) y dietas (Excel), card #54. */}
+      {canParticipantes && <ExportacionesCard eventoId={id} />}
 
       {/* Becas en Pensión */}
       {canPension && (
