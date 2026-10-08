@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PersonaRolSelector } from './persona-rol-selector'
 import { formatDateAR } from '@/lib/utils'
 
@@ -99,6 +100,7 @@ function NivelDiscernimiento({
   const [cambios, setCambios] = useState<Partial<Record<keyof EventoCamposEditables, string>>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [confirmando, setConfirmando] = useState(false)
 
   // Multi-input state for coordinadores and asesores propuestos
   const [coordinadoresArr, setCoordinadoresArr] = useState<string[]>(() =>
@@ -164,7 +166,7 @@ function NivelDiscernimiento({
     [casasRetiro]
   )
 
-  const handleComunicar = async () => {
+  const pedirComunicar = () => {
     if (!resultado) {
       setError('Seleccioná un estado de discernimiento')
       return
@@ -173,7 +175,12 @@ function NivelDiscernimiento({
       setError('Las notas son obligatorias al rechazar')
       return
     }
+    setError('')
+    setConfirmando(true)
+  }
 
+  const handleComunicar = async () => {
+    setConfirmando(false)
     setLoading(true)
     setError('')
 
@@ -619,7 +626,7 @@ function NivelDiscernimiento({
           <Button
             size="sm"
             disabled={loading || !resultado}
-            onClick={handleComunicar}
+            onClick={pedirComunicar}
             className="w-full"
           >
             {loading ? 'Comunicando...' : 'Comunicar Discernimiento'}
@@ -628,6 +635,20 @@ function NivelDiscernimiento({
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
+
+          <ConfirmDialog
+            open={confirmando}
+            onOpenChange={setConfirmando}
+            titulo={resultado === 'rechazado' ? '¿Rechazar la solicitud?' : '¿Comunicar el discernimiento?'}
+            descripcion={
+              resultado === 'rechazado'
+                ? 'El evento pasará a estado "Rechazado". Una vez comunicado, el discernimiento no se puede modificar.'
+                : 'El evento avanzará al siguiente estado. Una vez comunicado, el discernimiento no se puede modificar.'
+            }
+            confirmar={resultado === 'rechazado' ? 'Rechazar solicitud' : 'Comunicar discernimiento'}
+            tono={resultado === 'rechazado' ? 'destructivo' : 'normal'}
+            onConfirm={handleComunicar}
+          />
         </div>
       )}
     </div>

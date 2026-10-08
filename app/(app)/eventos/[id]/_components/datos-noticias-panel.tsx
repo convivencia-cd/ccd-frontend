@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 type Centralizador = {
   personaId: string
@@ -76,6 +77,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
   const [loading, setLoading] = useState<'guardar' | 'publicar' | null>(null)
   const [error, setError] = useState('')
   const [savedOk, setSavedOk] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
 
   const personaOptions = personas.map(p => ({ value: p.id, label: `${p.apellido}, ${p.nombre}` }))
 
@@ -163,11 +165,17 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
     }
   }
 
-  async function handlePublicar() {
+  function pedirPublicar() {
     if (!centralizadores[0].nombre.trim()) {
       setError('Seleccioná al menos el Centralizador 1')
       return
     }
+    setError('')
+    setConfirmando(true)
+  }
+
+  async function handlePublicar() {
+    setConfirmando(false)
     setLoading('publicar')
     setError('')
     setSavedOk(false)
@@ -373,12 +381,21 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
         <Button
           size="sm"
           disabled={loading !== null}
-          onClick={handlePublicar}
+          onClick={pedirPublicar}
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
         >
           {loading === 'publicar' ? 'Enviando...' : 'Solicitar Publicación Final'}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmando}
+        onOpenChange={setConfirmando}
+        titulo="¿Solicitar la publicación final?"
+        descripcion='El evento pasará a "Pendiente de Aprobación Final" y ya no vas a poder editar estos datos, salvo que el Equipo Timón lo devuelva para corregir.'
+        confirmar="Solicitar publicación"
+        onConfirm={handlePublicar}
+      />
     </div>
   )
 }

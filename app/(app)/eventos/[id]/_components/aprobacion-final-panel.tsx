@@ -23,13 +23,16 @@ type Persona = {
 
 type Accion = 'publicar' | 'suspender' | 'devolver'
 
-// Publicar no pide confirmación: es el camino esperado del panel.
-type AccionConfirmable = Exclude<Accion, 'publicar'>
-
 const CONFIRMACIONES: Record<
-  AccionConfirmable,
-  { titulo: string; descripcion: string; confirmar: string; tono: 'destructivo' | 'advertencia' }
+  Accion,
+  { titulo: string; descripcion: string; confirmar: string; tono: 'normal' | 'destructivo' | 'advertencia' }
 > = {
+  publicar: {
+    titulo: '¿Publicar el evento?',
+    descripcion: 'Pasará a estado "Publicado" con los datos de este panel y quedará visible en la home pública.',
+    confirmar: 'Publicar evento',
+    tono: 'normal',
+  },
   suspender: {
     titulo: '¿Suspender este evento?',
     descripcion: 'El evento pasa a estado Suspendido. Es una salida definitiva: si lo que hay es un dato mal cargado, conviene devolverlo para corregir.',
@@ -86,7 +89,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
   const [notas, setNotas] = useState(toStr(inicial.notas_aprobacion_final))
   const [loading, setLoading] = useState<Accion | null>(null)
   const [error, setError] = useState('')
-  const [confirmando, setConfirmando] = useState<AccionConfirmable | null>(null)
+  const [confirmando, setConfirmando] = useState<Accion | null>(null)
 
   const personaOptions = personas.map(p => ({ value: p.id, label: `${p.apellido}, ${p.nombre}` }))
 
@@ -149,10 +152,6 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
     // corregir, así que no tiene sentido devolver sin explicar qué está mal.
     if (accion === 'devolver' && !notas.trim()) {
       setError('Escribí en las notas qué hay que corregir antes de devolver el evento.')
-      return
-    }
-    if (accion === 'publicar') {
-      handleAccion(accion)
       return
     }
     setConfirmando(accion)
