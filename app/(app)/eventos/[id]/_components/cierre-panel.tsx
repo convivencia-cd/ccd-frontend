@@ -3,28 +3,34 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
-import { Download, Upload, Trash2, Users, FileText, Sparkles, Package, DollarSign, Camera, Lock } from 'lucide-react'
-import { CIERRE_BUCKET, type PreguntaInforme } from '@/lib/eventos/cierre'
-import { exportConviventesPDF, exportInformeCoordinadorPDF, exportInformeCarismasPDF, type EventoInfo } from '@/lib/eventos/cierre-pdf'
+import { Copy, Download, Users, FileText, Sparkles, Package, DollarSign, Camera, Lock } from 'lucide-react'
+import type { PreguntaInforme } from '@/lib/eventos/cierre'
+import type { FotoCierre } from '@/lib/eventos/fotos-cierre'
+import { FotosCierre } from './fotos-cierre'
+import { exportConviventesPDF, exportInformeCcdPDF, exportInformeCarismasPDF, ROMANOS, type EventoInfo } from '@/lib/eventos/cierre-pdf'
 import { CerrarConvivenciaButton } from './cerrar-convivencia-button'
 
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
 
 type Persona = { id: string; nombre: string; apellido: string; email?: string | null; telefono?: string | null }
 type Convivente = { persona_id: string; nombre: string; apellido: string; email: string | null; telefono: string | null; rol: string }
-type Servidor = { persona_id: string; nombre: string; apellido: string; rol: string }
+type Servidor = { persona_id: string; nombre: string; apellido: string; rol: string; fraternidad: string | null }
 
 type Props = {
   eventoId: string
   estado: string
   eventoInfo: EventoInfo
   canEditar: boolean
-  canVerConfidencial: boolean
+  canVerCarismas: boolean
+  canVerInformeEqt: boolean
+  canVerInformeResponsables: boolean
+  /** Solo el coordinador del evento completa los informes confidenciales. */
   canEditarConfidencial: boolean
   canCerrar: boolean
+  canSubirFotos: boolean
+  fotos: FotoCierre[]
   conviventes: Convivente[]
   servidores: Servidor[]
   cecistas: Persona[]
@@ -32,14 +38,13 @@ type Props = {
   /** El Informe Económico vive en su propio panel del detalle; acá solo se linkea si el usuario lo ve. */
   canVerInformeEconomico: boolean
   inicial: {
-    cierre_foto_convivencia_url: string | null
-    cierre_foto_servidores_url: string | null
     cierre_bolso_manuales_completo: boolean | null
     cierre_manuales_saldo_final: number | null
     cierre_manuales_recibidos_de: string | null
     cierre_manuales_entrego_a: string | null
     cierre_manuales_notas: string | null
-    informe_coordinador_respuestas: Record<string, string> | null
+    informe_eqt_respuestas: Record<string, string> | null
+    informe_responsables_respuestas: Record<string, string> | null
     informe_carismas: { persona_id: string; texto: string }[] | null
   }
 }
@@ -61,10 +66,68 @@ function Section({ icon: Icon, title, badge, children }: { icon: React.ElementTy
   )
 }
 
+function InformeCcd({ titulo, preguntas, respuestas, onChange, otras, canEditar, guardando, bloqueado, onGuardar, onExportar }: {
+  titulo: string
+  preguntas: PreguntaInforme[]
+  respuestas: Record<string, string>
+  onChange: (fn: (prev: Record<string, string>) => Record<string, string>) => void
+  /** El otro informe de la CcD, para copiar sus respuestas a las vacías de este. */
+  otras: { nombre: string; respuestas: Record<string, string> } | null
+  canEditar: boolean
+  guardando: boolean
+  bloqueado: boolean
+  onGuardar: () => void
+  onExportar: () => void
+}) {
+  // Solo completa las respuestas vacías: nunca pisa lo que ya está escrito.
+  const copiables = otras
+    ? preguntas.filter(q => !(respuestas[q.id] ?? '').trim() && (otras.respuestas[q.id] ?? '').trim()).length
+    : 0
+
+  return (
+    <Section icon={FileText} title={titulo} badge="Confidencial">
+      {preguntas.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No hay preguntas definidas para este tipo de evento. Configuralas en Tipos de Evento.</p>
+      ) : preguntas.map((q, i) => (
+        <div key={q.id} className="space-y-1">
+          <p className="text-sm font-medium text-foreground">{ROMANOS[i] ?? i + 1}) {q.texto}</p>
+          <textarea
+            className={`${inputClass} min-h-16`}
+            value={respuestas[q.id] ?? ''}
+            disabled={!canEditar}
+            onChange={e => onChange(prev => ({ ...prev, [q.id]: e.target.value }))}
+          />
+        </div>
+      ))}
+      <div className="flex flex-wrap gap-2">
+        {canEditar && (
+          <Button size="sm" onClick={onGuardar} disabled={bloqueado}>
+            {guardando ? 'Guardando...' : 'Guardar informe'}
+          </Button>
+        )}
+        {canEditar && otras && copiables > 0 && (
+          <Button size="sm" variant="outline" className="gap-1 bg-transparent" disabled={bloqueado}
+            onClick={() => onChange(prev => {
+              const next = { ...prev }
+              for (const q of preguntas) {
+                if (!(next[q.id] ?? '').trim() && (otras.respuestas[q.id] ?? '').trim()) next[q.id] = otras.respuestas[q.id]
+              }
+              return next
+            })}>
+            <Copy className="h-4 w-4" /> Completar vacías con el informe para {otras.nombre} ({copiables})
+          </Button>
+        )}
+        <Button size="sm" variant="outline" className="gap-1 bg-transparent" onClick={onExportar}>
+          <Download className="h-4 w-4" /> Exportar PDF
+        </Button>
+      </div>
+    </Section>
+  )
+}
+
 export default function CierrePanel(props: Props) {
-  const { eventoId, estado, eventoInfo, canEditar, canVerConfidencial, canEditarConfidencial, canCerrar, conviventes, servidores, cecistas, preguntas, canVerInformeEconomico, inicial } = props
+  const { eventoId, estado, eventoInfo, canEditar, canVerCarismas, canVerInformeEqt, canVerInformeResponsables, canEditarConfidencial, canCerrar, canSubirFotos, fotos, conviventes, servidores, cecistas, preguntas, canVerInformeEconomico, inicial } = props
   const router = useRouter()
-  const supabase = createClient()
 
   const cerrado = estado === 'cerrado'
   const cecistaOptions = cecistas.map(p => ({ value: p.id, label: `${p.apellido}, ${p.nombre}` }))
@@ -79,16 +142,14 @@ export default function CierrePanel(props: Props) {
   const [notasMateriales, setNotasMateriales] = useState(inicial.cierre_manuales_notas ?? '')
 
   // ── Informes confidenciales ──
-  const [respuestas, setRespuestas] = useState<Record<string, string>>(inicial.informe_coordinador_respuestas ?? {})
+  const [respuestasEqt, setRespuestasEqt] = useState<Record<string, string>>(inicial.informe_eqt_respuestas ?? {})
+  const [respuestasResponsables, setRespuestasResponsables] = useState<Record<string, string>>(inicial.informe_responsables_respuestas ?? {})
   const [carismas, setCarismas] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {}
     for (const c of inicial.informe_carismas ?? []) map[c.persona_id] = c.texto
     return map
   })
 
-  // ── Fotos ──
-  const [fotoConvivencia, setFotoConvivencia] = useState(inicial.cierre_foto_convivencia_url)
-  const [fotoServidores, setFotoServidores] = useState(inicial.cierre_foto_servidores_url)
 
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -127,48 +188,11 @@ export default function CierrePanel(props: Props) {
     }, 'materiales', 'Materiales guardados.')
   }
 
-  function guardarInformeCoordinador() {
-    patchCierre({ informe_coordinador_respuestas: respuestas }, 'coordinador', 'Informe del coordinador guardado.')
-  }
-
   function guardarCarismas() {
     const arr = servidores.map(s => ({ persona_id: s.persona_id, texto: carismas[s.persona_id] ?? '' }))
     patchCierre({ informe_carismas: arr }, 'carismas', 'Informe de carismas guardado.')
   }
 
-  async function subirFoto(slot: 'convivencia' | 'servidores', file: File) {
-    if (file.size > 10 * 1024 * 1024) { setError('El archivo supera 10 MB.'); return }
-    setSaving(`foto-${slot}`)
-    setError('')
-    try {
-      const path = `${eventoId}/${slot}`
-      const { error: upErr } = await supabase.storage.from(CIERRE_BUCKET).upload(path, file, { upsert: true, contentType: file.type })
-      if (upErr) throw upErr
-      const { data: urlData } = supabase.storage.from(CIERRE_BUCKET).getPublicUrl(path)
-      const newUrl = `${urlData.publicUrl}?v=${Date.now()}`
-      const field = slot === 'convivencia' ? 'cierre_foto_convivencia_url' : 'cierre_foto_servidores_url'
-      await patchCierre({ [field]: newUrl }, `foto-${slot}`, 'Foto subida.')
-      if (slot === 'convivencia') setFotoConvivencia(newUrl); else setFotoServidores(newUrl)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al subir la foto.')
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  async function eliminarFoto(slot: 'convivencia' | 'servidores') {
-    setSaving(`foto-${slot}`)
-    try {
-      await supabase.storage.from(CIERRE_BUCKET).remove([`${eventoId}/${slot}`])
-      const field = slot === 'convivencia' ? 'cierre_foto_convivencia_url' : 'cierre_foto_servidores_url'
-      await patchCierre({ [field]: null }, `foto-${slot}`, 'Foto eliminada.')
-      if (slot === 'convivencia') setFotoConvivencia(null); else setFotoServidores(null)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al eliminar la foto.')
-    } finally {
-      setSaving(null)
-    }
-  }
 
   return (
     <div className="space-y-5">
@@ -221,52 +245,48 @@ export default function CierrePanel(props: Props) {
 
       {/* 3 y 5. Fotos */}
       <Section icon={Camera} title="Fotos">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FotoSlot label="Foto de la Convivencia" url={fotoConvivencia} disabled={!canEditar} loading={saving === 'foto-convivencia'}
-            onUpload={f => subirFoto('convivencia', f)} onDelete={() => eliminarFoto('convivencia')} />
-          <FotoSlot label="Foto del Equipo de Servidores" url={fotoServidores} disabled={!canEditar} loading={saving === 'foto-servidores'}
-            onUpload={f => subirFoto('servidores', f)} onDelete={() => eliminarFoto('servidores')} />
-        </div>
+        <FotosCierre eventoId={eventoId} fotos={fotos} canSubir={canSubirFotos} />
       </Section>
 
-      {/* 6. Informe del Coordinador (confidencial) */}
-      {canVerConfidencial && (
-        <Section icon={FileText} title="Informe del Coordinador" badge="Confidencial">
-          {preguntas.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No hay preguntas definidas para este tipo de evento. Configuralas en Tipos de Evento.</p>
-          ) : preguntas.map((q, i) => (
-            <div key={q.id} className="space-y-1">
-              <p className="text-sm font-medium text-foreground">{i + 1}. {q.texto}</p>
-              <textarea
-                className={`${inputClass} min-h-16`}
-                value={respuestas[q.id] ?? ''}
-                disabled={!canEditarConfidencial}
-                onChange={e => setRespuestas(prev => ({ ...prev, [q.id]: e.target.value }))}
-              />
-            </div>
-          ))}
-          <div className="flex flex-wrap gap-2">
-            {canEditarConfidencial && (
-              <Button size="sm" onClick={guardarInformeCoordinador} disabled={saving !== null}>
-                {saving === 'coordinador' ? 'Guardando...' : 'Guardar informe'}
-              </Button>
-            )}
-            <Button size="sm" variant="outline" className="gap-1 bg-transparent"
-              onClick={() => exportInformeCoordinadorPDF(eventoInfo, preguntas, respuestas)}>
-              <Download className="h-4 w-4" /> Exportar PDF
-            </Button>
-          </div>
-        </Section>
+      {/* 6. Informes de la CcD: uno para Responsables y otro para Equipo Timón,
+          mismas preguntas, el coordinador completa los dos (confidenciales) */}
+      {canVerInformeResponsables && (
+        <InformeCcd
+          titulo="Informe de la CcD (para Responsables)"
+          preguntas={preguntas}
+          respuestas={respuestasResponsables}
+          onChange={setRespuestasResponsables}
+          otras={canVerInformeEqt ? { nombre: 'Equipo Timón', respuestas: respuestasEqt } : null}
+          canEditar={canEditarConfidencial}
+          guardando={saving === 'responsables'}
+          bloqueado={saving !== null}
+          onGuardar={() => patchCierre({ informe_responsables_respuestas: respuestasResponsables }, 'responsables', 'Informe para Responsables guardado.')}
+          onExportar={() => exportInformeCcdPDF(eventoInfo, 'responsables', preguntas, respuestasResponsables)}
+        />
+      )}
+      {canVerInformeEqt && (
+        <InformeCcd
+          titulo="Informe de la CcD (para Equipo Timón)"
+          preguntas={preguntas}
+          respuestas={respuestasEqt}
+          onChange={setRespuestasEqt}
+          otras={canVerInformeResponsables ? { nombre: 'Responsables', respuestas: respuestasResponsables } : null}
+          canEditar={canEditarConfidencial}
+          guardando={saving === 'eqt'}
+          bloqueado={saving !== null}
+          onGuardar={() => patchCierre({ informe_eqt_respuestas: respuestasEqt }, 'eqt', 'Informe para Equipo Timón guardado.')}
+          onExportar={() => exportInformeCcdPDF(eventoInfo, 'eqt', preguntas, respuestasEqt)}
+        />
       )}
 
-      {/* 7. Informe de Carismas (confidencial) */}
-      {canVerConfidencial && (
-        <Section icon={Sparkles} title="Informe de Carismas del Equipo" badge="Confidencial">
+      {/* 7. Planilla de Carismas de Servidores (confidencial) */}
+      {canVerCarismas && (
+        <Section icon={Sparkles} title="Planilla de Carismas de Servidores" badge="Confidencial">
           {servidores.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No hay servidores registrados en el equipo.</p>
+            <p className="text-xs text-muted-foreground">No hay servidores, asesor ni coordinador registrados en el equipo.</p>
           ) : servidores.map(s => (
             <div key={s.persona_id} className="space-y-1">
-              <p className="text-sm font-medium text-foreground">{s.apellido}, {s.nombre} <span className="text-xs text-muted-foreground">({s.rol})</span></p>
+              <p className="text-sm font-medium text-foreground">{s.apellido}, {s.nombre} <span className="text-xs text-muted-foreground">({s.rol} · {s.fraternidad ?? 'sin fraternidad registrada'})</span></p>
               <textarea
                 className={`${inputClass} min-h-16`}
                 value={carismas[s.persona_id] ?? ''}
@@ -278,11 +298,11 @@ export default function CierrePanel(props: Props) {
           <div className="flex flex-wrap gap-2">
             {canEditarConfidencial && (
               <Button size="sm" onClick={guardarCarismas} disabled={saving !== null}>
-                {saving === 'carismas' ? 'Guardando...' : 'Guardar informe'}
+                {saving === 'carismas' ? 'Guardando...' : 'Guardar planilla'}
               </Button>
             )}
             <Button size="sm" variant="outline" className="gap-1 bg-transparent"
-              onClick={() => exportInformeCarismasPDF(eventoInfo, servidores.map(s => ({ nombre: `${s.apellido}, ${s.nombre} (${s.rol})`, texto: carismas[s.persona_id] ?? '' })))}>
+              onClick={() => exportInformeCarismasPDF(eventoInfo, servidores.map(s => ({ ...s, texto: carismas[s.persona_id] ?? '' })))}>
               <Download className="h-4 w-4" /> Exportar PDF
             </Button>
           </div>
@@ -325,40 +345,6 @@ export default function CierrePanel(props: Props) {
           </Button>
         )}
       </Section>
-    </div>
-  )
-}
-
-function FotoSlot({ label, url, disabled, loading, onUpload, onDelete }: {
-  label: string; url: string | null; disabled: boolean; loading: boolean
-  onUpload: (f: File) => void; onDelete: () => void
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        {url && !disabled && (
-          <button type="button" onClick={onDelete} disabled={loading} className="text-destructive hover:opacity-70 disabled:opacity-40" title="Eliminar">
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt={label} className="w-full rounded-md border border-border object-cover aspect-video" />
-      ) : (
-        <div className="flex aspect-video w-full items-center justify-center rounded-md border-2 border-dashed border-border bg-muted/20 text-xs text-muted-foreground">
-          Sin foto
-        </div>
-      )}
-      {!disabled && (
-        <label className="inline-flex cursor-pointer items-center gap-1 rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted/50">
-          <Upload className="h-3.5 w-3.5" />
-          {loading ? 'Subiendo…' : url ? 'Reemplazar' : 'Subir imagen'}
-          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={loading}
-            onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = '' }} />
-        </label>
-      )}
     </div>
   )
 }

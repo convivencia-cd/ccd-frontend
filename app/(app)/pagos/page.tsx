@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { formatDateAR } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, Plus, Edit2 } from 'lucide-react'
+import { DollarSign, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
@@ -36,7 +36,8 @@ export default async function PagosPage() {
     `)
     .order('fecha_pago', { ascending: false })
 
-  // Pendientes de verificación: transferencias con comprobante. Visibles para quien
+  // Pendientes de verificación: todo pago manual pendiente (transferencia, efectivo,
+  // otro), tenga o no comprobante; los de Mercado Pago los resuelve el webhook. Visibles para quien
   // tiene payment.verify scopeado a la org del evento, o es Centralizador del evento.
   const tienePermisoVerificar = !!ctx && canPerform(ctx, 'payment.verify')
   let pagosPendientes: PagoPendiente[] = []
@@ -45,15 +46,14 @@ export default async function PagosPage() {
     const { data: pendientes } = await supabase
       .from('pagos')
       .select(`
-        id, monto, fecha_pago, comprobante_url, concepto,
+        id, monto, fecha_pago, comprobante_url, concepto, medio_pago,
         participante:evento_participantes!evento_participante_id(
           persona:personas!persona_id(nombre, apellido),
           evento:eventos!evento_id(nombre, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id)
         )
       `)
-      .eq('medio_pago', 'transferencia')
+      .neq('medio_pago', 'mercadopago')
       .eq('estado_pago', 'pendiente')
-      .not('comprobante_url', 'is', null)
       .order('fecha_pago', { ascending: true })
 
     const visibles = (pendientes ?? []).filter((p: any) => {
@@ -82,6 +82,7 @@ export default async function PagosPage() {
           fecha_pago: p.fecha_pago,
           comprobante_signed_url: signedUrl,
           concepto: p.concepto ?? 'inscripcion',
+          medio_pago: p.medio_pago,
           persona: p.participante?.persona
             ? `${p.participante.persona.apellido}, ${p.participante.persona.nombre}`
             : '—',
@@ -189,7 +190,6 @@ export default async function PagosPage() {
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Fecha</th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Medio</th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Estado</th>
-                    <th className="text-center py-3 px-4 font-semibold text-foreground">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,13 +217,6 @@ export default async function PagosPage() {
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${estadoClases[pago.estado_pago] ?? ''}`}>
                           {pago.estado_pago}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <Link href={`/pagos/${pago.id}/editar`}>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </Link>
                       </td>
                     </tr>
                   ))}

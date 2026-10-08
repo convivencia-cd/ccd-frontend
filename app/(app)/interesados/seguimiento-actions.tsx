@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Check, Loader2, Mail, Send } from "lucide-react"
+import { Check, Copy, Loader2, Mail, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SeguimientoActionsProps {
@@ -45,6 +45,7 @@ export function SeguimientoActions({
   const [isSaving, setIsSaving] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [resultado, setResultado] = useState<Resultado | null>(null)
+  const [copiado, setCopiado] = useState(false)
 
   const dirty =
     estado !== (estadoContacto ?? "no_contactado") ||
@@ -96,6 +97,16 @@ export function SeguimientoActions({
       setResultado({ tono: "error", texto: "Error de conexión. Intentá de nuevo." })
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function copiarLinkDePago() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/pago/${participanteId}`)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      setResultado({ tono: "error", texto: "No se pudo copiar el link." })
     }
   }
 
@@ -176,6 +187,14 @@ export function SeguimientoActions({
         >
           {isResending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
           Reenviar link de pago
+        </Button>
+      )}
+
+      {/* Mismo link que viaja en el mail: sirve para mandarlo por WhatsApp. */}
+      {yaConfirmado && (
+        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={copiarLinkDePago} disabled={busy}>
+          {copiado ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copiado ? "Link copiado" : "Copiar link de pago"}
         </Button>
       )}
 

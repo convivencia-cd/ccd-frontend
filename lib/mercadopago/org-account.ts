@@ -157,6 +157,42 @@ export async function hayCuentaCobroCentral(): Promise<boolean> {
   return !!data
 }
 
+export type DatosTransferenciaCentral = {
+  alias: string
+  cbu: string | null
+  titular: string | null
+  banco: string | null
+  instrucciones: string | null
+}
+
+/**
+ * Datos bancarios (alias/CBU) de la organización que centraliza el cobro, para
+ * las inscripciones por transferencia. Mismo criterio que Mercado Pago: sin
+ * fallback a la fraternidad/confraternidad del evento. Devuelve null si la
+ * organización de cobro no tiene alias cargado.
+ */
+export async function obtenerDatosTransferenciaCentral(): Promise<DatosTransferenciaCentral | null> {
+  const orgId = await obtenerOrgCobroId()
+  if (!orgId) return null
+
+  const supabase = supabaseAdmin()
+  const { data } = await supabase
+    .from('organizaciones')
+    .select('pago_alias, pago_cbu, pago_titular, pago_banco, pago_instrucciones')
+    .eq('id', orgId)
+    .maybeSingle()
+
+  if (!data?.pago_alias) return null
+
+  return {
+    alias: data.pago_alias,
+    cbu: data.pago_cbu ?? null,
+    titular: data.pago_titular ?? null,
+    banco: data.pago_banco ?? null,
+    instrucciones: data.pago_instrucciones ?? null,
+  }
+}
+
 /**
  * Cuenta que cobra todas las inscripciones, con un access_token vigente.
  */

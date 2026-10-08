@@ -29,9 +29,14 @@ export type Permission =
   | 'event.request_suspend' // solicitar la suspensión de un evento (enlaces/responsables/delegados) — asignable
   | 'event.update'
   | 'event.manage_participants'
-  | 'payment.verify'       // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
+  | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
+  | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
   | 'informe_economico.edit' // cargar movimientos del Informe Económico del evento (Tesoreros) — scopeado a la org del evento
   | 'informe_economico.view' // ver (solo lectura) el Informe Económico del evento — scopeado a la org del evento
+  | 'cierre.view_carismas'             // ver el Informe de Carismas del cierre — scopeado a la org del evento
+  | 'cierre.view_informe_responsables' // ver el informe de cierre para Responsables / Delegados EqT — scopeado
+  | 'cierre.view_informe_eqt'          // ver el informe de cierre para Equipo Timón — scopeado
+  | 'cierre.upload_fotos'              // subir/quitar fotos del cierre — scopeado (el centralizador del evento no lo necesita)
   | 'organization.create' // solo admin
   | 'organization.update'
   | 'organizaciones.export' // exportar listado de organizaciones a Excel
@@ -78,9 +83,14 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.request_suspend',
     'event.update',
     'event.manage_participants',
+    'inscripcion.view_datos_sensibles',
     'payment.verify',
     'informe_economico.edit',
     'informe_economico.view',
+    'cierre.view_carismas',
+    'cierre.view_informe_responsables',
+    'cierre.view_informe_eqt',
+    'cierre.upload_fotos',
     'organization.create',
     'organization.update',
     'organizaciones.export',

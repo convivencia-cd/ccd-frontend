@@ -23,6 +23,8 @@ type Props = {
   canAsignaciones: boolean
   /** event.manage_participants o ser centralizador: puede tocar el padrón del evento. */
   canParticipantes: boolean
+  /** Gestión muestra el padrón de participantes arriba de todo (card #57). */
+  participantesPrimero?: boolean
 }
 
 const ROLES_SERVIDOR = ROLES_SERVIDOR_OPCIONES.map(r => r.value) as string[]
@@ -40,6 +42,7 @@ export default function EquipoEventoPanel({
   nombresGrupos,
   canAsignaciones,
   canParticipantes,
+  participantesPrimero = false,
 }: Props) {
   const router = useRouter()
   const [personas, setPersonas] = useState<PersonaOption[]>([])
@@ -62,14 +65,32 @@ export default function EquipoEventoPanel({
   const refrescar = () => router.refresh()
 
   const equipo = participantes.filter(p => ROLES_SERVIDOR.includes(p.rol_en_evento))
-  const inscriptos = participantes.filter(p => p.rol_en_evento === 'convivente')
+  // Los interesados se siguen desde el detalle del evento (seguimiento de
+  // contacto): acá van solo quienes ya se inscribieron o dieron el presente.
+  const inscriptos = participantes.filter(
+    p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'interesado'
+  )
   const servidoresDeGrupo = equipo.filter(
     p => p.rol_en_evento === 'servidor' && p.estado_participacion !== 'cancelado'
   )
   const conviventesActivos = inscriptos.filter(p => p.estado_participacion !== 'cancelado')
 
+  const tarjetaParticipantes = (
+    <ParticipantesEventoCard
+      eventoId={eventoId}
+      modo="inscriptos"
+      filas={inscriptos}
+      personas={personas}
+      cargandoPersonas={cargandoPersonas}
+      grupos={grupos}
+      onChanged={refrescar}
+    />
+  )
+
   return (
     <div className="space-y-6">
+      {canParticipantes && participantesPrimero && tarjetaParticipantes}
+
       {canAsignaciones && (
         <AsignacionesEventoCard
           eventoId={eventoId}
@@ -98,15 +119,7 @@ export default function EquipoEventoPanel({
             nombresDisponibles={nombresGrupos}
             onChanged={refrescar}
           />
-          <ParticipantesEventoCard
-            eventoId={eventoId}
-            modo="inscriptos"
-            filas={inscriptos}
-            personas={personas}
-            cargandoPersonas={cargandoPersonas}
-            grupos={grupos}
-            onChanged={refrescar}
-          />
+          {!participantesPrimero && tarjetaParticipantes}
         </>
       )}
     </div>

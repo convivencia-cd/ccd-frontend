@@ -18,15 +18,18 @@ import EquipoEventoPanel, {
   type ParticipanteEquipo,
 } from '../_components/equipo-evento-panel'
 import { CopyLinkButton } from './_components/copy-link-button'
+import { ContactoPersona } from '../_components/participantes-evento-card'
 
 const estadoClases: Record<string, string> = {
   publicado: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   en_curso: 'bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
+  finalizado: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 }
 
 const estadoLabel: Record<string, string> = {
   publicado: 'Publicado',
   en_curso: 'En Curso',
+  finalizado: 'Finalizado',
 }
 
 const participacionClases: Record<string, string> = {
@@ -38,7 +41,7 @@ const participacionClases: Record<string, string> = {
 const participacionLabel: Record<string, string> = {
   interesado: 'Interesado',
   inscripto: 'Inscripto',
-  en_curso: 'Conviviente',
+  en_curso: 'Convivente',
 }
 
 type ParticipanteRow = {
@@ -104,7 +107,8 @@ export default async function EventoGestionPage({
   const confraternidad = evento.confraternidad as { id: string; nombre: string } | null
   const fraternidad = evento.fraternidad as { id: string; nombre: string } | null
 
-  const disponible = evento.estado === 'publicado' || evento.estado === 'en_curso'
+  // finalizado: Becas en Pensión sigue editable hasta el cierre y vive acá.
+  const disponible = ['publicado', 'en_curso', 'finalizado'].includes(evento.estado)
 
   if (!disponible) {
     return (
@@ -114,8 +118,8 @@ export default async function EventoGestionPage({
           Volver a {evento.nombre}
         </Link>
         <div className="rounded-lg border border-border bg-muted p-6 text-sm text-muted-foreground">
-          La Gestión del Evento solo está disponible mientras el evento está <strong>publicado</strong> o{' '}
-          <strong>en curso</strong>. Estado actual: <strong>{evento.estado}</strong>.
+          La Gestión del Evento solo está disponible mientras el evento está <strong>publicado</strong>,{' '}
+          <strong>en curso</strong> o <strong>finalizado</strong>. Estado actual: <strong>{evento.estado}</strong>.
         </div>
       </div>
     )
@@ -134,29 +138,36 @@ export default async function EventoGestionPage({
   const conviventes = participantes.filter(
     p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'cancelado'
   )
+  // Los interesados se siguen desde el detalle del evento (card #57); acá,
+  // inscriptos y conviventes.
+  const inscriptos = conviventes.filter(p => p.estado_participacion !== 'interesado')
   const equipos = participantes.filter(
     p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado'
   )
 
-  const conteoConvivientes = {
-    interesado: conviventes.filter(p => p.estado_participacion === 'interesado').length,
-    inscripto: conviventes.filter(p => p.estado_participacion === 'inscripto').length,
-    en_curso: conviventes.filter(p => p.estado_participacion === 'en_curso').length,
+  const conteoInscriptos = {
+    inscripto: inscriptos.filter(p => p.estado_participacion === 'inscripto').length,
+    en_curso: inscriptos.filter(p => p.estado_participacion === 'en_curso').length,
   }
 
   const { data: pagosEvento } = await supabase
     .from('pagos')
-    .select('monto, estado_pago, concepto, participante:evento_participantes!evento_participante_id!inner(evento_id)')
+    .select('monto, estado_pago, concepto, evento_participante_id, participante:evento_participantes!evento_participante_id!inner(evento_id)')
     .eq('participante.evento_id', id)
 
   const resumenPagos = {
     inscripcion: { confirmado: 0, pendiente: 0 },
     pension: { confirmado: 0, pendiente: 0 },
   }
-  for (const p of (pagosEvento ?? []) as { monto: number; estado_pago: string; concepto: string | null }[]) {
+  // Pensión ya cobrada (pagos confirmados) por participante, para el panel de becas.
+  const pensionPagada = new Map<string, number>()
+  for (const p of (pagosEvento ?? []) as { monto: number; estado_pago: string; concepto: string | null; evento_participante_id: string }[]) {
     const c: 'inscripcion' | 'pension' = p.concepto === 'pension' ? 'pension' : 'inscripcion'
     if (p.estado_pago === 'confirmado') resumenPagos[c].confirmado += Number(p.monto)
     else if (p.estado_pago === 'pendiente') resumenPagos[c].pendiente += Number(p.monto)
+    if (c === 'pension' && p.estado_pago === 'confirmado') {
+      pensionPagada.set(p.evento_participante_id, (pensionPagada.get(p.evento_participante_id) ?? 0) + Number(p.monto))
+    }
   }
 
   // Editar el equipo del evento: las asignaciones (coordinador/asesor/centralizadores)
@@ -177,6 +188,7 @@ export default async function EventoGestionPage({
         valor_pension: p.valor_pension,
         beca_pension: p.beca_pension,
         notas_beca: p.notas_beca,
+        pagado_pension: pensionPagada.get(p.id) ?? 0,
       }))
     : []
 
@@ -267,35 +279,23 @@ export default async function EventoGestionPage({
         </CardContent>
       </Card>
 
-      {/* Equipo y padrón editables. Reemplazan a las tarjetas de solo lectura de
-          más abajo para quien puede gestionar el evento. */}
-      {(canAsignaciones || canParticipantes) && (
-        <EquipoEventoPanel
-          eventoId={id}
-          asignaciones={evento as unknown as AsignacionesEvento}
-          participantes={participantes as unknown as ParticipanteEquipo[]}
-          grupos={grupos}
-          nombresGrupos={nombresGrupos}
-          canAsignaciones={canAsignaciones}
-          canParticipantes={canParticipantes}
-        />
-      )}
-
-      {/* Convivientes: interesados / inscriptos / en curso */}
+      {/* Participantes (solo lectura): inscriptos / conviventes (presente dado).
+          Va arriba de todo; quien puede editar el padrón ve la versión editable,
+          también primera, dentro de EquipoEventoPanel. */}
       {!canParticipantes && (
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-primary" />
-              Convivientes
+              Participantes
             </CardTitle>
             <CardDescription>
-              {conteoConvivientes.interesado} interesados · {conteoConvivientes.inscripto} inscriptos · {conteoConvivientes.en_curso} convivientes
+              {conteoInscriptos.inscripto} inscriptos · {conteoInscriptos.en_curso} conviventes (con el presente dado)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {conviventes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay convivientes registrados.</p>
+            {inscriptos.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay participantes.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -308,13 +308,13 @@ export default async function EventoGestionPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {conviventes.map(p => (
+                    {inscriptos.map(p => (
                       <tr key={p.id} className="border-b border-border/60 hover:bg-muted/40">
                         <td className="px-3 py-2 font-medium text-foreground">
                           {p.persona ? `${p.persona.apellido}, ${p.persona.nombre}` : '—'}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
-                          {p.persona?.telefono ?? p.persona?.email ?? '—'}
+                          <ContactoPersona persona={p.persona} />
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
                           {p.fecha_inscripcion ? formatDateAR(p.fecha_inscripcion) : '—'}
@@ -332,6 +332,21 @@ export default async function EventoGestionPage({
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Equipo y padrón editables. Reemplazan a las tarjetas de solo lectura
+          para quien puede gestionar el evento. */}
+      {(canAsignaciones || canParticipantes) && (
+        <EquipoEventoPanel
+          eventoId={id}
+          asignaciones={evento as unknown as AsignacionesEvento}
+          participantes={participantes as unknown as ParticipanteEquipo[]}
+          grupos={grupos}
+          nombresGrupos={nombresGrupos}
+          canAsignaciones={canAsignaciones}
+          canParticipantes={canParticipantes}
+          participantesPrimero
+        />
       )}
 
       {/* Equipos asignados */}

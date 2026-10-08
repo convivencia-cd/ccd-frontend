@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
-import { canCerrarConvivencia } from '@/lib/eventos/cierre'
+import { canCerrarConvivencia, MIN_FOTOS_CIERRE } from '@/lib/eventos/cierre'
+import { contarFotosCierre } from '@/lib/eventos/fotos-cierre'
 
 // Cierra la convivencia: finalizado → cerrado. Solo Equipo Timón.
 export async function POST(
@@ -36,6 +37,20 @@ export async function POST(
       { error: 'Solo el Equipo Timón puede cerrar la convivencia' },
       { status: 403 }
     )
+  }
+
+  // Tarjeta #44: el centralizador tiene que haber adjuntado al menos MIN_FOTOS_CIERRE fotos.
+  try {
+    const fotos = await contarFotosCierre(id)
+    if (fotos < MIN_FOTOS_CIERRE) {
+      return NextResponse.json(
+        { error: `Faltan fotos: hay ${fotos} y se necesitan al menos ${MIN_FOTOS_CIERRE} para cerrar la convivencia.` },
+        { status: 422 }
+      )
+    }
+  } catch (e: unknown) {
+    const message = (e as { message?: string })?.message ?? 'No se pudieron contar las fotos'
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 
   const { error: updateError } = await supabase

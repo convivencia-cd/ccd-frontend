@@ -5,6 +5,7 @@ import {
   Calendar,
   MapPin,
   Phone,
+  Mail,
   Users,
   Eye,
   Search,
@@ -76,14 +77,14 @@ const participacionClases: Record<string, string> = {
 const participacionLabel: Record<string, string> = {
   interesado: "Interesada",
   inscripto: "Inscripta",
-  en_curso: "Conviviente",
+  en_curso: "Convivente",
 }
 
 const PARTICIPACION_FILTROS = [
   { value: "", label: "Todos los estados" },
   { value: "interesado", label: "Interesadas" },
   { value: "inscripto", label: "Inscriptas" },
-  { value: "en_curso", label: "Convivientes" },
+  { value: "en_curso", label: "Conviventes" },
 ]
 
 type OrgRef = { id: string; nombre: string } | null
@@ -202,7 +203,7 @@ export default async function CentralizadorPage({
     let query = supabase
       .from("evento_participantes")
       .select(
-        "id, estado_participacion, fecha_inscripcion, persona:personas!persona_id(id, nombre, apellido, telefono, localidad, provincia), evento:eventos!evento_id(id, nombre)",
+        "id, estado_participacion, fecha_inscripcion, persona:personas!persona_id(id, nombre, apellido, telefono, email, localidad, provincia), evento:eventos!evento_id(id, nombre)",
       )
       .in("evento_id", eventoIds)
       .in("estado_participacion", ["interesado", "inscripto", "en_curso"])
@@ -237,7 +238,7 @@ export default async function CentralizadorPage({
         </h1>
         <p className="mt-1 text-muted-foreground">
           Eventos donde figurás como centralizador y las personas interesadas,
-          inscriptas y convivientes de esos eventos.
+          inscriptas y conviventes de esos eventos.
         </p>
       </div>
 
@@ -374,7 +375,7 @@ export default async function CentralizadorPage({
                 Personas de mis eventos
               </CardTitle>
               <CardDescription>
-                Interesadas, inscriptas y convivientes · {participantes.length} personas
+                Interesadas, inscriptas y conviventes · {participantes.length} personas
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -390,7 +391,7 @@ export default async function CentralizadorPage({
                     <thead>
                       <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                         <th className="px-3 py-2 font-medium">Apellido, Nombre</th>
-                        <th className="px-3 py-2 font-medium">Teléfono</th>
+                        <th className="px-3 py-2 font-medium">Contacto</th>
                         <th className="px-3 py-2 font-medium">Ciudad</th>
                         <th className="px-3 py-2 font-medium">Provincia</th>
                         <th className="px-3 py-2 font-medium">Evento de Interés</th>
@@ -406,11 +407,21 @@ export default async function CentralizadorPage({
                               {persona ? `${persona.apellido ?? ""}, ${persona.nombre ?? ""}` : "—"}
                             </td>
                             <td className="px-3 py-2 text-muted-foreground">
-                              {persona?.telefono ? (
-                                <span className="flex items-center gap-1">
-                                  <Phone className="h-3.5 w-3.5" />
-                                  {persona.telefono}
-                                </span>
+                              {persona?.telefono || persona?.email ? (
+                                <div className="space-y-0.5">
+                                  {persona.telefono && (
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="h-3.5 w-3.5" />
+                                      {persona.telefono}
+                                    </span>
+                                  )}
+                                  {persona.email && (
+                                    <span className="flex items-center gap-1">
+                                      <Mail className="h-3.5 w-3.5" />
+                                      {persona.email}
+                                    </span>
+                                  )}
+                                </div>
                               ) : (
                                 "—"
                               )}

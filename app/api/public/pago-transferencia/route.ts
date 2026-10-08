@@ -56,7 +56,9 @@ export async function POST(request: Request) {
     .from('pagos')
     .select('id')
     .eq('evento_participante_id', eventoParticipanteId)
+    .eq('concepto', 'inscripcion')
     .in('estado_pago', ['pendiente', 'confirmado'])
+    .limit(1)
     .maybeSingle()
 
   if (pagoExistente) {
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
 
   const { error: pagoError } = await supabaseAdmin.from('pagos').insert({
     evento_participante_id: eventoParticipanteId,
+    concepto: 'inscripcion',
     monto,
     medio_pago: 'transferencia',
     estado_pago: 'pendiente',

@@ -18,18 +18,23 @@ import { FinalizarEventoButton } from './_components/finalizar-evento-button'
 import FlyerUploadPanel from './_components/flyer-upload-panel'
 import { muestraFlyers } from '@/lib/eventos/flyers'
 import CierrePanel from './_components/cierre-panel'
-import PensionBecasPanel from './_components/pension-becas-panel'
+import { puedeGestionarInteresado } from '@/lib/interesados/access'
+import { InteresadoCard, INTERESADO_SELECT } from '../../interesados/_components/interesado-card'
 import {
   canEditarCierre,
   canVerCierre,
-  canVerInformesConfidenciales,
+  canVerCarismas,
+  canVerInformeCcd,
+  canEditarInformesConfidenciales,
   canCerrarConvivencia,
+  canSubirFotosCierre,
   esCentralizadorDeEvento,
-  ROLES_SERVIDORES,
+  ROLES_CARISMAS,
   type PreguntaInforme,
 } from '@/lib/eventos/cierre'
-import { canGestionarPension } from '@/lib/eventos/pension'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
+import { cargarCarismas, cargarInformeCcd } from '@/lib/eventos/informes-cierre'
+import { cargarFotosCierre } from '@/lib/eventos/fotos-cierre'
 import { formatDateAR } from '@/lib/utils'
 
 const estadoClases: Record<string, string> = {
@@ -110,8 +115,6 @@ export default async function EventoDetailPage({
       manuales_stock, manuales_necesarios, manuales_solicitados,
       tipo_evento_id,
       fecha_cierre, cerrado_por,
-      cierre_foto_convivencia_url, cierre_foto_servidores_url,
-      informe_coordinador_respuestas, informe_carismas,
       cierre_bolso_manuales_completo, cierre_manuales_saldo_final,
       cierre_manuales_recibidos_de, cierre_manuales_entrego_a, cierre_manuales_notas,
       tipo_evento:tipos_eventos!tipo_evento_id(preguntas_informe),
@@ -251,26 +254,19 @@ export default async function EventoDetailPage({
   }
   const showCierre = canVerCierre(ctx, cierreEvento)
 
-  // ─── Becas en Pensión (independiente del cierre: aplica con el evento en vivo) ───
-  const canPension = canGestionarPension(ctx, cierreEvento)
+  // Becas en Pensión se gestiona desde /eventos/[id]/gestion.
 
-  type ParticipantePensionRow = {
-    id: string
-    valor_inscripcion: number | null
-    valor_pension: number | null
-    beca_pension: number
-    notas_beca: string | null
-    persona: { id: string; nombre: string; apellido: string } | null
-  }
-  let participantesPension: ParticipantePensionRow[] = []
-  if (canPension) {
-    const { data: pensionData } = await supabase
+  // ─── Interesados del evento: mismo seguimiento que /interesados, a mano ───
+  const canInteresados = ctx ? await puedeGestionarInteresado(supabase, ctx, id) : false
+  let interesadosEvento: unknown[] = []
+  if (canInteresados) {
+    const { data: interesadosData } = await supabase
       .from('evento_participantes')
-      .select('id, valor_inscripcion, valor_pension, beca_pension, notas_beca, persona:personas!persona_id(id, nombre, apellido)')
+      .select(INTERESADO_SELECT)
       .eq('evento_id', id)
-      .eq('rol_en_evento', 'convivente')
-      .neq('estado_participacion', 'cancelado')
-    participantesPension = (pensionData ?? []) as unknown as ParticipantePensionRow[]
+      .eq('estado_participacion', 'interesado')
+      .order('fecha_inscripcion', { ascending: false })
+    interesadosEvento = interesadosData ?? []
   }
 
   type ParticipanteRow = {
@@ -302,14 +298,44 @@ export default async function EventoDetailPage({
       rol: p.rol_en_evento,
     }))
 
-  const servidoresCierre = participantes
-    .filter(p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado')
+  // Planilla de Carismas: servidores, asesor y coordinador (en ese orden), con
+  // la fraternidad de cada uno ("no omitir los apellidos ni la fraternidad").
+  const evaluadosCierre = participantes
+    .filter(p => (ROLES_CARISMAS as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado')
+    .map(p => ({ persona_id: p.persona_id, rol_en_evento: p.rol_en_evento, persona: p.persona ? { nombre: p.persona.nombre, apellido: p.persona.apellido } : null }))
+  // El asesor y el coordinador asignados viven en columnas de `eventos`: se
+  // suman si no están ya cargados como participantes.
+  if (showCierre) {
+    const asignados = evento as unknown as Record<'asesor_asignado' | 'coordinador_asignado', { id: string; nombre: string; apellido: string } | null>
+    for (const [rol, persona] of [['asesor', asignados.asesor_asignado], ['coordinador', asignados.coordinador_asignado]] as const) {
+      if (persona && !evaluadosCierre.some(p => p.persona_id === persona.id)) {
+        evaluadosCierre.push({ persona_id: persona.id, rol_en_evento: rol, persona: { nombre: persona.nombre, apellido: persona.apellido } })
+      }
+    }
+  }
+  const fraternidadPorPersona = new Map<string, string>()
+  if (evaluadosCierre.length > 0) {
+    const { data: membresias } = await supabase
+      .from('persona_organizacion')
+      .select('persona_id, organizacion:organizaciones!organizacion_id(nombre)')
+      .in('persona_id', evaluadosCierre.map(p => p.persona_id))
+      .eq('tipo_relacion', 'fraternidad')
+      .is('fecha_fin', null)
+    for (const m of (membresias ?? []) as unknown as { persona_id: string; organizacion: { nombre: string } | null }[]) {
+      if (m.organizacion?.nombre) fraternidadPorPersona.set(m.persona_id, m.organizacion.nombre)
+    }
+  }
+  const servidoresCierre = evaluadosCierre
     .map(p => ({
       persona_id: p.persona_id,
       nombre: p.persona?.nombre ?? '',
       apellido: p.persona?.apellido ?? '',
       rol: p.rol_en_evento,
+      fraternidad: fraternidadPorPersona.get(p.persona_id) ?? null,
     }))
+    .sort((a, b) =>
+      (ROLES_CARISMAS as readonly string[]).indexOf(a.rol) - (ROLES_CARISMAS as readonly string[]).indexOf(b.rol) ||
+      a.apellido.localeCompare(b.apellido) || a.nombre.localeCompare(b.nombre))
 
   const tipoEvento = (evento as Record<string, unknown>).tipo_evento as { preguntas_informe: PreguntaInforme[] } | null
   const preguntasInforme: PreguntaInforme[] = Array.isArray(tipoEvento?.preguntas_informe) ? tipoEvento!.preguntas_informe : []
@@ -488,7 +514,8 @@ export default async function EventoDetailPage({
   // Gestión del Evento: administrador, timonel, responsable, enlace o centralizador,
   // solo mientras el evento está publicado o en curso.
   const canGestion = ctx &&
-    (evento.estado === 'publicado' || evento.estado === 'en_curso') &&
+    // finalizado incluido: Becas en Pensión vive en Gestión y sigue editable hasta el cierre.
+    (evento.estado === 'publicado' || evento.estado === 'en_curso' || evento.estado === 'finalizado') &&
     (
       canPerform(ctx, 'event.update', evento.organizacion_id ?? null) ||
       (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false) ||
@@ -510,8 +537,21 @@ export default async function EventoDetailPage({
 
   // Cierre de convivencia
   const canEditarCierrePanel = canEditarCierre(ctx, cierreEvento)
-  const canVerConfidencial = canVerInformesConfidenciales(ctx, cierreEvento)
-  const canEditarConfidencial = canVerConfidencial && evento.estado === 'finalizado'
+  const canVerCarismasCierre = canVerCarismas(ctx, cierreEvento)
+  const canVerInformeEqtCierre = canVerInformeCcd(ctx, cierreEvento, 'eqt')
+  const canVerInformeResponsablesCierre = canVerInformeCcd(ctx, cierreEvento, 'responsables')
+  const canEditarConfidencial = canEditarInformesConfidenciales(ctx, cierreEvento)
+  // Confidenciales: viven en evento_informes_cierre (RLS cerrada) y solo se leen
+  // si el usuario puede verlos, así no viajan al cliente.
+  const [informeEqtCierre, informeResponsablesCierre, carismasCierre, fotosCierre] = showCierre
+    ? await Promise.all([
+        canVerInformeEqtCierre ? cargarInformeCcd(id, 'eqt') : Promise.resolve(null),
+        canVerInformeResponsablesCierre ? cargarInformeCcd(id, 'responsables') : Promise.resolve(null),
+        canVerCarismasCierre ? cargarCarismas(id) : Promise.resolve(null),
+        cargarFotosCierre(supabase, id),
+      ])
+    : [null, null, null, []]
+  const canSubirFotos = canSubirFotosCierre(ctx, cierreEvento)
   const canCerrar = canCerrarConvivencia(ctx, cierreEvento)
 
   const ESTADOS_TERMINALES = ['suspendido', 'cancelado', 'finalizado', 'cerrado', 'rechazado']
@@ -1175,23 +1215,26 @@ export default async function EventoDetailPage({
 
       </div>
 
-      {/* Becas en Pensión — visible mientras el evento está publicado/en curso/finalizado */}
-      {canPension && (
-        <PensionBecasPanel
-          eventoId={id}
-          precioEvento={{
-            cuota_inscripcion: Number((evento as Record<string, unknown>).precio ?? 0),
-            pension: Number((evento as Record<string, unknown>).pension ?? 0),
-          }}
-          participantes={participantesPension.map(p => ({
-            id: p.id,
-            persona: p.persona,
-            valor_inscripcion: p.valor_inscripcion,
-            valor_pension: p.valor_pension,
-            beca_pension: p.beca_pension,
-            notas_beca: p.notas_beca,
-          }))}
-        />
+      {/* Interesados — seguimiento de contacto de este evento */}
+      {canInteresados && interesadosEvento.length > 0 && (
+        <Card className="border-border bg-card">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+            <CardTitle className="text-foreground">
+              Interesados ({interesadosEvento.length})
+            </CardTitle>
+            <Link
+              href={`/interesados?evento_id=${id}`}
+              className="text-sm text-primary hover:underline"
+            >
+              Ver en Interesados
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {interesadosEvento.map((it) => (
+              <InteresadoCard key={(it as { id: string }).id} it={it} mostrarEvento={false} />
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* Cierre de la Convivencia — visible en finalizado/cerrado a quien tenga acceso */}
@@ -1203,28 +1246,32 @@ export default async function EventoDetailPage({
             nombre: evento.nombre,
             fecha_inicio: evento.fecha_inicio ?? null,
             confraternidad_nombre: confraternidad?.nombre ?? null,
+            lugar: casaRetiro
+              ? [casaRetiro.nombre, casaRetiro.ciudad].filter(Boolean).join(', ')
+              : (ev.ciudad as string | null) ?? null,
           }}
           canEditar={!!canEditarCierrePanel}
-          canVerConfidencial={!!canVerConfidencial}
+          canVerCarismas={!!canVerCarismasCierre}
+          canVerInformeEqt={!!canVerInformeEqtCierre}
+          canVerInformeResponsables={!!canVerInformeResponsablesCierre}
           canEditarConfidencial={!!canEditarConfidencial}
           canCerrar={!!canCerrar}
+          canSubirFotos={!!canSubirFotos}
+          fotos={fotosCierre}
           conviventes={conviventesCierre}
           servidores={servidoresCierre}
           cecistas={cecistasSoloList}
           preguntas={preguntasInforme}
           canVerInformeEconomico={showIE}
           inicial={{
-            cierre_foto_convivencia_url: (ev.cierre_foto_convivencia_url as string | null) ?? null,
-            cierre_foto_servidores_url: (ev.cierre_foto_servidores_url as string | null) ?? null,
             cierre_bolso_manuales_completo: (ev.cierre_bolso_manuales_completo as boolean | null) ?? null,
             cierre_manuales_saldo_final: (ev.cierre_manuales_saldo_final as number | null) ?? null,
             cierre_manuales_recibidos_de: (ev.cierre_manuales_recibidos_de as string | null) ?? null,
             cierre_manuales_entrego_a: (ev.cierre_manuales_entrego_a as string | null) ?? null,
             cierre_manuales_notas: (ev.cierre_manuales_notas as string | null) ?? null,
-            // Confidenciales: solo se envían al cliente si el usuario tiene permiso de verlos —
-            // de lo contrario viajarían en el payload aunque la UI las oculte.
-            informe_coordinador_respuestas: canVerConfidencial ? (ev.informe_coordinador_respuestas as Record<string, string> | null) ?? null : null,
-            informe_carismas: canVerConfidencial ? (ev.informe_carismas as { persona_id: string; texto: string }[] | null) ?? null : null,
+            informe_eqt_respuestas: informeEqtCierre,
+            informe_responsables_respuestas: informeResponsablesCierre,
+            informe_carismas: carismasCierre,
           }}
         />
       )}

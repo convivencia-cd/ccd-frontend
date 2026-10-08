@@ -18,6 +18,8 @@ type ParticipanteRow = {
   valor_pension: number | null
   beca_pension: number
   notas_beca: string | null
+  /** Suma de pagos de pensión confirmados del participante. */
+  pagado_pension: number
 }
 
 type Props = {
@@ -85,7 +87,7 @@ export default function PensionBecasPanel({ eventoId, precioEvento, participante
       <CardHeader>
         <CardTitle className="text-foreground">Becas en Pensión</CardTitle>
         <CardDescription>
-          Valor de inscripción, pensión y beca por participante. El Saldo de Pensión se calcula automáticamente.
+          Valor de inscripción, pensión y beca por participante. El Saldo de Pensión se calcula automáticamente; Pagado suma los pagos de pensión confirmados.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -102,6 +104,8 @@ export default function PensionBecasPanel({ eventoId, precioEvento, participante
                     <th className="px-2 py-2 text-left font-medium">Valor Pensión</th>
                     <th className="px-2 py-2 text-left font-medium">Beca Pensión</th>
                     <th className="px-2 py-2 text-right font-medium">Saldo Pensión</th>
+                    <th className="px-2 py-2 text-right font-medium">Pagado</th>
+                    <th className="px-2 py-2 text-right font-medium">Resta pagar</th>
                     <th className="px-2 py-2 text-left font-medium">Notas Beca</th>
                   </tr>
                 </thead>
@@ -110,7 +114,9 @@ export default function PensionBecasPanel({ eventoId, precioEvento, participante
                     const valorInscripcionVal = valorInscripcionEfectivo(p.valor_inscripcion, precioEvento.cuota_inscripcion)
                     const valorPensionVal = valorPensionEfectivo(p.valor_pension, precioEvento.pension)
                     const saldo = calcularSaldoPension(valorPensionVal, Number(p.beca_pension || 0))
-                    const guardando = (campo: string) => savingId === `${p.id}:${campo}`
+                    const pagado = Number(p.pagado_pension || 0)
+                    const resta = Math.max(0, saldo - pagado)
+                    const guardando =(campo: string) => savingId === `${p.id}:${campo}`
                     return (
                       <tr key={p.id} className="border-b border-border last:border-0">
                         <td className="px-2 py-2 text-foreground whitespace-nowrap">
@@ -169,6 +175,12 @@ export default function PensionBecasPanel({ eventoId, precioEvento, participante
                         </td>
                         <td className="px-2 py-2 text-right font-semibold tabular-nums text-foreground whitespace-nowrap">
                           ${formatMonto(saldo)}
+                        </td>
+                        <td className="px-2 py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
+                          ${formatMonto(pagado)}
+                        </td>
+                        <td className={`px-2 py-2 text-right font-semibold tabular-nums whitespace-nowrap ${resta > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
+                          ${formatMonto(resta)}
                         </td>
                         <td className="px-2 py-2">
                           <div className="relative min-w-40">
