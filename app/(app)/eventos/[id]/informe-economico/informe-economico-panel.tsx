@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Ban, Download, FileSpreadsheet, Pencil, Plus, X } from 'lucide-react'
+import { Ban, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Pencil, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -10,6 +10,8 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatDateAR } from '@/lib/utils'
 import {
   MEDIOS,
+  CATEGORIAS_EGRESO,
+  CATEGORIAS_INGRESO,
   calcularResumenEconomico,
   categoriasDe,
   formatMonto,
@@ -49,6 +51,11 @@ type FormState = {
 
 const hoy = () => new Date().toISOString().slice(0, 10)
 
+const POR_PAGINA = 20
+
+/** Conceptos para el filtro: los de ingreso y egreso sin repetir (Inscripciones/Pensiones están en ambos). */
+const CONCEPTOS_FILTRO = [...new Set<string>([...CATEGORIAS_INGRESO, ...CATEGORIAS_EGRESO])].sort((a, b) => a.localeCompare(b))
+
 function formVacio(medio: Medio): FormState {
   return { tipo: 'ingreso', medio, categoria: categoriasDe('ingreso')[0], fecha: hoy(), monto: '', concepto: '' }
 }
@@ -66,6 +73,11 @@ export default function InformeEconomicoPanel(props: Props) {
   const [anulando, setAnulando] = useState<Movimiento | null>(null)
   const [motivo, setMotivo] = useState('')
   const [busy, setBusy] = useState(false)
+  const [filtroConcepto, setFiltroConcepto] = useState('')
+  const [filtroDesde, setFiltroDesde] = useState('')
+  const [filtroHasta, setFiltroHasta] = useState('')
+  const [pagina, setPagina] = useState(1)
+  const formRef = useRef<HTMLDivElement>(null)
 
   const resumen = calcularResumenEconomico(movimientos)
   const saldosActuales = useMemo(() => saldosPorMedio(movimientos, saldosIni), [movimientos, saldosIni])
@@ -80,8 +92,28 @@ export default function InformeEconomicoPanel(props: Props) {
     [movimientos, medioActivo, saldosIni],
   )
   const colsTabla = 6 + (esTodos ? 1 : 0) + (canEditar ? 1 : 0)
-  const asientosVisibles = verAnulados ? libro.asientos : libro.asientos.filter(a => !a.anulado_at)
   const cantAnulados = libro.asientos.length - libro.asientos.filter(a => !a.anulado_at).length
+  // Los filtros se aplican DESPUÉS de calcular el libro: el saldo de cada fila
+  // sigue siendo el saldo real acumulado, no el de las filas filtradas.
+  const asientosFiltrados = libro.asientos.filter(a =>
+    (verAnulados || !a.anulado_at) &&
+    (!filtroConcepto || a.categoria === filtroConcepto) &&
+    (!filtroDesde || (a.fecha ?? '') >= filtroDesde) &&
+    (!filtroHasta || (a.fecha ?? '') <= filtroHasta),
+  )
+  const hayFiltros = !!(filtroConcepto || filtroDesde || filtroHasta)
+  const totalPaginas = Math.max(1, Math.ceil(asientosFiltrados.length / POR_PAGINA))
+  const paginaActual = Math.min(pagina, totalPaginas)
+  const asientosVisibles = asientosFiltrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+  const totalesFiltrados = asientosFiltrados.reduce(
+    (acc, a) => {
+      if (a.anulado_at) return acc
+      if (a.tipo === 'ingreso') acc.ingresos += Number(a.monto)
+      else acc.egresos += Number(a.monto)
+      return acc
+    },
+    { ingresos: 0, egresos: 0 },
+  )
   const editando = editandoId ? movimientos.find(m => m.id === editandoId) ?? null : null
   const data: InformeEconomicoData = { info, movimientos, saldosIniciales: saldosIni, becas, observaciones: observacionesGuardadas || null }
 
@@ -138,6 +170,19 @@ export default function InformeEconomicoPanel(props: Props) {
       tipo: m.tipo, medio: m.medio, categoria: m.categoria,
       fecha: m.fecha ?? hoy(), monto: String(m.monto), concepto: m.concepto ?? '',
     })
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function cambiarFiltro(fn: () => void) {
+    fn()
+    setPagina(1)
+  }
+
+  function limpiarFiltros() {
+    setFiltroConcepto('')
+    setFiltroDesde('')
+    setFiltroHasta('')
+    setPagina(1)
   }
 
   function cancelarEdicion() {
@@ -225,13 +270,61 @@ export default function InformeEconomicoPanel(props: Props) {
 
           {/* ── Registro ── */}
           <TabsContent value="registro" className="space-y-4 pt-2">
+            {canEditar && (
+              <div ref={formRef} className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {editando ? 'Editar movimiento' : 'Nuevo movimiento'}
+                  {editando?.pago_id && ' — registrado automáticamente desde Mercado Pago: solo se editan fecha y descripción'}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <select className={inputClass} value={form.tipo} disabled={!!editando?.pago_id}
+                    onChange={e => {
+                      const tipo = e.target.value as 'ingreso' | 'egreso'
+                      setForm(f => ({ ...f, tipo, categoria: categoriasDe(tipo)[0] }))
+                    }}>
+                    <option value="ingreso">Ingreso</option>
+                    <option value="egreso">Egreso</option>
+                  </select>
+                  <select className={inputClass} value={form.medio} disabled={!!editando?.pago_id}
+                    onChange={e => setForm(f => ({ ...f, medio: e.target.value as Medio }))}>
+                    {MEDIOS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                  <select className={inputClass} value={form.categoria} disabled={!!editando?.pago_id}
+                    onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+                    {categoriasDe(form.tipo).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <input className={inputClass} type="date" value={form.fecha}
+                    onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+                  <input className={inputClass} type="number" min={0} step="0.01" placeholder="Monto" value={form.monto}
+                    disabled={!!editando?.pago_id} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
+                  <input className={inputClass} type="text" placeholder="Descripción (ej.: a quién, qué)" value={form.concepto}
+                    onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={guardarAsiento} disabled={busy} className="gap-1">
+                    {editando ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {editando ? 'Guardar cambios' : 'Registrar movimiento'}
+                  </Button>
+                  {editando && (
+                    <Button size="sm" variant="outline" onClick={cancelarEdicion} disabled={busy} className="gap-1 bg-transparent">
+                      <X className="h-4 w-4" /> Cancelar
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Las inscripciones pagadas por Mercado Pago se registran solas en el libro MP (concepto Inscripciones). Pensiones, efectivo y transferencias se cargan acá.
+                </p>
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="inline-flex rounded-md border border-border p-0.5">
                 {[{ value: 'todos' as const, corto: 'Todos' }, ...MEDIOS].map(m => (
                   <button
                     key={m.value}
                     type="button"
-                    onClick={() => setMedioActivo(m.value)}
+                    onClick={() => cambiarFiltro(() => setMedioActivo(m.value))}
                     className={`rounded px-3 py-1 text-sm ${medioActivo === m.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     {m.corto}
@@ -240,11 +333,42 @@ export default function InformeEconomicoPanel(props: Props) {
               </div>
               {cantAnulados > 0 && (
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input type="checkbox" checked={verAnulados} onChange={e => setVerAnulados(e.target.checked)} />
+                  <input type="checkbox" checked={verAnulados} onChange={e => cambiarFiltro(() => setVerAnulados(e.target.checked))} />
                   Mostrar anulados ({cantAnulados})
                 </label>
               )}
             </div>
+
+            {/* Filtros */}
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+              <label className="space-y-1 text-xs text-muted-foreground">
+                Concepto
+                <select className={inputClass} value={filtroConcepto} onChange={e => cambiarFiltro(() => setFiltroConcepto(e.target.value))}>
+                  <option value="">Todos los conceptos</option>
+                  {CONCEPTOS_FILTRO.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1 text-xs text-muted-foreground">
+                Desde
+                <input className={inputClass} type="date" value={filtroDesde} max={filtroHasta || undefined}
+                  onChange={e => cambiarFiltro(() => setFiltroDesde(e.target.value))} />
+              </label>
+              <label className="space-y-1 text-xs text-muted-foreground">
+                Hasta
+                <input className={inputClass} type="date" value={filtroHasta} min={filtroDesde || undefined}
+                  onChange={e => cambiarFiltro(() => setFiltroHasta(e.target.value))} />
+              </label>
+              <Button size="sm" variant="ghost" onClick={limpiarFiltros} disabled={!hayFiltros} className="gap-1">
+                <X className="h-4 w-4" /> Limpiar
+              </Button>
+            </div>
+            {hayFiltros && (
+              <p className="text-xs text-muted-foreground">
+                {asientosFiltrados.length} movimiento(s) con estos filtros · Ingresos{' '}
+                <span className="font-medium text-green-600 dark:text-green-400 tabular-nums">{fmt(totalesFiltrados.ingresos)}</span> · Egresos{' '}
+                <span className="font-medium text-red-600 dark:text-red-400 tabular-nums">{fmt(totalesFiltrados.egresos)}</span>
+              </p>
+            )}
 
             <div className="overflow-x-auto rounded-md border border-border">
               <table className="w-full text-sm">
@@ -261,6 +385,7 @@ export default function InformeEconomicoPanel(props: Props) {
                   </tr>
                 </thead>
                 <tbody>
+                  {paginaActual === 1 && !filtroDesde && (
                   <tr className="border-b border-border bg-muted/20">
                     <td className="px-3 py-2" />
                     {esTodos && <td className="px-3 py-2" />}
@@ -287,10 +412,13 @@ export default function InformeEconomicoPanel(props: Props) {
                     </td>
                     {canEditar && <td />}
                   </tr>
+                  )}
                   {asientosVisibles.length === 0 ? (
                     <tr>
                       <td colSpan={colsTabla} className="px-3 py-4 text-center text-xs text-muted-foreground">
-                        {esTodos ? 'Sin movimientos registrados.' : `Sin movimientos en ${MEDIOS.find(m => m.value === medioActivo)?.label}.`}
+                        {hayFiltros
+                          ? 'No hay movimientos con estos filtros.'
+                          : esTodos ? 'Sin movimientos registrados.' : `Sin movimientos en ${MEDIOS.find(m => m.value === medioActivo)?.label}.`}
                       </td>
                     </tr>
                   ) : asientosVisibles.map(a => {
@@ -339,54 +467,25 @@ export default function InformeEconomicoPanel(props: Props) {
               </table>
             </div>
 
-            {canEditar && (
-              <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {editando ? 'Editar movimiento' : 'Nuevo movimiento'}
-                  {editando?.pago_id && ' — registrado automáticamente desde Mercado Pago: solo se editan fecha y descripción'}
-                </p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <select className={inputClass} value={form.tipo} disabled={!!editando?.pago_id}
-                    onChange={e => {
-                      const tipo = e.target.value as 'ingreso' | 'egreso'
-                      setForm(f => ({ ...f, tipo, categoria: categoriasDe(tipo)[0] }))
-                    }}>
-                    <option value="ingreso">Ingreso</option>
-                    <option value="egreso">Egreso</option>
-                  </select>
-                  <select className={inputClass} value={form.medio} disabled={!!editando?.pago_id}
-                    onChange={e => setForm(f => ({ ...f, medio: e.target.value as Medio }))}>
-                    {MEDIOS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
-                  <select className={inputClass} value={form.categoria} disabled={!!editando?.pago_id}
-                    onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-                    {categoriasDe(form.tipo).map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <input className={inputClass} type="date" value={form.fecha}
-                    onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
-                  <input className={inputClass} type="number" min={0} step="0.01" placeholder="Monto" value={form.monto}
-                    disabled={!!editando?.pago_id} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
-                  <input className={inputClass} type="text" placeholder="Descripción (ej.: a quién, qué)" value={form.concepto}
-                    onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={guardarAsiento} disabled={busy} className="gap-1">
-                    {editando ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                    {editando ? 'Guardar cambios' : 'Registrar movimiento'}
+            {asientosFiltrados.length > POR_PAGINA && (
+              <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                <span>
+                  {(paginaActual - 1) * POR_PAGINA + 1}–{Math.min(paginaActual * POR_PAGINA, asientosFiltrados.length)} de {asientosFiltrados.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" className="bg-transparent" disabled={paginaActual === 1}
+                    onClick={() => setPagina(paginaActual - 1)} aria-label="Página anterior">
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  {editando && (
-                    <Button size="sm" variant="outline" onClick={cancelarEdicion} disabled={busy} className="gap-1 bg-transparent">
-                      <X className="h-4 w-4" /> Cancelar
-                    </Button>
-                  )}
+                  <span className="tabular-nums">Página {paginaActual} de {totalPaginas}</span>
+                  <Button size="sm" variant="outline" className="bg-transparent" disabled={paginaActual === totalPaginas}
+                    onClick={() => setPagina(paginaActual + 1)} aria-label="Página siguiente">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Las inscripciones pagadas por Mercado Pago se registran solas en el libro MP (concepto Inscripciones). Pensiones, efectivo y transferencias se cargan acá.
-                </p>
               </div>
             )}
+
           </TabsContent>
 
           {/* ── Informe (réplica de la hoja "Informe Economico") ── */}
