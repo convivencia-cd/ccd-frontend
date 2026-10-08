@@ -69,6 +69,8 @@ export default function EditarCasaRetiroPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orgs, setOrgs] = useState<OrgOption[]>([])
+  // Cambiar el estado es dar de baja/reactivar: permiso casas_retiro.delete.
+  const [puedeDarDeBaja, setPuedeDarDeBaja] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
     codigo_interno: '',
@@ -144,6 +146,7 @@ export default function EditarCasaRetiroPage() {
         notas: casaData.notas ?? '',
         organizaciones_cercanas: casaData.organizaciones_cercanas ?? [],
       })
+      setPuedeDarDeBaja(!!casaData.puede_dar_de_baja)
       if (orgData) setOrgs(orgData)
       setLoadingData(false)
     })
@@ -268,11 +271,17 @@ export default function EditarCasaRetiroPage() {
                     name="estado"
                     value={formData.estado}
                     onChange={handleChange}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
+                    disabled={!puedeDarDeBaja}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm disabled:opacity-60"
                   >
                     <option value="activa">Activa</option>
                     <option value="inactiva">Inactiva</option>
                   </select>
+                  {!puedeDarDeBaja && (
+                    <p className="text-xs text-muted-foreground">
+                      No tenés permiso para dar de baja o reactivar casas de retiro.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

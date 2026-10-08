@@ -327,7 +327,7 @@ export default function EditarEventoForm({
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
                 >
                   <option value="convivencia">Convivencia</option>
-                  <option value="retiro">Retiro</option>
+                  <option value="retiro">Retiro corto</option>
                   <option value="taller">Taller</option>
                   <option value="encuentro">Encuentro</option>
                 </select>

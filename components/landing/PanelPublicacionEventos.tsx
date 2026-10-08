@@ -10,7 +10,7 @@ import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 
 const TIPO_LABELS: Record<string, string> = {
   convivencia: "Convivencia",
-  retiro: "Retiro",
+  retiro: "Retiro corto",
   taller: "Taller",
 }
 

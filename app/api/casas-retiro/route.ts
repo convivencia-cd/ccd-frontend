@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
   }
 
-  if (!canPerform(ctx, 'organization.create')) {
+  if (!canPerform(ctx, 'casas_retiro.create')) {
     return NextResponse.json(
       { error: 'No tenés permiso para crear casas de retiro' },
       { status: 403 }

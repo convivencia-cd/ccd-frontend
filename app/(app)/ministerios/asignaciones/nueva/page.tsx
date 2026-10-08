@@ -45,7 +45,7 @@ interface Evento {
 
 const tipoEventoLabel: Record<string, string> = {
   convivencia: "Convivencia",
-  retiro: "Retiro",
+  retiro: "Retiro corto",
   taller: "Taller",
 }
 

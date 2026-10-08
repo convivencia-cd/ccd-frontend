@@ -31,6 +31,8 @@ export async function GET(
   return NextResponse.json({
     ...casa,
     organizaciones_cercanas: (orgs ?? []).map((r: { organizacion_id: string }) => r.organizacion_id),
+    // El form de edición deshabilita el Estado si no lo puede cambiar.
+    puede_dar_de_baja: canPerform(ctx, 'casas_retiro.delete'),
   })
 }
 
@@ -55,10 +57,25 @@ export async function PATCH(
   const body = await request.json()
   const supabase = await createClient()
 
+  const { data: actual } = await supabase.from('casas_retiro').select('estado').eq('id', id).single()
+  if (!actual) {
+    return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+  }
+
+  // Dar de baja o reactivar es "eliminar" (baja lógica): permiso propio, card #61.
+  const nuevoEstado = body.estado || actual.estado
+  const cambiaEstado = nuevoEstado !== actual.estado
+  if (cambiaEstado && !canPerform(ctx, 'casas_retiro.delete')) {
+    return NextResponse.json(
+      { error: 'No tenés permiso para dar de baja o reactivar casas de retiro' },
+      { status: 403 }
+    )
+  }
+
   const updateData: Record<string, unknown> = {
     nombre: body.nombre,
     tipo_propiedad: body.tipo_propiedad || 'terceros',
-    estado: body.estado,
+    estado: nuevoEstado,
     pais: body.pais || 'Argentina',
     codigo_interno: body.codigo_interno || null,
     contacto_persona_id: body.contacto_persona_id || null,
@@ -89,10 +106,10 @@ export async function PATCH(
     cant_banos: parseInt(body.cant_banos) || 0,
   }
 
-  if (body.estado === 'inactiva') {
-    updateData.fecha_baja = new Date().toISOString()
-  } else {
-    updateData.fecha_baja = null
+  // fecha_baja solo se toca cuando cambia el estado: editar otros datos de
+  // una casa inactiva no pisa la fecha en que se dio de baja.
+  if (cambiaEstado) {
+    updateData.fecha_baja = nuevoEstado === 'inactiva' ? new Date().toISOString() : null
   }
 
   const { error } = await supabase

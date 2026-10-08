@@ -73,7 +73,7 @@ const estadoLabel: Record<string, string> = {
 
 const tipoLabel: Record<string, string> = {
   convivencia: 'Convivencia',
-  retiro: 'Retiro',
+  retiro: 'Retiro corto',
   taller: 'Taller',
 }
 
@@ -1162,6 +1162,7 @@ export default async function EventoDetailPage({
               casasRetiro={(casasRetiro ?? []) as { id: string; nombre: string; ciudad?: string | null; provincia?: string | null }[]}
               personas={(personasCecistas ?? []) as { id: string; nombre: string; apellido: string; email?: string | null; telefono?: string | null }[]}
               motivoDevolucion={(evento as Record<string, unknown>).notas_aprobacion_final as string | null}
+              canCrearCasaRetiro={!!ctx && canPerform(ctx, 'casas_retiro.create')}
             />
           </div>
         </div>

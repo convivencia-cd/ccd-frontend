@@ -47,6 +47,8 @@ type Props = {
   personas: Persona[]
   /** Motivo cargado por EqT si el evento volvió desde aprobación final */
   motivoDevolucion?: string | null
+  /** Mostrar el atajo para crear una casa nueva (permiso casas_retiro.create). */
+  canCrearCasaRetiro?: boolean
 }
 
 function toStr(v: string | null | undefined): string {
@@ -57,7 +59,7 @@ function toNumStr(v: number | null | undefined): string {
   return v === null || v === undefined ? '' : String(v)
 }
 
-export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, personas, motivoDevolucion }: Props) {
+export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, personas, motivoDevolucion, canCrearCasaRetiro = false }: Props) {
   const router = useRouter()
 
   const [casaRetiroId, setCasaRetiroId] = useState(toStr(inicial.casa_retiro_id))
@@ -219,12 +221,14 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
           searchPlaceholder="Buscar casa de retiro..."
           emptyText="No se encontraron casas de retiro."
         />
-        <Link
-          href={`/casas-retiro/nueva?returnTo=/eventos/${eventoId}`}
-          className="text-xs text-primary hover:underline"
-        >
-          + Crear nueva casa de retiro
-        </Link>
+        {canCrearCasaRetiro && (
+          <Link
+            href={`/casas-retiro/nueva?returnTo=/eventos/${eventoId}`}
+            className="text-xs text-primary hover:underline"
+          >
+            + Crear nueva casa de retiro
+          </Link>
+        )}
       </div>
 
       {/* Centralizadores */}

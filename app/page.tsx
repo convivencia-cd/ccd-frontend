@@ -15,7 +15,7 @@ import {
 
 const TIPO_LABELS: Record<string, string> = {
   convivencia: "Convivencia",
-  retiro: "Retiro",
+  retiro: "Retiro corto",
   taller: "Taller",
 }
 

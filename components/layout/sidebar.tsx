@@ -44,6 +44,7 @@ export interface SidebarPermissions {
   canVerifyPayments: boolean
   canViewVotos: boolean
   canViewCasasRetiro: boolean
+  canCreateCasaRetiro: boolean
   canViewInteresados: boolean
   isAdmin: boolean
   esInterno: boolean
@@ -139,7 +140,7 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
                 label: "Lista de casas",
                 href: "/casas-retiro",
               },
-              ...(p.canCreateOrganization
+              ...(p.canCreateCasaRetiro
                 ? [
                     {
                       icon: <PlusCircle className="h-4 w-4" />,

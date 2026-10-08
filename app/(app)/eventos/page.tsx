@@ -56,7 +56,7 @@ const estadoLabel: Record<string, string> = {
 
 const tipoLabel: Record<string, string> = {
   convivencia: "Convivencia",
-  retiro: "Retiro",
+  retiro: "Retiro corto",
   taller: "Taller",
   encuentro: "Encuentro",
 }
@@ -448,7 +448,7 @@ export default async function EventosPage({
             >
               <option value="">Todos los tipos</option>
               <option value="convivencia">Convivencia</option>
-              <option value="retiro">Retiro</option>
+              <option value="retiro">Retiro corto</option>
               <option value="taller">Taller</option>
               <option value="encuentro">Encuentro</option>
             </select>

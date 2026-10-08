@@ -52,7 +52,7 @@ export function ExportacionesCard({ eventoId }: { eventoId: string }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col justify-between gap-3 rounded-lg border border-border p-4">
             <div>
-              <p className="text-sm font-medium text-foreground">Cartelitos (Word)</p>
+              <p className="text-sm font-medium text-foreground">Cartelitos</p>
               <p className="text-xs text-muted-foreground">
                 Apodo y localidad, 85 × 55 mm, por duplicado. Listos para imprimir y recortar.
               </p>
@@ -64,7 +64,7 @@ export function ExportacionesCard({ eventoId }: { eventoId: string }) {
           </div>
           <div className="flex flex-col justify-between gap-3 rounded-lg border border-border p-4">
             <div>
-              <p className="text-sm font-medium text-foreground">Dietas (Excel)</p>
+              <p className="text-sm font-medium text-foreground">Dietas</p>
               <p className="text-xs text-muted-foreground">
                 Restricciones alimentarias de cada persona y un resumen por tipo para la cocina.
               </p>

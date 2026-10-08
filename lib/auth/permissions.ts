@@ -54,6 +54,8 @@ export type Permission =
   | 'view.eventos'             // ver sección de eventos
   | 'view.eventos_publicados'  // ver página de eventos publicados (panel comunitario)
   | 'view.casas_retiro'        // ver sección de casas de retiro (fuera de la vista ordinaria)
+  | 'casas_retiro.create'      // registrar casas de retiro
+  | 'casas_retiro.delete'      // dar de baja / reactivar casas de retiro (baja lógica)
   | 'event.view_aprobados'     // ver los eventos aprobados (aprobado ≠ publicado: todavía no son públicos)
   | 'event.view_all_estados'   // ver el listado de eventos en cualquier estado (no solo publicado/en_curso/finalizado)
   | 'view.interesados'         // ver la sección Interesados dentro de Eventos, scopeado a la propia organización
@@ -104,6 +106,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'view.eventos',
     'view.eventos_publicados',
     'view.casas_retiro',
+    'casas_retiro.create',
+    'casas_retiro.delete',
     'event.view_aprobados',
     'event.view_all_estados',
     'view.interesados',
