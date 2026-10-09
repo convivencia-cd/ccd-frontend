@@ -79,6 +79,8 @@ export type Movimiento = {
   monto: number
   fecha: string | null
   notas: string | null
+  comprobante_path: string | null
+  comprobante_nombre: string | null
   anulado_at: string | null
   motivo_anulacion: string | null
   created_at: string

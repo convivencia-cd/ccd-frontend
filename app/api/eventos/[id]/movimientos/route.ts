@@ -7,6 +7,12 @@ import {
   categoriasDe,
   MEDIOS,
 } from '@/lib/eventos/informe-economico'
+import {
+  adminComprobantes,
+  COMPROBANTES_BUCKET,
+  esPathComprobante,
+  existeComprobante,
+} from '@/lib/eventos/comprobantes-movimientos'
 
 async function loadEvento(id: string) {
   const supabase = await createClient()
@@ -27,6 +33,27 @@ type MovimientoInput = {
   concepto?: unknown
   monto?: unknown
   fecha?: unknown
+  comprobante_path?: unknown
+  comprobante_nombre?: unknown
+}
+
+async function validarComprobante(body: MovimientoInput, eventoId: string, usuarioId: string) {
+  if (body.comprobante_path === undefined) return { valores: {} } as const
+  if (!esPathComprobante(eventoId, usuarioId, body.comprobante_path)) {
+    return { error: 'Comprobante inválido' } as const
+  }
+  const nombre = typeof body.comprobante_nombre === 'string'
+    ? body.comprobante_nombre.trim().replace(/[\\/]/g, '').slice(0, 200)
+    : ''
+  if (!nombre) return { error: 'Falta el nombre del comprobante' } as const
+  try {
+    if (!await existeComprobante(body.comprobante_path)) {
+      return { error: 'No se encontró el comprobante subido' } as const
+    }
+  } catch {
+    return { error: 'No se pudo verificar el comprobante' } as const
+  }
+  return { valores: { comprobante_path: body.comprobante_path, comprobante_nombre: nombre } } as const
 }
 
 /** Valida los campos de un asiento. Devuelve el error o los valores normalizados. */
@@ -103,12 +130,21 @@ export async function POST(
   }
 
   // ── Alta manual de un asiento ──
-  const valid = validarAsiento(await request.json())
+  const body = await request.json() as MovimientoInput
+  const valid = validarAsiento(body)
   if ('error' in valid) return NextResponse.json({ error: valid.error }, { status: 400 })
+  const comprobante = await validarComprobante(body, id, ctx.auth_user_id)
+  if ('error' in comprobante) return NextResponse.json({ error: comprobante.error }, { status: 400 })
+
+  if (comprobante.valores.comprobante_path) {
+    const { data: usado } = await supabase.from('evento_movimientos').select('id')
+      .eq('comprobante_path', comprobante.valores.comprobante_path).maybeSingle()
+    if (usado) return NextResponse.json({ error: 'El comprobante ya está asociado a otro movimiento' }, { status: 409 })
+  }
 
   const { data, error } = await supabase
     .from('evento_movimientos')
-    .insert({ evento_id: id, ...valid, created_by: ctx.persona_id })
+    .insert({ evento_id: id, ...valid, ...comprobante.valores, created_by: ctx.persona_id })
     .select('*')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
@@ -143,7 +179,7 @@ export async function PATCH(
   if (!actual) return NextResponse.json({ error: 'Movimiento no encontrado' }, { status: 404 })
   if (actual.anulado_at) return NextResponse.json({ error: 'No se puede editar un movimiento anulado' }, { status: 400 })
 
-  const body = await request.json()
+  const body = await request.json() as MovimientoInput
   // Importado de un pago: tipo/medio/concepto/monto quedan fijos (vienen del pago).
   const valid = validarAsiento(
     actual.pago_id
@@ -151,15 +187,25 @@ export async function PATCH(
       : body,
   )
   if ('error' in valid) return NextResponse.json({ error: valid.error }, { status: 400 })
+  const comprobante = await validarComprobante(body, id, ctx.auth_user_id)
+  if ('error' in comprobante) return NextResponse.json({ error: comprobante.error }, { status: 400 })
+  if (comprobante.valores.comprobante_path) {
+    const { data: usado } = await supabase.from('evento_movimientos').select('id')
+      .eq('comprobante_path', comprobante.valores.comprobante_path).neq('id', movimientoId).maybeSingle()
+    if (usado) return NextResponse.json({ error: 'El comprobante ya está asociado a otro movimiento' }, { status: 409 })
+  }
 
   const { data, error } = await supabase
     .from('evento_movimientos')
-    .update({ ...valid, updated_at: new Date().toISOString() })
+    .update({ ...valid, ...comprobante.valores, updated_at: new Date().toISOString() })
     .eq('id', movimientoId)
     .eq('evento_id', id)
     .select('*')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (comprobante.valores.comprobante_path && actual.comprobante_path && actual.comprobante_path !== comprobante.valores.comprobante_path) {
+    await adminComprobantes().storage.from(COMPROBANTES_BUCKET).remove([actual.comprobante_path])
+  }
   return NextResponse.json({ movimiento: data })
 }
 

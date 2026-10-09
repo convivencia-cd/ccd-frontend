@@ -2,12 +2,13 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Ban, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Pencil, Plus, X } from 'lucide-react'
+import { Ban, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Paperclip, Pencil, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatDateAR } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import {
   MEDIOS,
   CATEGORIAS_EGRESO,
@@ -29,6 +30,9 @@ import {
 
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
 const fmt = (n: number) => `$${formatMonto(n)}`
+const COMPROBANTES_BUCKET = 'informe-economico-comprobantes'
+const MAX_COMPROBANTE_BYTES = 10 * 1024 * 1024
+const TIPOS_COMPROBANTE = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
 type Props = {
   eventoId: string
@@ -70,6 +74,9 @@ export default function InformeEconomicoPanel(props: Props) {
   const [verAnulados, setVerAnulados] = useState(false)
   const [form, setForm] = useState<FormState>(formVacio('caja'))
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [comprobante, setComprobante] = useState<File | null>(null)
+  const comprobanteInputRef = useRef<HTMLInputElement>(null)
+  const comprobanteSubidoRef = useRef<{ file: File; path: string } | null>(null)
   const [anulando, setAnulando] = useState<Movimiento | null>(null)
   const [motivo, setMotivo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -91,7 +98,7 @@ export default function InformeEconomicoPanel(props: Props) {
     ),
     [movimientos, medioActivo, saldosIni],
   )
-  const colsTabla = 6 + (esTodos ? 1 : 0) + (canEditar ? 1 : 0)
+  const colsTabla = 7 + (esTodos ? 1 : 0) + (canEditar ? 1 : 0)
   const cantAnulados = libro.asientos.length - libro.asientos.filter(a => !a.anulado_at).length
   // Los filtros se aplican DESPUÉS de calcular el libro: el saldo de cada fila
   // sigue siendo el saldo real acumulado, no el de las filas filtradas.
@@ -143,8 +150,27 @@ export default function InformeEconomicoPanel(props: Props) {
     const monto = Number(form.monto)
     if (!Number.isFinite(monto) || monto <= 0) return toast.error('Ingresá un monto válido.')
     if (!form.fecha) return toast.error('La fecha es obligatoria.')
-    const body = JSON.stringify({ ...form, monto })
+    if (comprobante && (!TIPOS_COMPROBANTE.includes(comprobante.type) || !comprobante.size || comprobante.size > MAX_COMPROBANTE_BYTES)) {
+      return toast.error('El comprobante debe ser PDF, JPG, PNG o WebP y no superar los 10 MB.')
+    }
     run(async () => {
+      let adjunto: Partial<Pick<Movimiento, 'comprobante_path' | 'comprobante_nombre'>> = {}
+      if (comprobante) {
+        let path = comprobanteSubidoRef.current?.file === comprobante ? comprobanteSubidoRef.current.path : null
+        if (!path) {
+          const firma = await request(`/api/eventos/${eventoId}/movimientos/comprobante/firma`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo: comprobante.type, tamano: comprobante.size }),
+          }) as { path: string; token: string }
+          const { error } = await createClient().storage.from(COMPROBANTES_BUCKET)
+            .uploadToSignedUrl(firma.path, firma.token, comprobante, { contentType: comprobante.type })
+          if (error) throw new Error('No se pudo subir el comprobante. Intentá de nuevo.')
+          path = firma.path
+          comprobanteSubidoRef.current = { file: comprobante, path }
+        }
+        adjunto = { comprobante_path: path, comprobante_nombre: comprobante.name }
+      }
+      const body = JSON.stringify({ ...form, monto, ...adjunto })
       if (editandoId) {
         const { movimiento } = await request(`/api/eventos/${eventoId}/movimientos?movimiento_id=${editandoId}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body,
@@ -161,10 +187,16 @@ export default function InformeEconomicoPanel(props: Props) {
       if (medioActivo !== 'todos') setMedioActivo(form.medio)
       setEditandoId(null)
       setForm({ ...formVacio(form.medio), tipo: form.tipo, categoria: form.categoria, fecha: form.fecha })
+      setComprobante(null)
+      comprobanteSubidoRef.current = null
+      if (comprobanteInputRef.current) comprobanteInputRef.current.value = ''
     })
   }
 
   function empezarEdicion(m: Movimiento) {
+    setComprobante(null)
+    comprobanteSubidoRef.current = null
+    if (comprobanteInputRef.current) comprobanteInputRef.current.value = ''
     setEditandoId(m.id)
     setForm({
       tipo: m.tipo, medio: m.medio, categoria: m.categoria,
@@ -188,6 +220,9 @@ export default function InformeEconomicoPanel(props: Props) {
   function cancelarEdicion() {
     setEditandoId(null)
     setForm(formVacio(medioActivo === 'todos' ? 'caja' : medioActivo))
+    setComprobante(null)
+    comprobanteSubidoRef.current = null
+    if (comprobanteInputRef.current) comprobanteInputRef.current.value = ''
   }
 
   function confirmarAnulacion() {
@@ -302,6 +337,25 @@ export default function InformeEconomicoPanel(props: Props) {
                   <input className={inputClass} type="text" placeholder="Descripción (ej.: a quién, qué)" value={form.concepto}
                     onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} />
                 </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <label htmlFor="comprobante-movimiento" className="font-medium text-foreground">
+                    Comprobante (opcional)
+                  </label>
+                  <input ref={comprobanteInputRef} id="comprobante-movimiento" type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                    disabled={busy} className="max-w-full text-xs text-foreground file:mr-2 file:rounded file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-foreground"
+                    onChange={e => {
+                      setComprobante(e.target.files?.[0] ?? null)
+                      comprobanteSubidoRef.current = null
+                    }} />
+                  {editando?.comprobante_path && (
+                    <a href={`/api/eventos/${eventoId}/movimientos/comprobante?movimiento_id=${editando.id}`}
+                      target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                      <Paperclip className="h-3.5 w-3.5" /> {editando.comprobante_nombre || 'Ver comprobante actual'}
+                    </a>
+                  )}
+                  <span className="text-muted-foreground">PDF o imagen · hasta 10 MB</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={guardarAsiento} disabled={busy} className="gap-1">
                     {editando ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -378,6 +432,7 @@ export default function InformeEconomicoPanel(props: Props) {
                     {esTodos && <th className="px-3 py-2 text-left font-medium">Medio</th>}
                     <th className="px-3 py-2 text-left font-medium">Concepto</th>
                     <th className="px-3 py-2 text-left font-medium">Descripción</th>
+                    <th className="px-3 py-2 text-left font-medium">Comprobante</th>
                     <th className="px-3 py-2 text-right font-medium">Ingreso</th>
                     <th className="px-3 py-2 text-right font-medium">Egreso</th>
                     <th className="px-3 py-2 text-right font-medium">Saldo</th>
@@ -393,6 +448,7 @@ export default function InformeEconomicoPanel(props: Props) {
                     <td className="px-3 py-2 font-medium text-foreground">
                       Saldo inicial{esTodos && <span className="ml-1 text-xs font-normal text-muted-foreground">(suma de los tres medios)</span>}
                     </td>
+                    <td className="px-3 py-2" />
                     <td className="px-3 py-2" />
                     <td className="px-3 py-2" />
                     <td className="px-3 py-2 text-right tabular-nums">
@@ -437,6 +493,17 @@ export default function InformeEconomicoPanel(props: Props) {
                         )}
                         <td className="px-3 py-2">{a.categoria}</td>
                         <td className="px-3 py-2">{a.concepto || '—'}</td>
+                        <td className="px-3 py-2">
+                          {a.comprobante_path ? (
+                            <a href={`/api/eventos/${eventoId}/movimientos/comprobante?movimiento_id=${a.id}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex max-w-40 items-center gap-1 text-primary hover:underline"
+                              title={a.comprobante_nombre || 'Ver comprobante'}>
+                              <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{a.comprobante_nombre || 'Ver archivo'}</span>
+                            </a>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
                         <td className="px-3 py-2 text-right tabular-nums text-green-600 dark:text-green-400">
                           {a.tipo === 'ingreso' ? fmt(Number(a.monto)) : ''}
                         </td>
