@@ -148,7 +148,7 @@ export default function NuevoTipoEventoForm() {
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="convivencia">Convivencia</option>
-                    <option value="retiro">Retiro</option>
+                    <option value="retiro">Retiro corto</option>
                     <option value="taller">Taller</option>
                     <option value="encuentro">Encuentro</option>
                     <option value="otro">Otro</option>

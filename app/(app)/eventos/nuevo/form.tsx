@@ -29,7 +29,7 @@ type TipoEvento = {
 
 const CATEGORIAS = [
   { value: "convivencia", label: "Convivencia" },
-  { value: "retiro", label: "Retiro" },
+  { value: "retiro", label: "Retiro corto" },
   { value: "taller", label: "Taller" },
   { value: "encuentro", label: "Encuentro" },
   { value: "otro", label: "Otro" },

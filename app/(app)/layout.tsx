@@ -35,6 +35,7 @@ export default async function AppLayout({
     canVerifyPayments:     canPerform(ctx, 'payment.verify'),
     canViewVotos:          canPerform(ctx, 'votos.list') || canPerform(ctx, 'votos.edit'),
     canViewCasasRetiro:    canPerform(ctx, 'view.casas_retiro'),
+    canCreateCasaRetiro:   canPerform(ctx, 'casas_retiro.create'),
     canViewInteresados:    canPerform(ctx, 'view.interesados') || esCoordinadorOCentralizador,
     isAdmin:               ctx.is_admin,
     esInterno:             ctx.es_interno,

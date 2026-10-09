@@ -9,7 +9,7 @@ import { formatDateAR } from '@/lib/utils'
 
 const tipoLabel: Record<string, string> = {
   convivencia: 'Convivencia',
-  retiro: 'Retiro',
+  retiro: 'Retiro corto',
   taller: 'Taller',
 }
 

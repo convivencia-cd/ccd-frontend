@@ -10,7 +10,7 @@ import { canPerform } from '@/lib/auth/permissions'
 
 const categoriaLabel: Record<string, string> = {
   convivencia: 'Convivencia',
-  retiro: 'Retiro',
+  retiro: 'Retiro corto',
   taller: 'Taller',
   encuentro: 'Encuentro',
   otro: 'Otro',
@@ -97,7 +97,7 @@ export default async function TiposEventosPage({
             <select name="categoria" defaultValue={categoria} className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
               <option value="">Todas las categorías</option>
               <option value="convivencia">Convivencia</option>
-              <option value="retiro">Retiro</option>
+              <option value="retiro">Retiro corto</option>
               <option value="taller">Taller</option>
               <option value="encuentro">Encuentro</option>
               <option value="otro">Otro</option>

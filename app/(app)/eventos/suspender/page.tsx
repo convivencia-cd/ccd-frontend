@@ -12,7 +12,7 @@ const ESTADOS_TERMINALES = ["suspendido", "cancelado", "finalizado", "rechazado"
 
 const tipoLabel: Record<string, string> = {
   convivencia: "Convivencia",
-  retiro: "Retiro",
+  retiro: "Retiro corto",
   taller: "Taller",
   encuentro: "Encuentro",
 }

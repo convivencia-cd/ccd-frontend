@@ -36,7 +36,7 @@ export default async function CasasRetiroPage({
   const sortBy = params.sortBy ?? ''
   const sortDir = (params.sortDir === 'asc' || params.sortDir === 'desc') ? params.sortDir : 'asc'
 
-  const canCreate = ctx ? canPerform(ctx, 'organization.create') : false
+  const canCreate = ctx ? canPerform(ctx, 'casas_retiro.create') : false
   const canUpdate = ctx ? canPerform(ctx, 'organization.update') : false
   const supabase = await createClient()
 
