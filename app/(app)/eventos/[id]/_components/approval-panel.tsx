@@ -279,7 +279,7 @@ function NivelDiscernimiento({
           {/* Datos del evento */}
           <div className="space-y-3 rounded-md border border-border p-4 bg-muted/30">
             <p className="text-xs font-medium text-foreground uppercase tracking-wide">
-              Datos del evento
+              Datos del retiro
             </p>
             <p className="text-xs text-muted-foreground">
               Podés proponer cambios a los campos. Si modificás algo, el discernimiento se registrará como &quot;con modificaciones&quot;.
@@ -586,7 +586,7 @@ function NivelDiscernimiento({
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Notas del evento</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Notas del retiro</p>
               <textarea
                 className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground min-h-16"
                 value={currentVal('notas')}
@@ -642,8 +642,8 @@ function NivelDiscernimiento({
             titulo={resultado === 'rechazado' ? '¿Rechazar la solicitud?' : '¿Comunicar el discernimiento?'}
             descripcion={
               resultado === 'rechazado'
-                ? 'El evento pasará a estado "Rechazado". Una vez comunicado, el discernimiento no se puede modificar.'
-                : 'El evento avanzará al siguiente estado. Una vez comunicado, el discernimiento no se puede modificar.'
+                ? 'El retiro pasará a estado "Rechazado". Una vez comunicado, el discernimiento no se puede modificar.'
+                : 'El retiro avanzará al siguiente estado. Una vez comunicado, el discernimiento no se puede modificar.'
             }
             confirmar={resultado === 'rechazado' ? 'Rechazar solicitud' : 'Comunicar discernimiento'}
             tono={resultado === 'rechazado' ? 'destructivo' : 'normal'}

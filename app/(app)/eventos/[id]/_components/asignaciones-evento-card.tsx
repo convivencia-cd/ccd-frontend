@@ -141,10 +141,10 @@ export default function AsignacionesEventoCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           <UserCog className="h-5 w-5 text-primary" />
-          Asignaciones del Evento
+          Asignaciones del Retiro
         </CardTitle>
         <CardDescription>
-          Coordinador, asesor y centralizadores. Los centralizadores cargados acá son los que ven el evento en
+          Coordinador, asesor y centralizadores. Los centralizadores cargados acá son los que ven el retiro en
           &ldquo;Soy Centralizador&rdquo; y pueden gestionarlo.
         </CardDescription>
       </CardHeader>
@@ -194,7 +194,7 @@ export default function AsignacionesEventoCard({
               {c.nombre && !c.personaId && <p className="text-xs text-muted-foreground">{c.nombre}</p>}
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
-                  <p className="mb-1 text-xs text-muted-foreground">Email para el evento</p>
+                  <p className="mb-1 text-xs text-muted-foreground">Email para el retiro</p>
                   <input
                     type="email"
                     className={inputClass}
@@ -204,7 +204,7 @@ export default function AsignacionesEventoCard({
                   />
                 </div>
                 <div>
-                  <p className="mb-1 text-xs text-muted-foreground">Celular para el evento</p>
+                  <p className="mb-1 text-xs text-muted-foreground">Celular para el retiro</p>
                   <input
                     type="tel"
                     className={inputClass}

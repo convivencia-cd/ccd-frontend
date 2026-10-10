@@ -5,8 +5,8 @@
 export const CAMPOS_REQUERIDOS_SOLICITUD = {
   organizacion_id: 'Confraternidad',
   fraternidad_id: 'Fraternidad',
-  tipo: 'Categoría de evento',
-  tipo_evento_id: 'Tipo de evento',
+  tipo: 'Categoría de retiro',
+  tipo_evento_id: 'Tipo de retiro',
   pais_evento: 'País',
   provincia_evento: 'Provincia',
   ciudad: 'Ciudad',

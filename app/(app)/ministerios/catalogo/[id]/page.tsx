@@ -66,8 +66,8 @@ export default async function MinisterioDetailPage({
   const categoriaLabel: Record<string, string> = {
     personas: "Personas",
     organizaciones: "Organizaciones",
-    eventos: "Eventos",
-    tipos_eventos: "Tipos de Eventos",
+    eventos: "Retiros",
+    tipos_eventos: "Tipos de Retiros",
     roles: "Roles",
     sistema: "Sistema",
   }

@@ -174,12 +174,12 @@ export default function ParticipantesEventoCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           {esEquipo ? <ClipboardList className="h-5 w-5 text-primary" /> : <Users className="h-5 w-5 text-primary" />}
-          {esEquipo ? 'Equipo del Evento' : 'Participantes'}
+          {esEquipo ? 'Equipo del Retiro' : 'Participantes'}
         </CardTitle>
         <CardDescription>
           {esEquipo
-            ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al evento son los de "Asignaciones del Evento".`
-            : `${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados se siguen desde el detalle del evento.`}
+            ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al retiro son los de "Asignaciones del Retiro".`
+            : `${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados se siguen desde el detalle del retiro.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -360,10 +360,10 @@ export default function ParticipantesEventoCard({
       <ConfirmDialog
         open={aBaja !== null}
         onOpenChange={open => !open && setABaja(null)}
-        titulo="Dar de baja del evento"
+        titulo="Dar de baja del retiro"
         descripcion={
           aBaja
-            ? `${nombreDe(aBaja)} pasa a estado "Cancelado" en este evento. No se borra el registro ni sus pagos.`
+            ? `${nombreDe(aBaja)} pasa a estado "Cancelado" en este retiro. No se borra el registro ni sus pagos.`
             : undefined
         }
         confirmar="Dar de baja"

@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   } | null
 
   if (!evento) {
-    return NextResponse.json({ error: 'No se encontró el evento.' }, { status: 404 })
+    return NextResponse.json({ error: 'No se encontró el retiro.' }, { status: 404 })
   }
 
   const autorizado =
@@ -68,14 +68,14 @@ export async function POST(request: Request) {
     esCentralizadorDeEvento(ctx, evento)
 
   if (!autorizado) {
-    return NextResponse.json({ error: 'No tenés permiso para generar pagos de pensión de este evento' }, { status: 403 })
+    return NextResponse.json({ error: 'No tenés permiso para generar pagos de pensión de este retiro' }, { status: 403 })
   }
 
   // Se cobra el Saldo de Pensión del participante (valor propio o precio del
   // evento, menos la beca), no el precio general.
   const valorPension = valorPensionEfectivo(participante.valor_pension, evento.pension)
   if (valorPension <= 0) {
-    return NextResponse.json({ error: 'Este evento no tiene precio de pensión configurado.' }, { status: 400 })
+    return NextResponse.json({ error: 'Este retiro no tiene precio de pensión configurado.' }, { status: 400 })
   }
   const monto = calcularSaldoPension(valorPension, Number(participante.beca_pension || 0))
   if (monto <= 0) {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
   const cuenta = await resolverCuentaEvento(evento.organizacion_id, evento.fraternidad_id)
   if (!cuenta) {
     return NextResponse.json(
-      { error: 'Este evento no tiene Mercado Pago configurado. Contactate con los organizadores.' },
+      { error: 'Este retiro no tiene Mercado Pago configurado. Contactate con los organizadores.' },
       { status: 409 }
     )
   }

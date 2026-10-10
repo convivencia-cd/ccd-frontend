@@ -45,10 +45,10 @@ async function getEventoAndCheckPermission(id: string) {
     .eq('id', id)
     .single()
 
-  if (error || !evento) return { error: 'Evento no encontrado', status: 404, ctx: null, supabase: null, evento: null }
+  if (error || !evento) return { error: 'Retiro no encontrado', status: 404, ctx: null, supabase: null, evento: null }
 
   if (evento.estado !== 'pendiente_datos_noticias') {
-    return { error: `El evento en estado "${evento.estado}" no permite editar datos de noticias`, status: 422, ctx: null, supabase: null, evento: null }
+    return { error: `El retiro en estado "${evento.estado}" no permite editar datos de noticias`, status: 422, ctx: null, supabase: null, evento: null }
   }
 
   // Permission: solicitante, confra approver, or EqT

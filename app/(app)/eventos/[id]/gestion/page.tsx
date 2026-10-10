@@ -119,7 +119,7 @@ export default async function EventoGestionPage({
           Volver a {evento.nombre}
         </Link>
         <div className="rounded-lg border border-border bg-muted p-6 text-sm text-muted-foreground">
-          La Gestión del Evento solo está disponible mientras el evento está <strong>publicado</strong>,{' '}
+          La Gestión del Retiro solo está disponible mientras el retiro está <strong>publicado</strong>,{' '}
           <strong>en curso</strong> o <strong>finalizado</strong>. Estado actual: <strong>{evento.estado}</strong>.
         </div>
       </div>
@@ -201,7 +201,7 @@ export default async function EventoGestionPage({
           Volver a {evento.nombre}
         </Link>
         <Link href={`/eventos/${id}`} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-          Ver ficha del evento
+          Ver ficha del retiro
           <ExternalLink className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -237,7 +237,7 @@ export default async function EventoGestionPage({
             <Wallet className="h-5 w-5 text-primary" />
             Inscripción y Pensión
           </CardTitle>
-          <CardDescription>Enlace público del evento y montos vigentes.</CardDescription>
+          <CardDescription>Enlace público del retiro y montos vigentes.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
@@ -358,7 +358,7 @@ export default async function EventoGestionPage({
               <ClipboardList className="h-5 w-5 text-primary" />
               Equipos Asignados
             </CardTitle>
-            <CardDescription>{equipos.length} servidores registrados en el evento.</CardDescription>
+            <CardDescription>{equipos.length} servidores registrados en el retiro.</CardDescription>
           </CardHeader>
           <CardContent>
             {equipos.length === 0 ? (
@@ -407,13 +407,13 @@ export default async function EventoGestionPage({
         <CardHeader>
           <CardTitle className="text-foreground">Información Económica y Cierre</CardTitle>
           <CardDescription>
-            El detalle de movimientos, informes y el cierre de la convivencia se habilitan cuando el evento finaliza.
+            El detalle de movimientos, informes y el cierre de la convivencia se habilitan cuando el retiro finaliza.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Link href={`/eventos/${id}`}>
             <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              Ver ficha del evento
+              Ver ficha del retiro
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
           </Link>

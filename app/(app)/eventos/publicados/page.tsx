@@ -59,10 +59,10 @@ export default async function EventosPublicadosPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <Globe className="h-8 w-8 text-green-600" />
-          Eventos Publicados
+          Retiros Publicados
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Eventos aprobados y disponibles para la comunidad
+          Retiros aprobados y disponibles para la comunidad
         </p>
       </div>
 
@@ -156,10 +156,10 @@ export default async function EventosPublicadosPage() {
         <div className="py-20 text-center">
           <Globe className="mx-auto h-14 w-14 text-muted-foreground/40" />
           <h3 className="mt-4 text-lg font-semibold text-foreground">
-            No hay eventos publicados actualmente
+            No hay retiros publicados actualmente
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Cuando un evento sea aprobado y publicado, aparecerá aquí.
+            Cuando un retiro sea aprobado y publicado, aparecerá aquí.
           </p>
         </div>
       )}

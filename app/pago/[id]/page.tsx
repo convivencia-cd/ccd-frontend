@@ -150,7 +150,7 @@ export default async function PagoInscripcionPage({
         </div>
         <div className="mt-6 text-center">
           <Link href={`/e/${evento.id}`} className="text-sm text-[#F08020] hover:underline">
-            Ver el detalle del evento
+            Ver el detalle del retiro
           </Link>
         </div>
       </PublicShell>

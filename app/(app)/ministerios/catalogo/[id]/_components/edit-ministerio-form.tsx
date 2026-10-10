@@ -177,7 +177,7 @@ export function EditMinisterioForm({ ministerio, nivelCalculado, asignacionesAct
                 <option value="comunidad">Comunidad</option>
                 <option value="confraternidad">Confraternidad</option>
                 <option value="fraternidad">Fraternidad</option>
-                <option value="evento">Evento</option>
+                <option value="evento">Retiro</option>
               </select>
             )}
           </div>

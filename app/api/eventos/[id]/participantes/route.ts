@@ -39,7 +39,7 @@ async function validarMinisterioMusica(
   const { count } = await query
 
   if ((count ?? 0) >= MAX_MINISTERIO_MUSICA) {
-    return `El Ministerio de Música admite hasta ${MAX_MINISTERIO_MUSICA} personas por evento`
+    return `El Ministerio de Música admite hasta ${MAX_MINISTERIO_MUSICA} personas por retiro`
   }
 
   return null
@@ -67,11 +67,11 @@ async function cargarEventoAutorizado(id: string) {
     .eq('id', id)
     .single()
 
-  if (!evento) return { error: 'Evento no encontrado', status: 404 as const, supabase: null, evento: null }
+  if (!evento) return { error: 'Retiro no encontrado', status: 404 as const, supabase: null, evento: null }
 
   if (!canGestionarParticipantes(ctx, evento as EventoScope)) {
     return {
-      error: 'No tenés permiso para gestionar los participantes de este evento',
+      error: 'No tenés permiso para gestionar los participantes de este retiro',
       status: 403 as const,
       supabase: null,
       evento: null,
@@ -82,7 +82,7 @@ async function cargarEventoAutorizado(id: string) {
 }
 
 function validarRolYEstado(rol: unknown, estado: unknown): string | null {
-  if (rol !== undefined && !ROLES_EVENTO.includes(String(rol))) return 'Rol en el evento inválido'
+  if (rol !== undefined && !ROLES_EVENTO.includes(String(rol))) return 'Rol en el retiro inválido'
   if (estado !== undefined && !ESTADOS_PARTICIPACION.includes(String(estado))) return 'Estado de participación inválido'
   return null
 }
@@ -135,7 +135,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (existente.estado_participacion !== 'cancelado') {
       return NextResponse.json(
         {
-          error: `${persona.nombre} ${persona.apellido} ya figura en el evento como ${
+          error: `${persona.nombre} ${persona.apellido} ya figura en el retiro como ${
             ROLES_EVENTO_LABEL[existente.rol_en_evento] ?? existente.rol_en_evento
           }. Cambiá su rol o su estado desde la lista.`,
         },
@@ -219,7 +219,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .eq('evento_id', id)
       .maybeSingle()
 
-    if (!grupo) return NextResponse.json({ error: 'El grupo no pertenece a este evento' }, { status: 400 })
+    if (!grupo) return NextResponse.json({ error: 'El grupo no pertenece a este retiro' }, { status: 400 })
   }
 
   const updates: Record<string, unknown> = {}

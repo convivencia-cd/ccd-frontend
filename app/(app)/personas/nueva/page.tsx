@@ -946,7 +946,7 @@ export default function NewPersonaPage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="asig_evento_id">
-                          Evento (opcional)
+                          Retiro (opcional)
                         </Label>
                         <Combobox
                           id="asig_evento_id"
@@ -958,9 +958,9 @@ export default function NewPersonaPage() {
                             }))
                           }
                           options={eventoOptions}
-                          placeholder="Sin evento específico"
-                          searchPlaceholder="Buscar evento..."
-                          emptyText="No se encontraron eventos."
+                          placeholder="Sin retiro específico"
+                          searchPlaceholder="Buscar retiro..."
+                          emptyText="No se encontraron retiros."
                         />
                       </div>
 

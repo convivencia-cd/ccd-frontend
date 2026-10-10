@@ -59,7 +59,7 @@ export default async function AdminConfraternitiesPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    {conf.eventos?.length ?? 0} eventos
+                    {conf.eventos?.length ?? 0} retiros
                   </span>
                   <Link href={`/admin/cofradias/${conf.id}`}>
                     <Button variant="outline" size="sm">Editar</Button>

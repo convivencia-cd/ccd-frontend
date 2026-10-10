@@ -73,7 +73,7 @@ export default async function CasasRetiroPage({
           Casas de Retiro
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Administra las casas de retiro disponibles para eventos
+          Administra las casas de retiro disponibles para retiros
         </p>
       </div>
 

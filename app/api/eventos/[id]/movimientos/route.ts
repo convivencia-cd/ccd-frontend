@@ -24,7 +24,7 @@ async function loadEvento(id: string) {
   return { supabase, evento: data }
 }
 
-const SIN_PERMISO_EDICION = 'No tenés permiso para cargar el informe económico (o el evento ya está cerrado)'
+const SIN_PERMISO_EDICION = 'No tenés permiso para cargar el informe económico (o el retiro ya está cerrado)'
 
 type MovimientoInput = {
   tipo?: unknown
@@ -91,7 +91,7 @@ export async function GET(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, evento } = await loadEvento(id)
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canVerInformeEconomico(ctx, evento)) return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
 
   const { data, error } = await supabase
@@ -124,7 +124,7 @@ export async function POST(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, evento } = await loadEvento(id)
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canEditarInformeEconomico(ctx, evento)) {
     return NextResponse.json({ error: SIN_PERMISO_EDICION }, { status: 403 })
   }
@@ -165,7 +165,7 @@ export async function PATCH(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, evento } = await loadEvento(id)
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canEditarInformeEconomico(ctx, evento)) {
     return NextResponse.json({ error: SIN_PERMISO_EDICION }, { status: 403 })
   }
@@ -223,7 +223,7 @@ export async function DELETE(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, evento } = await loadEvento(id)
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canEditarInformeEconomico(ctx, evento)) {
     return NextResponse.json({ error: SIN_PERMISO_EDICION }, { status: 403 })
   }

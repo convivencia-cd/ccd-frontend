@@ -23,12 +23,12 @@ export async function PATCH(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (!canEditarCierre(ctx, evento)) {
     return NextResponse.json(
-      { error: 'No tenés permiso para editar el cierre (o el evento ya está cerrado)' },
+      { error: 'No tenés permiso para editar el cierre (o el retiro ya está cerrado)' },
       { status: 403 }
     )
   }
@@ -50,7 +50,7 @@ export async function PATCH(
   const tocaCarismas = 'informe_carismas' in body
   const tocaConfidenciales = tocaEqt || tocaResponsables || tocaCarismas
   if (tocaConfidenciales && !canEditarInformesConfidenciales(ctx, evento)) {
-    return NextResponse.json({ error: 'Solo el coordinador del evento completa los informes confidenciales' }, { status: 403 })
+    return NextResponse.json({ error: 'Solo el coordinador del retiro completa los informes confidenciales' }, { status: 403 })
   }
 
   if (Object.keys(update).length === 0 && !tocaConfidenciales) {

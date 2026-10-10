@@ -22,12 +22,12 @@ export async function POST(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (evento.estado !== 'finalizado') {
     return NextResponse.json(
-      { error: `Solo se pueden cerrar eventos finalizados. Estado actual: "${evento.estado}".` },
+      { error: `Solo se pueden cerrar retiros finalizados. Estado actual: "${evento.estado}".` },
       { status: 422 }
     )
   }

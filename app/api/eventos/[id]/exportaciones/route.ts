@@ -25,11 +25,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .eq('id', id)
     .single()
 
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
 
   const scope = evento as unknown as EventoInscripcionScope
   if (!canGestionarParticipantes(ctx, scope)) {
-    return NextResponse.json({ error: 'No tenés permiso para exportar los datos de este evento' }, { status: 403 })
+    return NextResponse.json({ error: 'No tenés permiso para exportar los datos de este retiro' }, { status: 403 })
   }
 
   const { data: participantesData, error } = await supabase

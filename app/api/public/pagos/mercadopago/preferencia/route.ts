@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const monto = Number(evento?.precio ?? 0)
 
   if (!evento || monto <= 0) {
-    return NextResponse.json({ error: 'Este evento no requiere pago de inscripción.' }, { status: 400 })
+    return NextResponse.json({ error: 'Este retiro no requiere pago de inscripción.' }, { status: 400 })
   }
 
   // Todas las inscripciones se cobran en la cuenta central, sin importar qué

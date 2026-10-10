@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     .single()
 
   if (!evento) {
-    return NextResponse.json({ error: 'El evento no está disponible.' }, { status: 404 })
+    return NextResponse.json({ error: 'El retiro no está disponible.' }, { status: 404 })
   }
 
   const today = new Date().toISOString().split('T')[0]

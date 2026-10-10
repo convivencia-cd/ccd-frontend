@@ -188,7 +188,7 @@ export default function FichaInscripcionDialog({
                   ) : (
                     <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
                       El detalle de la dieta y las observaciones de salud solo los ven el coordinador y los
-                      centralizadores del evento, y quien tenga ese permiso asignado.
+                      centralizadores del retiro, y quien tenga ese permiso asignado.
                     </p>
                   )}
                 </dl>

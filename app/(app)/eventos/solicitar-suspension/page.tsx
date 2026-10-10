@@ -61,22 +61,22 @@ export default async function SolicitarSuspensionEventosPage() {
         className="inline-flex items-center gap-2 text-primary hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
-        Volver a Eventos
+        Volver a Retiros
       </Link>
 
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
           <AlertTriangle className="h-6 w-6 text-amber-600" />
-          Solicitar Suspensión de Evento
+          Solicitar Suspensión de Retiro
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pedí la suspensión de un evento indicando el motivo. El Equipo Timón revisará tu solicitud.
+          Pedí la suspensión de un retiro indicando el motivo. El Equipo Timón revisará tu solicitud.
         </p>
       </div>
 
       {eventos.length === 0 ? (
         <p className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">
-          No hay eventos disponibles para solicitar su suspensión.
+          No hay retiros disponibles para solicitar su suspensión.
         </p>
       ) : (
         <div className="space-y-4">

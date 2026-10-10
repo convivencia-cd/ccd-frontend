@@ -240,7 +240,8 @@ export default async function DashboardPage() {
           .limit(5)
       : Promise.resolve({ data: null, error: null }),
 
-    // 9. En Discernimiento Confra/Delegado (para quienes pueden aprobar a nivel confra)
+    // 9. Ya discernidos por Confra/Delegado, esperando a EqT (estado
+    // discernimiento_confra = confra done). Informativo para el aprobador confra.
     canApproveConfra
       ? (() => {
           let q = supabase
@@ -750,13 +751,13 @@ export default async function DashboardPage() {
 
         <Link
           href={canViewAllEstados ? "/eventos" : "/eventos?estado=publicado"}
-          aria-label="Ver lista de eventos"
+          aria-label="Ver lista de retiros"
           className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           <Card className="h-full cursor-pointer border-border bg-card transition-all group-hover:border-primary/50 group-hover:shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-foreground">
-                Eventos
+                Retiros
               </CardTitle>
               <Calendar className="h-4 w-4 text-primary" />
             </CardHeader>
@@ -773,7 +774,7 @@ export default async function DashboardPage() {
 
         <Link
           href={`/eventos?fecha_desde=${today}&fecha_hasta=${in30}${canViewAllEstados ? "" : "&estado=publicado"}`}
-          aria-label="Ver eventos de los próximos 30 días"
+          aria-label="Ver retiros de los próximos 30 días"
           className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           <Card className="h-full cursor-pointer border-border bg-card transition-all group-hover:border-primary/50 group-hover:shadow-sm">
@@ -807,7 +808,7 @@ export default async function DashboardPage() {
                 {pendientes?.length ?? 0}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Eventos por aprobar
+                Retiros por aprobar
               </p>
             </CardContent>
           </Card>
@@ -839,11 +840,11 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-primary" />
-              Eventos donde soy Coordinador o Asesor
+              Retiros donde soy Coordinador o Asesor
             </CardTitle>
             <CardDescription>
               Tengo un rol asignado en {misEventosCoordinadorAsesor.length}{" "}
-              {misEventosCoordinadorAsesor.length === 1 ? "evento" : "eventos"}
+              {misEventosCoordinadorAsesor.length === 1 ? "retiro" : "retiros"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -898,11 +899,11 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-primary" />
-              Eventos donde soy Centralizador
+              Retiros donde soy Centralizador
             </CardTitle>
             <CardDescription>
               Soy Centralizador en {misEventosCentralizador.length}{" "}
-              {misEventosCentralizador.length === 1 ? "evento" : "eventos"}
+              {misEventosCentralizador.length === 1 ? "retiro" : "retiros"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -934,7 +935,7 @@ export default async function DashboardPage() {
             </div>
             <Link href="/eventos/centralizador" className="block mt-4">
               <Button variant="outline" className="w-full bg-transparent">
-                Ver mis eventos y filtrar
+                Ver mis retiros y filtrar
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
@@ -948,16 +949,16 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-amber-500" />
-              Interesados de eventos activos
+              Interesados de retiros activos
             </CardTitle>
             <CardDescription>
-              Personas interesadas en tus eventos aprobados, publicados o en curso
+              Personas interesadas en tus retiros aprobados, publicados o en curso
             </CardDescription>
           </CardHeader>
           <CardContent>
             {!interesadosCentralizador || interesadosCentralizador.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No hay personas interesadas en tus eventos activos por el momento
+                No hay personas interesadas en tus retiros activos por el momento
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -969,7 +970,7 @@ export default async function DashboardPage() {
                       <th className="px-3 py-2 font-medium">Teléfono</th>
                       <th className="px-3 py-2 font-medium">Ciudad</th>
                       <th className="px-3 py-2 font-medium">Provincia</th>
-                      <th className="px-3 py-2 font-medium">Evento de Interés</th>
+                      <th className="px-3 py-2 font-medium">Retiro de Interés</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1007,7 +1008,7 @@ export default async function DashboardPage() {
             )}
             <Link href="/eventos/centralizador" className="block mt-4">
               <Button variant="outline" className="w-full bg-transparent">
-                Ver todas las personas de mis eventos
+                Ver todas las personas de mis retiros
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
@@ -1046,7 +1047,7 @@ export default async function DashboardPage() {
                 <Link href="/eventos/nuevo">
                   <Button variant="outline" className="gap-2 bg-transparent">
                     <Calendar className="h-4 w-4 text-purple-500" />
-                    Solicitar Evento
+                    Solicitar Retiro
                   </Button>
                 </Link>
               )}
@@ -1075,7 +1076,7 @@ export default async function DashboardPage() {
               <AlertCircle className="h-5 w-5 text-amber-500" />
               Solicitudes pendientes de aprobación
             </CardTitle>
-            <CardDescription>Eventos que requieren tu revisión</CardDescription>
+            <CardDescription>Retiros que requieren tu revisión</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -1187,10 +1188,10 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <Calendar className="h-5 w-5 text-primary" />
-                Mis eventos solicitados
+                Mis retiros solicitados
               </CardTitle>
               <CardDescription>
-                Eventos que solicitaste y están en proceso
+                Retiros que solicitaste y están en proceso
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1221,7 +1222,7 @@ export default async function DashboardPage() {
               </div>
               <Link href="/eventos" className="block mt-4">
                 <Button variant="outline" className="w-full bg-transparent">
-                  Ver todos mis eventos
+                  Ver todos mis retiros
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
@@ -1229,7 +1230,7 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-      {/* En Discernimiento Confra/Delegado */}
+      {/* Discernidos por Confra/Delegado, pendientes de EqT */}
       {canApproveConfra &&
         discernimientoConfra &&
         discernimientoConfra.length > 0 && (
@@ -1237,10 +1238,11 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <AlertCircle className="h-5 w-5 text-orange-500" />
-                En Discernimiento Confra / Delegado
+                Pendientes de Discernimiento Equipo Timón
               </CardTitle>
               <CardDescription>
-                Eventos esperando aprobación a nivel confraternidad
+                Retiros ya discernidos a nivel confraternidad, esperando al
+                Equipo Timón
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1281,7 +1283,7 @@ export default async function DashboardPage() {
                 className="block mt-4"
               >
                 <Button variant="outline" className="w-full bg-transparent">
-                  Ver todos en discernimiento confra
+                  Ver todos los pendientes de Equipo Timón
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
@@ -1298,7 +1300,7 @@ export default async function DashboardPage() {
               En Discernimiento Equipo Timón
             </CardTitle>
             <CardDescription>
-              Eventos esperando aprobación del Equipo Timón
+              Retiros esperando aprobación del Equipo Timón
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1357,8 +1359,8 @@ export default async function DashboardPage() {
             </CardTitle>
             <CardDescription>
               {canApproveEqt
-                ? "Eventos con datos completos esperando aprobación final para su publicación"
-                : "Eventos de tu confraternidad esperando la aprobación final del Equipo Timón"}
+                ? "Retiros con datos completos esperando aprobación final para su publicación"
+                : "Retiros de tu confraternidad esperando la aprobación final del Equipo Timón"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1395,7 +1397,7 @@ export default async function DashboardPage() {
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" className="h-7 text-xs">
-                          Ver evento
+                          Ver retiro
                         </Button>
                       )}
                     </Link>
@@ -1429,7 +1431,7 @@ export default async function DashboardPage() {
               Pendiente de Datos para Noticias
             </CardTitle>
             <CardDescription>
-              Eventos aprobados que esperan carga de centralizadores y datos de publicación
+              Retiros aprobados que esperan carga de centralizadores y datos de publicación
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1487,7 +1489,7 @@ export default async function DashboardPage() {
               Solicitudes de Suspensión
             </CardTitle>
             <CardDescription>
-              Eventos con solicitud de suspensión pendiente de revisión
+              Retiros con solicitud de suspensión pendiente de revisión
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1594,7 +1596,7 @@ export default async function DashboardPage() {
               Nuevos Interesados
             </CardTitle>
             <CardDescription>
-              Personas que manifestaron interés en participar en un evento
+              Personas que manifestaron interés en participar en un retiro
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1658,10 +1660,10 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <AlertCircle className="h-5 w-5 text-red-500" />
-                Mis eventos rechazados
+                Mis retiros rechazados
               </CardTitle>
               <CardDescription>
-                Eventos que fueron rechazados y requieren tu atención
+                Retiros que fueron rechazados y requieren tu atención
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1711,7 +1713,7 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Globe className="h-5 w-5 text-primary" />
-              Eventos publicados
+              Retiros publicados
             </CardTitle>
             <CardDescription>
               Disponibles para toda la comunidad
@@ -1720,7 +1722,7 @@ export default async function DashboardPage() {
           <CardContent>
             {!publishedEvents || publishedEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No hay eventos publicados actualmente
+                No hay retiros publicados actualmente
               </p>
             ) : (
               <div className="space-y-3">
@@ -1754,7 +1756,7 @@ export default async function DashboardPage() {
             )}
             <Link href="/eventos/publicados" className="block mt-4">
               <Button variant="outline" className="w-full bg-transparent">
-                Ver todos los eventos publicados
+                Ver todos los retiros publicados
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>

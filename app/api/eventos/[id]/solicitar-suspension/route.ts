@@ -15,11 +15,11 @@ async function getEventoAndCheckPermission(id: string) {
     .eq('id', id)
     .single()
 
-  if (error || !evento) return { error: 'Evento no encontrado', status: 404, ctx: null, supabase: null, evento: null }
+  if (error || !evento) return { error: 'Retiro no encontrado', status: 404, ctx: null, supabase: null, evento: null }
 
   if (ESTADOS_TERMINALES.includes(evento.estado)) {
     return {
-      error: `El evento en estado "${evento.estado}" no puede tener solicitudes de suspensión`,
+      error: `El retiro en estado "${evento.estado}" no puede tener solicitudes de suspensión`,
       status: 422, ctx: null, supabase: null, evento: null,
     }
   }
@@ -30,7 +30,7 @@ async function getEventoAndCheckPermission(id: string) {
     (evento.fraternidad_id ? canPerform(ctx, 'event.request_suspend', evento.fraternidad_id) : false)
 
   if (!puedeSolicitar) {
-    return { error: 'No tenés permiso para solicitar la suspensión de este evento', status: 403, ctx: null, supabase: null, evento: null }
+    return { error: 'No tenés permiso para solicitar la suspensión de este retiro', status: 403, ctx: null, supabase: null, evento: null }
   }
 
   return { error: null, status: 200, ctx, supabase, evento }

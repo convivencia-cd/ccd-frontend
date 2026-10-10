@@ -32,11 +32,11 @@ async function cargarEventoAutorizado(id: string) {
     .eq('id', id)
     .single()
 
-  if (!evento) return { error: 'Evento no encontrado', status: 404 as const, supabase: null }
+  if (!evento) return { error: 'Retiro no encontrado', status: 404 as const, supabase: null }
 
   if (!canGestionarParticipantes(ctx, evento as EventoScope)) {
     return {
-      error: 'No tenés permiso para gestionar los grupos de este evento',
+      error: 'No tenés permiso para gestionar los grupos de este retiro',
       status: 403 as const,
       supabase: null,
     }
@@ -61,12 +61,12 @@ async function validarServidor(
     .eq('evento_id', eventoId)
     .maybeSingle()
 
-  if (!participante) return 'El servidor elegido no está cargado en este evento'
+  if (!participante) return 'El servidor elegido no está cargado en este retiro'
   if (participante.rol_en_evento !== 'servidor') {
     return 'El responsable de un grupo tiene que estar cargado en el equipo con rol Servidor'
   }
   if (participante.estado_participacion === 'cancelado') {
-    return 'El servidor elegido está dado de baja del evento'
+    return 'El servidor elegido está dado de baja del retiro'
   }
   return null
 }
@@ -101,7 +101,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (insertError) {
     const duplicado = insertError.code === '23505'
     return NextResponse.json(
-      { error: duplicado ? `El evento ya tiene un grupo llamado "${nombre}"` : insertError.message },
+      { error: duplicado ? `El retiro ya tiene un grupo llamado "${nombre}"` : insertError.message },
       { status: duplicado ? 409 : 400 }
     )
   }
@@ -152,7 +152,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (updateError) {
     const duplicado = updateError.code === '23505'
     return NextResponse.json(
-      { error: duplicado ? 'El evento ya tiene un grupo con ese nombre' : updateError.message },
+      { error: duplicado ? 'El retiro ya tiene un grupo con ese nombre' : updateError.message },
       { status: duplicado ? 409 : 400 }
     )
   }

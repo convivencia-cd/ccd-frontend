@@ -23,12 +23,12 @@ export async function POST(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (evento.estado !== 'en_curso') {
     return NextResponse.json(
-      { error: `Solo se pueden finalizar eventos en curso. Estado actual: "${evento.estado}".` },
+      { error: `Solo se pueden finalizar retiros en curso. Estado actual: "${evento.estado}".` },
       { status: 422 }
     )
   }
@@ -39,7 +39,7 @@ export async function POST(
     !esCentralizadorDeEvento(ctx, evento)
   ) {
     return NextResponse.json(
-      { error: 'No tenés permiso para finalizar este evento' },
+      { error: 'No tenés permiso para finalizar este retiro' },
       { status: 403 }
     )
   }

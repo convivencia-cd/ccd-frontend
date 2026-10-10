@@ -205,7 +205,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
         Datos para Noticias
       </h3>
       <p className="text-xs text-muted-foreground">
-        Completá los datos necesarios para la publicación del evento. Podés guardar un borrador y volver más tarde.
+        Completá los datos necesarios para la publicación del retiro. Podés guardar un borrador y volver más tarde.
       </p>
 
       {/* El evento puede haber vuelto desde aprobación final: acá va el motivo */}
@@ -265,7 +265,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Email para el evento</p>
+                <p className="text-xs text-muted-foreground mb-1">Email para el retiro</p>
                 <input
                   type="email"
                   className={inputClass}
@@ -275,7 +275,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
                 />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Celular para el evento</p>
+                <p className="text-xs text-muted-foreground mb-1">Celular para el retiro</p>
                 <input
                   type="tel"
                   className={inputClass}
@@ -360,7 +360,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
         <textarea
           className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground min-h-20"
           value={notas}
-          placeholder="Información adicional para la publicación del evento..."
+          placeholder="Información adicional para la publicación del retiro..."
           onChange={e => { setNotas(e.target.value); setSavedOk(false) }}
         />
       </div>
@@ -392,7 +392,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
         open={confirmando}
         onOpenChange={setConfirmando}
         titulo="¿Solicitar la publicación final?"
-        descripcion='El evento pasará a "Pendiente de Aprobación Final" y ya no vas a poder editar estos datos, salvo que el Equipo Timón lo devuelva para corregir.'
+        descripcion='El retiro pasará a "Pendiente de Aprobación Final" y ya no vas a poder editar estos datos, salvo que el Equipo Timón lo devuelva para corregir.'
         confirmar="Solicitar publicación"
         onConfirm={handlePublicar}
       />

@@ -237,8 +237,8 @@ export default async function CentralizadorPage({
           Soy Centralizador
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Eventos donde figurás como centralizador y las personas interesadas,
-          inscriptas y conviventes de esos eventos.
+          Retiros donde figurás como centralizador y las personas interesadas,
+          inscriptas y conviventes de esos retiros.
         </p>
       </div>
 
@@ -247,10 +247,10 @@ export default async function CentralizadorPage({
           <CardContent className="py-12 text-center">
             <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 font-semibold text-foreground">
-              No sos centralizador de ningún evento
+              No sos centralizador de ningún retiro
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Cuando te asignen como centralizador de un evento, aparecerá acá.
+              Cuando te asignen como centralizador de un retiro, aparecerá acá.
             </p>
           </CardContent>
         </Card>
@@ -273,7 +273,7 @@ export default async function CentralizadorPage({
               className={selectClass}
             />
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Estado del evento</label>
+              <label className="text-xs text-muted-foreground">Estado del retiro</label>
               <select name="estado" defaultValue={estado ?? ""} className={selectClass}>
                 {ESTADO_EVENTO_FILTROS.map((f) => (
                   <option key={f.value} value={f.value}>{f.label}</option>
@@ -309,16 +309,16 @@ export default async function CentralizadorPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <Calendar className="h-5 w-5 text-primary" />
-                Eventos donde soy Centralizador
+                Retiros donde soy Centralizador
               </CardTitle>
               <CardDescription>
-                {eventosFiltrados.length} de {misEventos.length} eventos
+                {eventosFiltrados.length} de {misEventos.length} retiros
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {eventosFiltrados.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
-                  Ningún evento coincide con los filtros.
+                  Ningún retiro coincide con los filtros.
                 </p>
               ) : (
                 eventosFiltrados.map((ev) => (
@@ -372,7 +372,7 @@ export default async function CentralizadorPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <Users className="h-5 w-5 text-primary" />
-                Personas de mis eventos
+                Personas de mis retiros
               </CardTitle>
               <CardDescription>
                 Interesadas, inscriptas y conviventes · {participantes.length} personas
@@ -383,7 +383,7 @@ export default async function CentralizadorPage({
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   {hasAnyFilters
                     ? "No hay personas que coincidan con los filtros."
-                    : "Todavía no hay personas registradas en tus eventos."}
+                    : "Todavía no hay personas registradas en tus retiros."}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -394,7 +394,7 @@ export default async function CentralizadorPage({
                         <th className="px-3 py-2 font-medium">Contacto</th>
                         <th className="px-3 py-2 font-medium">Ciudad</th>
                         <th className="px-3 py-2 font-medium">Provincia</th>
-                        <th className="px-3 py-2 font-medium">Evento de Interés</th>
+                        <th className="px-3 py-2 font-medium">Retiro de Interés</th>
                         <th className="px-3 py-2 font-medium">Estado</th>
                       </tr>
                     </thead>

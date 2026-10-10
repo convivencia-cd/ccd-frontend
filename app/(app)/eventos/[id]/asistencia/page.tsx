@@ -74,7 +74,7 @@ export default async function AsistenciaPage({
           className="inline-flex items-center gap-2 text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver al evento
+          Volver al retiro
         </Link>
         <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">
           Tomar asistencia
@@ -87,7 +87,7 @@ export default async function AsistenciaPage({
 
       {!puedeTomar ? (
         <div className="rounded-lg border border-border bg-muted p-6 text-sm text-muted-foreground">
-          Solo se puede tomar asistencia en eventos publicados o en curso. Estado actual:{' '}
+          Solo se puede tomar asistencia en retiros publicados o en curso. Estado actual:{' '}
           <strong>{evento.estado}</strong>.
         </div>
       ) : (

@@ -28,21 +28,21 @@ const CONFIRMACIONES: Record<
   { titulo: string; descripcion: string; confirmar: string; tono: 'normal' | 'destructivo' | 'advertencia' }
 > = {
   publicar: {
-    titulo: '¿Publicar el evento?',
+    titulo: '¿Publicar el retiro?',
     descripcion: 'Pasará a estado "Publicado" con los datos de este panel y quedará visible en la home pública.',
-    confirmar: 'Publicar evento',
+    confirmar: 'Publicar retiro',
     tono: 'normal',
   },
   suspender: {
-    titulo: '¿Suspender este evento?',
-    descripcion: 'El evento pasa a estado Suspendido. Es una salida definitiva: si lo que hay es un dato mal cargado, conviene devolverlo para corregir.',
-    confirmar: 'Suspender evento',
+    titulo: '¿Suspender este retiro?',
+    descripcion: 'El retiro pasa a estado Suspendido. Es una salida definitiva: si lo que hay es un dato mal cargado, conviene devolverlo para corregir.',
+    confirmar: 'Suspender retiro',
     tono: 'destructivo',
   },
   devolver: {
-    titulo: '¿Devolver el evento para corregir?',
-    descripcion: 'Vuelve a "Pendiente de Datos para Noticias" para que corrijan lo que falte. El motivo queda en el historial del evento.',
-    confirmar: 'Devolver evento',
+    titulo: '¿Devolver el retiro para corregir?',
+    descripcion: 'Vuelve a "Pendiente de Datos para Noticias" para que corrijan lo que falte. El motivo queda en el historial del retiro.',
+    confirmar: 'Devolver retiro',
     tono: 'advertencia',
   },
 }
@@ -151,7 +151,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
     // El motivo viaja en las notas y es lo único que ve quien tiene que
     // corregir, así que no tiene sentido devolver sin explicar qué está mal.
     if (accion === 'devolver' && !notas.trim()) {
-      setError('Escribí en las notas qué hay que corregir antes de devolver el evento.')
+      setError('Escribí en las notas qué hay que corregir antes de devolver el retiro.')
       return
     }
     setConfirmando(accion)
@@ -255,7 +255,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Email para el evento</p>
+                <p className="text-xs text-muted-foreground mb-1">Email para el retiro</p>
                 <input
                   type="email"
                   className={inputClass}
@@ -265,7 +265,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
                 />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Celular para el evento</p>
+                <p className="text-xs text-muted-foreground mb-1">Celular para el retiro</p>
                 <input
                   type="tel"
                   className={inputClass}
@@ -287,7 +287,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
         <textarea
           className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground min-h-20"
           value={notas}
-          placeholder="Observaciones de la aprobación final, o qué hay que corregir si devolvés el evento..."
+          placeholder="Observaciones de la aprobación final, o qué hay que corregir si devolvés el retiro..."
           onChange={e => {
             setNotas(e.target.value)
             if (error) setError('')
@@ -305,7 +305,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
           onClick={() => pedirAccion('suspender')}
           className="flex-1"
         >
-          {loading === 'suspender' ? 'Suspendiendo...' : 'Suspender Evento'}
+          {loading === 'suspender' ? 'Suspendiendo...' : 'Suspender Retiro'}
         </Button>
         <Button
           size="sm"
@@ -313,7 +313,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
           onClick={() => pedirAccion('publicar')}
           className="flex-1 bg-green-600 hover:bg-green-700 text-white"
         >
-          {loading === 'publicar' ? 'Publicando...' : 'Publicar Evento'}
+          {loading === 'publicar' ? 'Publicando...' : 'Publicar Retiro'}
         </Button>
       </div>
 
@@ -328,7 +328,7 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
         {loading === 'devolver' ? 'Devolviendo...' : 'Devolver para corregir datos'}
       </Button>
       <p className="text-xs text-muted-foreground">
-        Vuelve a &quot;Pendiente de Datos para Noticias&quot; para que corrijan lo que falte. El motivo queda en el historial del evento.
+        Vuelve a &quot;Pendiente de Datos para Noticias&quot; para que corrijan lo que falte. El motivo queda en el historial del retiro.
       </p>
 
       {confirmando && (

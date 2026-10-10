@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   }
 
   if (!canPerform(ctx, 'tipos_eventos.create')) {
-    return NextResponse.json({ error: 'Sin permiso para crear tipos de eventos' }, { status: 403 })
+    return NextResponse.json({ error: 'Sin permiso para crear tipos de retiros' }, { status: 403 })
   }
 
   const body = await request.json()

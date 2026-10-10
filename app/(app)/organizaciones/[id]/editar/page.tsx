@@ -468,7 +468,7 @@ export default function EditarOrganizacionPage() {
               <div>
                 <p className="text-sm font-semibold text-foreground">Datos para transferencias</p>
                 <p className="text-xs text-muted-foreground">
-                  Se muestran a los interesados para que paguen la seña de inscripción de los eventos de esta confraternidad / fraternidad.
+                  Se muestran a los interesados para que paguen la seña de inscripción de los retiros de esta confraternidad / fraternidad.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -615,7 +615,7 @@ export default function EditarOrganizacionPage() {
                     Rol
                   </th>
                   <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                    Evento
+                    Retiro
                   </th>
                   <th className="text-left py-2 px-3 font-medium text-muted-foreground">
                     Estado

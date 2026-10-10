@@ -112,7 +112,7 @@ export default async function PagosPage() {
           Gestión de Pagos
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Registra y controla los pagos de eventos
+          Registra y controla los pagos de retiros
         </p>
       </div>
 
@@ -184,7 +184,7 @@ export default async function PagosPage() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Persona</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Evento</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Retiro</th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Concepto</th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Monto</th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground">Fecha</th>

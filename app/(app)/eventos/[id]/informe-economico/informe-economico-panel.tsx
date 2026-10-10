@@ -558,7 +558,7 @@ export default function InformeEconomicoPanel(props: Props) {
           {/* ── Informe (réplica de la hoja "Informe Economico") ── */}
           <TabsContent value="informe" className="space-y-5 pt-2">
             <div className="grid gap-2 text-sm sm:grid-cols-2">
-              <Dato label="Evento" value={info.nombre} />
+              <Dato label="Retiro" value={info.nombre} />
               <Dato label="Fechas" value={[info.fecha_inicio, info.fecha_fin].filter(Boolean).map(f => formatDateAR(f!.split('T')[0])).join(' al ')} />
               <Dato label="Lugar" value={info.lugar} />
               <Dato label="Confraternidad / Fraternidad" value={[info.confraternidad, info.fraternidad].filter(Boolean).join(' - ')} />

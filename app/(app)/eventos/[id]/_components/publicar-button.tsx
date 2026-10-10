@@ -21,7 +21,7 @@ export function PublicarButton({ eventoId }: { eventoId: string }) {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? 'Error al publicar el evento')
+        throw new Error(data.error ?? 'Error al publicar el retiro')
       }
       router.refresh()
     } catch (err: unknown) {
@@ -39,15 +39,15 @@ export function PublicarButton({ eventoId }: { eventoId: string }) {
         size="sm"
         className="gap-2 bg-green-600 hover:bg-green-700 text-white"
       >
-        {loading ? 'Publicando...' : 'Publicar Evento'}
+        {loading ? 'Publicando...' : 'Publicar Retiro'}
       </Button>
       {error && <p className="text-xs text-destructive">{error}</p>}
       <ConfirmDialog
         open={confirmando}
         onOpenChange={setConfirmando}
-        titulo="¿Publicar el evento?"
+        titulo="¿Publicar el retiro?"
         descripcion='Pasará a estado "Publicado" y quedará visible en la home pública.'
-        confirmar="Publicar evento"
+        confirmar="Publicar retiro"
         onConfirm={handlePublicar}
       />
     </div>

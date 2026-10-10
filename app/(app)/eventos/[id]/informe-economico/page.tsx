@@ -104,7 +104,7 @@ export default async function InformeEconomicoPage({
       <div>
         <Link href={`/eventos/${id}`} className="inline-flex items-center gap-2 text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" />
-          Volver al evento
+          Volver al retiro
         </Link>
         <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">Informe Económico</h1>
         <p className="mt-1 text-muted-foreground">
@@ -118,8 +118,8 @@ export default async function InformeEconomicoPage({
         <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           <Lock className="h-4 w-4 shrink-0" />
           {evento.estado === 'cerrado'
-            ? 'El evento está cerrado: el informe es de solo lectura.'
-            : 'Vista de solo lectura. El informe lo cargan el/los Centralizador(es) del evento y el Tesorero.'}
+            ? 'El retiro está cerrado: el informe es de solo lectura.'
+            : 'Vista de solo lectura. El informe lo cargan el/los Centralizador(es) del retiro y el Tesorero.'}
         </div>
       )}
 

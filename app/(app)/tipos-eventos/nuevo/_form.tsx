@@ -73,7 +73,7 @@ export default function NuevoTipoEventoForm() {
 
       if (!res.ok) {
         const { error: apiError } = await res.json()
-        throw new Error(apiError ?? 'Error al crear el tipo de evento')
+        throw new Error(apiError ?? 'Error al crear el tipo de retiro')
       }
 
       const { id } = await res.json()
@@ -104,7 +104,7 @@ export default function NuevoTipoEventoForm() {
           </Link>
         </Button>
         <Tag className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-bold">Nuevo Tipo de Evento</h1>
+        <h1 className="text-2xl font-bold">Nuevo Tipo de Retiro</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -184,7 +184,7 @@ export default function NuevoTipoEventoForm() {
                     onChange={handleChange}
                     className="h-4 w-4 rounded border-input"
                   />
-                  <span className="text-sm">Activo (disponible para elegir al crear eventos)</span>
+                  <span className="text-sm">Activo (disponible para elegir al crear retiros)</span>
                 </label>
               </div>
 
@@ -237,7 +237,7 @@ export default function NuevoTipoEventoForm() {
               <CardTitle className="text-base font-semibold">Roles que pueden solicitar este tipo</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Solo los roles con el permiso "Solicitar eventos" están disponibles aquí.
+              Solo los roles con el permiso "Solicitar retiros" están disponibles aquí.
             </p>
           </CardHeader>
           <CardContent>
@@ -245,7 +245,7 @@ export default function NuevoTipoEventoForm() {
               <p className="text-sm text-muted-foreground py-2">Cargando roles...</p>
             ) : rolesOpciones.length === 0 ? (
               <p className="text-sm text-muted-foreground py-2">
-                No hay roles con el permiso "Solicitar eventos" configurado.
+                No hay roles con el permiso "Solicitar retiros" configurado.
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

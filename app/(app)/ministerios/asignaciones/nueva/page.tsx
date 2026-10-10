@@ -284,7 +284,7 @@ export default function NuevaAsignacionPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="evento_id">Evento (opcional)</Label>
+                <Label htmlFor="evento_id">Retiro (opcional)</Label>
                 <Combobox
                   id="evento_id"
                   value={form.evento_id}
@@ -295,9 +295,9 @@ export default function NuevaAsignacionPage() {
                     label: `${ev.nombre} (${tipoEventoLabel[ev.tipo] ?? ev.tipo})`,
                     value: ev.id,
                   }))}
-                  placeholder="Sin evento específico"
-                  searchPlaceholder="Buscar evento..."
-                  emptyText="No se encontraron eventos."
+                  placeholder="Sin retiro específico"
+                  searchPlaceholder="Buscar retiro..."
+                  emptyText="No se encontraron retiros."
                 />
               </div>
             </div>

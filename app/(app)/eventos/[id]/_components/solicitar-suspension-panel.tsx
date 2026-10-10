@@ -102,14 +102,14 @@ export default function SolicitarSuspensionPanel({ eventoId, inicial }: Props) {
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            Si necesitás suspender este evento, enviá una solicitud al Equipo Timón con el motivo.
+            Si necesitás suspender este retiro, enviá una solicitud al Equipo Timón con el motivo.
           </p>
           <div>
             <p className="text-xs text-amber-700 dark:text-amber-400 mb-1">Motivo <span className="text-destructive">*</span></p>
             <textarea
               className="w-full rounded border border-amber-300 dark:border-amber-700 bg-background px-3 py-2 text-sm text-foreground min-h-20"
               value={notas}
-              placeholder="Explicá por qué necesitás suspender este evento..."
+              placeholder="Explicá por qué necesitás suspender este retiro..."
               onChange={e => { setNotas(e.target.value); setError('') }}
             />
           </div>

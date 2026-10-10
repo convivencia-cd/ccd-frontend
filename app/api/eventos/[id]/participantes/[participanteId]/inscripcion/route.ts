@@ -27,12 +27,12 @@ export async function GET(
     .eq('id', id)
     .single()
 
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
 
   const scope = evento as unknown as EventoInscripcionScope
   if (!canGestionarParticipantes(ctx, scope)) {
     return NextResponse.json(
-      { error: 'No tenés permiso para ver las inscripciones de este evento' },
+      { error: 'No tenés permiso para ver las inscripciones de este retiro' },
       { status: 403 }
     )
   }

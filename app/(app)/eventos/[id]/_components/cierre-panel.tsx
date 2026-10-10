@@ -87,7 +87,7 @@ function InformeCcd({ titulo, preguntas, respuestas, onChange, otras, canEditar,
   return (
     <Section icon={FileText} title={titulo} badge="Confidencial">
       {preguntas.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No hay preguntas definidas para este tipo de evento. Configuralas en Tipos de Evento.</p>
+        <p className="text-xs text-muted-foreground">No hay preguntas definidas para este tipo de retiro. Configuralas en Tipos de Retiro.</p>
       ) : preguntas.map((q, i) => (
         <div key={q.id} className="space-y-1">
           <p className="text-sm font-medium text-foreground">{ROMANOS[i] ?? i + 1}) {q.texto}</p>
@@ -201,7 +201,7 @@ export default function CierrePanel(props: Props) {
           <h3 className="text-lg font-bold text-foreground">Cierre de la Convivencia</h3>
           <p className="text-xs text-muted-foreground">
             {cerrado
-              ? 'El evento está cerrado. Los datos son de solo lectura.'
+              ? 'El retiro está cerrado. Los datos son de solo lectura.'
               : 'Cargá los entregables del cierre. Cuando esté todo listo, el Equipo Timón cierra la convivencia.'}
           </p>
         </div>

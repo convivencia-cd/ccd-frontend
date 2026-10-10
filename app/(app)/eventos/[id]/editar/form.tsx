@@ -99,7 +99,7 @@ export default function EditarEventoForm({
         { data: casas },
       ]) => {
         if (eventoError || !evento) {
-          setError("No se encontró el evento")
+          setError("No se encontró el retiro")
           setLoadingData(false)
           return
         }
@@ -254,7 +254,7 @@ export default function EditarEventoForm({
       router.push("/eventos")
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : "Error al actualizar el evento"
+        err instanceof Error ? err.message : "Error al actualizar el retiro"
       setError(msg)
     } finally {
       setLoading(false)
@@ -273,7 +273,7 @@ export default function EditarEventoForm({
   if (loadingData) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-muted-foreground">Cargando evento...</p>
+        <p className="text-muted-foreground">Cargando retiro...</p>
       </div>
     )
   }
@@ -285,13 +285,13 @@ export default function EditarEventoForm({
         className="inline-flex items-center gap-2 text-primary hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
-        Volver a Eventos
+        Volver a Retiros
       </Link>
 
       <Card className="border-border bg-card max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-foreground">Editar Evento</CardTitle>
-          <CardDescription>Modifica los datos del evento</CardDescription>
+          <CardTitle className="text-foreground">Editar Retiro</CardTitle>
+          <CardDescription>Modifica los datos del retiro</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -584,7 +584,7 @@ export default function EditarEventoForm({
               </div>
             </div>
             <p className="text-xs text-muted-foreground -mt-3">
-              La landing pública del evento solo cobra el precio de inscripción. La pensión se registra y valida desde Pagos.
+              La landing pública del retiro solo cobra el precio de inscripción. La pensión se registra y valida desde Pagos.
             </p>
 
             {/* Audiencia y Modalidad */}
@@ -624,7 +624,7 @@ export default function EditarEventoForm({
               <textarea
                 id="descripcion"
                 name="descripcion"
-                placeholder="Descripción del evento..."
+                placeholder="Descripción del retiro..."
                 value={formData.descripcion}
                 onChange={handleChange}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm min-h-20"

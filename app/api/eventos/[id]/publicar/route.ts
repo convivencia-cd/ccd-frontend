@@ -22,19 +22,19 @@ export async function POST(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (evento.estado !== 'aprobado') {
     return NextResponse.json(
-      { error: `Solo se pueden publicar eventos en estado "aprobado". Estado actual: "${evento.estado}".` },
+      { error: `Solo se pueden publicar retiros en estado "aprobado". Estado actual: "${evento.estado}".` },
       { status: 422 }
     )
   }
 
   if (!canPerform(ctx, 'event.publish', evento.organizacion_id ?? null)) {
     return NextResponse.json(
-      { error: 'No tenés permiso para publicar este evento' },
+      { error: 'No tenés permiso para publicar este retiro' },
       { status: 403 }
     )
   }

@@ -19,7 +19,7 @@ export default function DocumentosPage() {
           Gestión de Documentos
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Administra documentos de eventos y participantes
+          Administra documentos de retiros y participantes
         </p>
       </div>
 

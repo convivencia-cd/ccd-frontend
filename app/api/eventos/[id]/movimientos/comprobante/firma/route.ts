@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: evento } = await supabase.from('eventos')
     .select('estado, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
     .eq('id', id).single()
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canEditarInformeEconomico(ctx, evento)) {
     return NextResponse.json({ error: 'No tenés permiso para adjuntar comprobantes' }, { status: 403 })
   }

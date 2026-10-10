@@ -65,7 +65,7 @@ export default async function TiposEventosPage({
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Tag className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-bold">Tipos de Eventos</h1>
+        <h1 className="text-2xl font-bold">Tipos de Retiros</h1>
       </div>
 
       <Card>
@@ -135,7 +135,7 @@ export default async function TiposEventosPage({
 
           {!tipos || tipos.length === 0 ? (
             <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              {hasFilters ? 'No se encontraron tipos con esos filtros.' : 'No hay tipos de eventos registrados.'}
+              {hasFilters ? 'No se encontraron tipos con esos filtros.' : 'No hay tipos de retiros registrados.'}
             </p>
           ) : (
             <div className="overflow-x-auto">

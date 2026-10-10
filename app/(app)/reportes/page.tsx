@@ -14,8 +14,8 @@ export default function ReportesPage() {
 
   const reportes = [
     {
-      nombre: 'Inscripciones por Evento',
-      descripcion: 'Número de inscripciones y tasa de ocupación por evento',
+      nombre: 'Inscripciones por Retiro',
+      descripcion: 'Número de inscripciones y tasa de ocupación por retiro',
       icono: '📊',
     },
     {
@@ -24,8 +24,8 @@ export default function ReportesPage() {
       icono: '💰',
     },
     {
-      nombre: 'Asistencia a Eventos',
-      descripcion: 'Tasa de asistencia y no-shows por evento',
+      nombre: 'Asistencia a Retiros',
+      descripcion: 'Tasa de asistencia y no-shows por retiro',
       icono: '👥',
     },
     {
@@ -53,7 +53,7 @@ export default function ReportesPage() {
           Reportes y Estadísticas
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Consulta reportes detallados sobre eventos, inscripciones y pagos
+          Consulta reportes detallados sobre retiros, inscripciones y pagos
         </p>
       </div>
 
@@ -126,7 +126,7 @@ export default function ReportesPage() {
               <p className="text-xs text-green-600">↑ 3% vs mes anterior</p>
             </div>
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Ingreso Promedio por Evento</p>
+              <p className="text-sm text-muted-foreground">Ingreso Promedio por Retiro</p>
               <p className="text-2xl font-bold text-foreground">€2,450</p>
               <p className="text-xs text-green-600">↑ 12% vs mes anterior</p>
             </div>

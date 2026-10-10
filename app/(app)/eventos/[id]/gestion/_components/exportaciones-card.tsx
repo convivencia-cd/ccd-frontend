@@ -45,7 +45,7 @@ export function ExportacionesCard({ eventoId }: { eventoId: string }) {
           Cartelitos y Dietas
         </CardTitle>
         <CardDescription>
-          Archivos editables con los participantes y el equipo del evento (sin interesados ni cancelados).
+          Archivos editables con los participantes y el equipo del retiro (sin interesados ni cancelados).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

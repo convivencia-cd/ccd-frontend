@@ -51,12 +51,12 @@ export async function POST(
     .single()
 
   if (fetchError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (evento.estado !== 'pendiente_aprobacion_final') {
     return NextResponse.json(
-      { error: `El evento en estado "${evento.estado}" no permite aprobación final` },
+      { error: `El retiro en estado "${evento.estado}" no permite aprobación final` },
       { status: 422 }
     )
   }
@@ -85,7 +85,7 @@ export async function POST(
   // Quien recibe el evento de vuelta tiene que saber qué corregir.
   if (body.accion === 'devolver' && !motivo) {
     return NextResponse.json(
-      { error: 'Indicá en las notas qué hay que corregir antes de devolver el evento' },
+      { error: 'Indicá en las notas qué hay que corregir antes de devolver el retiro' },
       { status: 400 }
     )
   }

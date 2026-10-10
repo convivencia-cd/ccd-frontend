@@ -62,7 +62,7 @@ export default async function RolDetailPage({
   const categoriaLabel: Record<string, string> = {
     personas: 'Personas',
     organizaciones: 'Organizaciones',
-    eventos: 'Eventos',
+    eventos: 'Retiros',
     roles: 'Roles del Sistema',
     sistema: 'Sistema',
   }

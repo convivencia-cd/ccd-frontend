@@ -113,7 +113,7 @@ export const accesoParticipante = defineTemplate<AccesoParticipanteProps>({
   blocks: p => [
     block.heading(`¡Hola, ${p.nombre}!`),
     block.paragraph(
-      `Gracias por ser parte de ${p.evento}. Te creamos una cuenta en la plataforma de la Comunidad CcD para que puedas ver los próximos eventos y anotarte más rápido la próxima vez.`
+      `Gracias por ser parte de ${p.evento}. Te creamos una cuenta en la plataforma de la Comunidad CcD para que puedas ver los próximos retiros y anotarte más rápido la próxima vez.`
     ),
     block.facts([{ label: 'Usuario', value: p.nombreUsuario }]),
     block.button('Crear mi contraseña', p.crearPasswordUrl),
@@ -139,7 +139,7 @@ export type InscripcionProps = {
 }
 
 function datosEvento(p: InscripcionProps) {
-  const datos = [{ label: 'Evento', value: p.evento }]
+  const datos = [{ label: 'Retiro', value: p.evento }]
   if (p.fechaInicio) {
     const rango =
       p.fechaFin && p.fechaFin !== p.fechaInicio
@@ -173,7 +173,7 @@ export const inscripcionRegistrada = defineTemplate<InscripcionProps>({
       block.paragraph(mensaje),
       block.facts(datosEvento(p)),
     ]
-    if (p.detalleUrl) blocks.push(block.button('Ver detalle del evento', p.detalleUrl))
+    if (p.detalleUrl) blocks.push(block.button('Ver detalle del retiro', p.detalleUrl))
     return blocks
   },
 })
@@ -251,7 +251,7 @@ export const recordatorioEvento = defineTemplate<InscripcionProps & { diasRestan
       block.paragraph(`Te recordamos tu participación en ${p.evento}. ${cuando}`.trim()),
       block.facts(datosEvento(p)),
     ]
-    if (p.detalleUrl) blocks.push(block.button('Ver detalle del evento', p.detalleUrl))
+    if (p.detalleUrl) blocks.push(block.button('Ver detalle del retiro', p.detalleUrl))
     return blocks
   },
 })
@@ -283,7 +283,7 @@ function bloquesQrIngreso(cid: string): EmailBlock[] {
   return [
     block.divider(),
     block.heading('Tu QR de ingreso'),
-    block.paragraph('Presentá este código al llegar al evento para registrar tu asistencia.'),
+    block.paragraph('Presentá este código al llegar al retiro para registrar tu asistencia.'),
     block.raw(
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 16px;">
         <tr><td align="center">
@@ -350,11 +350,11 @@ export type EventoEstadoProps = {
 }
 
 export const eventoAprobado = defineTemplate<EventoEstadoProps>({
-  subject: p => `Evento aprobado: ${p.evento}`,
+  subject: p => `Retiro aprobado: ${p.evento}`,
   tags: () => ({ categoria: 'evento', estado: 'aprobado' }),
   blocks: p => {
     const blocks: EmailBlock[] = [
-      block.heading('El evento fue aprobado'),
+      block.heading('El retiro fue aprobado'),
       block.paragraph(`${p.evento} ya está aprobado y puede avanzar a publicación.`),
       block.facts([
         ...(p.organizacion ? [{ label: 'Organización', value: p.organizacion }] : []),
@@ -363,17 +363,17 @@ export const eventoAprobado = defineTemplate<EventoEstadoProps>({
       ]),
     ]
     if (p.comentario) blocks.push(block.note(p.comentario))
-    if (p.detalleUrl) blocks.push(block.button('Ver evento', p.detalleUrl))
+    if (p.detalleUrl) blocks.push(block.button('Ver retiro', p.detalleUrl))
     return blocks
   },
 })
 
 export const eventoSuspendido = defineTemplate<EventoEstadoProps>({
-  subject: p => `Evento suspendido: ${p.evento}`,
+  subject: p => `Retiro suspendido: ${p.evento}`,
   tags: () => ({ categoria: 'evento', estado: 'suspendido' }),
   blocks: p => {
     const blocks: EmailBlock[] = [
-      block.heading('El evento fue suspendido'),
+      block.heading('El retiro fue suspendido'),
       block.paragraph(`Te informamos que ${p.evento} quedó suspendido.`),
       block.facts([
         ...(p.organizacion ? [{ label: 'Organización', value: p.organizacion }] : []),
@@ -381,7 +381,7 @@ export const eventoSuspendido = defineTemplate<EventoEstadoProps>({
       ]),
     ]
     if (p.comentario) blocks.push(block.note(`Motivo: ${p.comentario}`))
-    if (p.detalleUrl) blocks.push(block.button('Ver evento', p.detalleUrl))
+    if (p.detalleUrl) blocks.push(block.button('Ver retiro', p.detalleUrl))
     return blocks
   },
 })

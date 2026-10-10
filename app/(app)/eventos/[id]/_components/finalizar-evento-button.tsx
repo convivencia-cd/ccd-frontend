@@ -20,7 +20,7 @@ export function FinalizarEventoButton({ eventoId }: { eventoId: string }) {
       const res = await fetch(`/api/eventos/${eventoId}/finalizar`, { method: 'POST' })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? 'Error al finalizar el evento')
+        throw new Error(data.error ?? 'Error al finalizar el retiro')
       }
       router.refresh()
     } catch (err: unknown) {
@@ -40,15 +40,15 @@ export function FinalizarEventoButton({ eventoId }: { eventoId: string }) {
         className="gap-2 bg-transparent"
       >
         <Flag className="h-4 w-4" />
-        {loading ? 'Finalizando...' : 'Finalizar Evento'}
+        {loading ? 'Finalizando...' : 'Finalizar Retiro'}
       </Button>
       {error && <p className="text-xs text-destructive">{error}</p>}
       <ConfirmDialog
         open={confirmando}
         onOpenChange={setConfirmando}
-        titulo="¿Finalizar el evento?"
+        titulo="¿Finalizar el retiro?"
         descripcion='Pasará a estado "Finalizado".'
-        confirmar="Finalizar evento"
+        confirmar="Finalizar retiro"
         onConfirm={handleFinalizar}
       />
     </div>

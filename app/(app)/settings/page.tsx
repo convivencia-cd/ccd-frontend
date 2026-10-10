@@ -1638,7 +1638,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground">Marcá los que hayas hecho e indicá el año (opcional).</p>
                     </div>
                     {tiposEventos.length === 0 && (
-                      <p className="text-xs text-muted-foreground">No hay tipos de evento cargados todavía.</p>
+                      <p className="text-xs text-muted-foreground">No hay tipos de retiro cargados todavía.</p>
                     )}
                     {tiposEventos.map(t => {
                       const ev = eventosRealizados[t.id] ?? { checked: false, anio: '' }

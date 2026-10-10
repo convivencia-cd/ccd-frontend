@@ -155,13 +155,13 @@ export function AsistenciaCheckin({
       const res = await fetch(`/api/eventos/${eventoId}/iniciar`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error ?? 'Error al iniciar el evento')
+        toast.error(data.error ?? 'Error al iniciar el retiro')
         return
       }
-      toast.success('Evento iniciado (En Curso)')
+      toast.success('Retiro iniciado (En Curso)')
       router.refresh()
     } catch {
-      toast.error('Error de red al iniciar el evento')
+      toast.error('Error de red al iniciar el retiro')
     } finally {
       setIniciando(false)
     }
@@ -182,9 +182,9 @@ export function AsistenciaCheckin({
         <Card className="border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-950/30">
           <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold text-foreground">El evento aún no fue iniciado</p>
+              <p className="font-semibold text-foreground">El retiro aún no fue iniciado</p>
               <p className="text-sm text-muted-foreground">
-                Iniciá el evento para marcarlo "En Curso". Podés registrar asistencia antes o después.
+                Iniciá el retiro para marcarlo "En Curso". Podés registrar asistencia antes o después.
               </p>
             </div>
             <Button
@@ -193,7 +193,7 @@ export function AsistenciaCheckin({
               className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
             >
               {iniciando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              Iniciar Evento
+              Iniciar Retiro
             </Button>
           </CardContent>
         </Card>
@@ -282,7 +282,7 @@ export function AsistenciaCheckin({
       ) : (
         <div className="rounded-lg border border-border bg-muted p-6 text-center text-sm text-muted-foreground">
           {total === 0
-            ? 'No hay inscriptos para este evento.'
+            ? 'No hay inscriptos para este retiro.'
             : 'Ningún inscripto coincide con la búsqueda.'}
         </div>
       )}
@@ -290,9 +290,9 @@ export function AsistenciaCheckin({
       <ConfirmDialog
         open={confirmandoIniciar}
         onOpenChange={setConfirmandoIniciar}
-        titulo="¿Iniciar el evento?"
+        titulo="¿Iniciar el retiro?"
         descripcion='Pasará a estado "En Curso" y dejará de mostrarse en la home pública.'
-        confirmar="Iniciar evento"
+        confirmar="Iniciar retiro"
         onConfirm={handleIniciar}
       />
     </div>

@@ -14,7 +14,7 @@ export async function POST(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   if (!canPerform(ctx, 'event.suspend')) {
-    return NextResponse.json({ error: 'Solo el Equipo Timón puede suspender eventos' }, { status: 403 })
+    return NextResponse.json({ error: 'Solo el Equipo Timón puede suspender retiros' }, { status: 403 })
   }
 
   const { data: evento, error: fetchError } = await supabase
@@ -24,12 +24,12 @@ export async function POST(
     .single()
 
   if (fetchError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (ESTADOS_TERMINALES.includes(evento.estado)) {
     return NextResponse.json(
-      { error: `El evento ya está en estado "${evento.estado}" y no puede suspenderse` },
+      { error: `El retiro ya está en estado "${evento.estado}" y no puede suspenderse` },
       { status: 422 }
     )
   }

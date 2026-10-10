@@ -46,7 +46,7 @@ export function AsignacionesDelRol({ asignaciones, ministerioId }: Props) {
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Persona</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Organización</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Evento</th>
+                  <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Retiro</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Estado</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Inicio</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground text-sm">Fin</th>

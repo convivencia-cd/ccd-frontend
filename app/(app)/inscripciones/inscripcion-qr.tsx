@@ -47,7 +47,7 @@ export function InscripcionQr({
     const size = 120
     pdf.addImage(dataUrl, 'PNG', (pageWidth - size) / 2, 50, size, size)
     pdf.setFontSize(9)
-    pdf.text('Presentá este código al ingresar al evento.', pageWidth / 2, 185, { align: 'center' })
+    pdf.text('Presentá este código al ingresar al retiro.', pageWidth / 2, 185, { align: 'center' })
     pdf.save(`qr-inscripcion-${eventoNombre.replace(/[^\w]+/g, '-').toLowerCase()}.pdf`)
   }
 

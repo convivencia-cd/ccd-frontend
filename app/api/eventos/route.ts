@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const scopeId = fraternidad_id ?? organizacion_id ?? null
   if (!canPerform(ctx, 'event.create', scopeId)) {
     return NextResponse.json(
-      { error: 'No tenés permiso para crear eventos en esta organización' },
+      { error: 'No tenés permiso para crear retiros en esta organización' },
       { status: 403 }
     )
   }
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   if (body.tipo_evento_id && !(await puedeSolicitarTipoEvento(supabase, ctx, body.tipo_evento_id))) {
     return NextResponse.json(
-      { error: 'Tu ministerio no está habilitado para solicitar este tipo de evento' },
+      { error: 'Tu ministerio no está habilitado para solicitar este tipo de retiro' },
       { status: 403 }
     )
   }

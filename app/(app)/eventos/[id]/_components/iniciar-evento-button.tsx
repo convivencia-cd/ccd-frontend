@@ -20,7 +20,7 @@ export function IniciarEventoButton({ eventoId }: { eventoId: string }) {
       const res = await fetch(`/api/eventos/${eventoId}/iniciar`, { method: 'POST' })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? 'Error al iniciar el evento')
+        throw new Error(data.error ?? 'Error al iniciar el retiro')
       }
       router.refresh()
     } catch (err: unknown) {
@@ -39,15 +39,15 @@ export function IniciarEventoButton({ eventoId }: { eventoId: string }) {
         className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
       >
         <Play className="h-4 w-4" />
-        {loading ? 'Iniciando...' : 'Iniciar Evento'}
+        {loading ? 'Iniciando...' : 'Iniciar Retiro'}
       </Button>
       {error && <p className="text-xs text-destructive">{error}</p>}
       <ConfirmDialog
         open={confirmando}
         onOpenChange={setConfirmando}
-        titulo="¿Iniciar el evento?"
+        titulo="¿Iniciar el retiro?"
         descripcion='Pasará a estado "En Curso" y dejará de mostrarse en la home pública.'
-        confirmar="Iniciar evento"
+        confirmar="Iniciar retiro"
         onConfirm={handleIniciar}
       />
     </div>

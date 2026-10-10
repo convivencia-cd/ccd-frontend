@@ -56,22 +56,22 @@ export default async function SuspenderEventosPage() {
         className="inline-flex items-center gap-2 text-primary hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
-        Volver a Eventos
+        Volver a Retiros
       </Link>
 
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
           <OctagonX className="h-6 w-6 text-orange-600" />
-          Suspender Evento
+          Suspender Retiro
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Suspendé un evento indicando el motivo. La suspensión es definitiva y no puede revertirse.
+          Suspendé un retiro indicando el motivo. La suspensión es definitiva y no puede revertirse.
         </p>
       </div>
 
       {eventos.length === 0 ? (
         <p className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">
-          No hay eventos disponibles para suspender.
+          No hay retiros disponibles para suspender.
         </p>
       ) : (
         <div className="space-y-4">

@@ -99,7 +99,7 @@ export async function POST(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   const estadoActual = evento.estado
@@ -122,7 +122,7 @@ export async function POST(
       nivel = 'eqt'
     } else {
       return NextResponse.json(
-        { error: 'Este evento no requiere discernimiento' },
+        { error: 'Este retiro no requiere discernimiento' },
         { status: 422 }
       )
     }
@@ -134,7 +134,7 @@ export async function POST(
     nivel = 'eqt'
   } else {
     return NextResponse.json(
-      { error: `El evento en estado "${estadoActual}" no permite discernimiento` },
+      { error: `El retiro en estado "${estadoActual}" no permite discernimiento` },
       { status: 422 }
     )
   }

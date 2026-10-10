@@ -34,7 +34,7 @@ export async function PATCH(
   }
 
   if (!canPerform(ctx, 'tipos_eventos.update')) {
-    return NextResponse.json({ error: 'Sin permiso para editar tipos de eventos' }, { status: 403 })
+    return NextResponse.json({ error: 'Sin permiso para editar tipos de retiros' }, { status: 403 })
   }
 
   const { id } = await params

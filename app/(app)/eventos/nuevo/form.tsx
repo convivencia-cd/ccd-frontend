@@ -227,7 +227,7 @@ export default function NuevoEventoForm({
         className="inline-flex items-center gap-2 text-primary hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
-        Volver a Eventos
+        Volver a Retiros
       </Link>
 
       <Card className="border-border bg-card">
@@ -296,7 +296,7 @@ export default function NuevoEventoForm({
             {/* 3. Tipo de evento (categoría) */}
             <div className="space-y-1">
               <Label htmlFor="categoria">
-                Categoría de evento a solicitar *
+                Categoría de retiro a solicitar *
               </Label>
               <select
                 id="categoria"
@@ -318,10 +318,10 @@ export default function NuevoEventoForm({
             {categoria && (
               <div className="space-y-2">
                 <div className="space-y-1">
-                  <Label>Tipo de evento *</Label>
+                  <Label>Tipo de retiro *</Label>
                   {tiposFiltrados.length === 0 ? (
                     <div className={readonlyClass}>
-                      No hay tipos de evento configurados para esta categoría
+                      No hay tipos de retiro configurados para esta categoría
                     </div>
                   ) : (
                     <Combobox
@@ -331,9 +331,9 @@ export default function NuevoEventoForm({
                         label: t.nombre,
                         value: t.id,
                       }))}
-                      placeholder="Seleccionar tipo de evento..."
+                      placeholder="Seleccionar tipo de retiro..."
                       searchPlaceholder="Buscar..."
-                      emptyText="No se encontraron eventos."
+                      emptyText="No se encontraron retiros."
                     />
                   )}
                 </div>
@@ -352,13 +352,13 @@ export default function NuevoEventoForm({
 
             {/* Nombre del evento (calculado automáticamente) */}
             <div className="space-y-1">
-              <Label>Nombre del evento</Label>
+              <Label>Nombre del retiro</Label>
               <div className={readonlyClass}>
                 {nombreEvento || "—"}
               </div>
               {!nombreEvento && (
                 <p className="text-xs text-muted-foreground">
-                  Se genera al seleccionar la confraternidad, el tipo de evento y la fecha de inicio.
+                  Se genera al seleccionar la confraternidad, el tipo de retiro y la fecha de inicio.
                 </p>
               )}
             </div>

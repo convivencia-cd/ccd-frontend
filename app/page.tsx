@@ -226,10 +226,10 @@ export default async function LandingPage({
       <section id="panel-eventos" className="scroll-mt-20 bg-background px-4 pb-16 pt-12">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-2 text-2xl font-bold text-foreground text-center">
-            Panel de eventos
+            Panel de retiros
           </h2>
           <p className="mb-8 text-center text-muted-foreground">
-            Buscá y filtrá los eventos publicados y suspendidos de CcD
+            Buscá y filtrá los retiros publicados y suspendidos de CcD
           </p>
           <PanelPublicacionEventos
             eventos={panelEventos}
@@ -247,12 +247,12 @@ export default async function LandingPage({
       <section className="flex-1 bg-white px-4 pb-20 pt-10">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-8 text-2xl font-bold text-foreground text-center">
-            Próximos eventos
+            Próximos retiros
           </h2>
 
           {!eventos || eventos.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border px-8 py-16 text-center text-muted-foreground">
-              No hay eventos publicados próximamente.
+              No hay retiros publicados próximamente.
             </div>
           ) : (
             <EventosPublicosGrid eventos={eventos} />
@@ -265,7 +265,7 @@ export default async function LandingPage({
         <section className="bg-white px-4 pb-20 pt-10">
           <div className="mx-auto max-w-6xl">
             <h2 className="mb-8 text-2xl font-bold text-foreground text-center">
-              Eventos anteriores
+              Retiros anteriores
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {eventosAnteriores.map((evento) => {

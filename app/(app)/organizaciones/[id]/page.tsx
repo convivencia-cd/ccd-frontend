@@ -364,7 +364,7 @@ export default async function OrganizacionDetailPage({
                   {canVerRolesDetalle && (
                     <>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                        Evento
+                        Retiro
                       </th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">
                         Estado

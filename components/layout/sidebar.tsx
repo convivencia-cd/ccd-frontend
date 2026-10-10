@@ -64,7 +64,7 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
       ? [
           {
             icon: <Globe className="h-5 w-5" />,
-            label: "Eventos Publicados",
+            label: "Retiros Publicados",
             href: "/eventos/publicados",
           },
         ]
@@ -188,17 +188,17 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
       ? [
           {
             icon: <Tag className="h-5 w-5" />,
-            label: "Tipos de Eventos",
+            label: "Tipos de Retiros",
             href: "/tipos-eventos",
             children: [
               {
                 icon: <List className="h-4 w-4" />,
-                label: "Lista de tipos de eventos",
+                label: "Lista de tipos de retiros",
                 href: "/tipos-eventos",
               },
               {
                 icon: <PlusCircle className="h-4 w-4" />,
-                label: "Nuevo tipo de evento",
+                label: "Nuevo tipo de retiro",
                 href: "/tipos-eventos/nuevo",
               },
             ],
@@ -207,12 +207,12 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
       : []),
     {
       icon: <Calendar className="h-5 w-5" />,
-      label: "Eventos",
+      label: "Retiros",
       href: "/eventos",
       children: [
         {
           icon: <List className="h-4 w-4" />,
-          label: "Lista de eventos",
+          label: "Lista de retiros",
           href: "/eventos",
         },
         ...(p.canViewInteresados
@@ -228,7 +228,7 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
           ? [
               {
                 icon: <PlusCircle className="h-4 w-4" />,
-                label: "Solicitar Evento",
+                label: "Solicitar Retiro",
                 href: "/eventos/nuevo",
               },
             ]
@@ -237,7 +237,7 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
           ? [
               {
                 icon: <Globe className="h-4 w-4" />,
-                label: "Eventos Publicados",
+                label: "Retiros Publicados",
                 href: "/eventos/publicados",
               },
             ]
@@ -246,7 +246,7 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
           ? [
               {
                 icon: <OctagonX className="h-4 w-4" />,
-                label: "Suspender Evento",
+                label: "Suspender Retiro",
                 href: "/eventos/suspender",
               },
             ]

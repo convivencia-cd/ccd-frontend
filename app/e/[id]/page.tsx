@@ -34,19 +34,19 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const ESTADO_CERRADO_INFO: Record<string, { titulo: string; mensaje: string }> = {
   en_curso: {
     titulo: 'Convivencia en curso',
-    mensaje: 'Este evento ya comenzó y las inscripciones están cerradas.',
+    mensaje: 'Este retiro ya comenzó y las inscripciones están cerradas.',
   },
   finalizado: {
     titulo: 'Convivencia finalizada',
-    mensaje: 'Este evento ya finalizó. ¡Gracias a quienes participaron!',
+    mensaje: 'Este retiro ya finalizó. ¡Gracias a quienes participaron!',
   },
   cerrado: {
     titulo: 'Convivencia finalizada',
-    mensaje: 'Este evento ya finalizó. ¡Gracias a quienes participaron!',
+    mensaje: 'Este retiro ya finalizó. ¡Gracias a quienes participaron!',
   },
   suspendido: {
-    titulo: 'Evento suspendido',
-    mensaje: 'Este evento fue suspendido. Consultá con la organización para más información.',
+    titulo: 'Retiro suspendido',
+    mensaje: 'Este retiro fue suspendido. Consultá con la organización para más información.',
   },
 }
 
@@ -207,7 +207,7 @@ export default async function PublicEventDetailPage({
         <main className="flex-1 flex items-center justify-center bg-background px-4 py-12 relative">
           <Link
             href={`/e/${id}`}
-            aria-label="Cerrar y ver el evento"
+            aria-label="Cerrar y ver el retiro"
             className="absolute top-4 left-4 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
@@ -321,7 +321,7 @@ export default async function PublicEventDetailPage({
           <div className="mb-6">
             <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
-              Volver a eventos
+              Volver a retiros
             </Link>
           </div>
 
@@ -527,7 +527,7 @@ export default async function PublicEventDetailPage({
                   {ESTADO_CERRADO_INFO[evento.estado]?.titulo ?? 'Inscripciones cerradas'}
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                  {ESTADO_CERRADO_INFO[evento.estado]?.mensaje ?? 'Las inscripciones para este evento no están disponibles.'}
+                  {ESTADO_CERRADO_INFO[evento.estado]?.mensaje ?? 'Las inscripciones para este retiro no están disponibles.'}
                 </p>
               </div>
             )}

@@ -29,8 +29,8 @@ interface Permiso {
 const categoriaLabel: Record<string, string> = {
   personas: "Personas",
   organizaciones: "Organizaciones",
-  eventos: "Eventos",
-  tipos_eventos: "Tipos de Eventos",
+  eventos: "Retiros",
+  tipos_eventos: "Tipos de Retiros",
   roles: "Roles",
   sistema: "Sistema",
 }
@@ -275,7 +275,7 @@ export default function NuevoMinisterioPage() {
                   <option value="comunidad">Comunidad</option>
                   <option value="confraternidad">Confraternidad</option>
                   <option value="fraternidad">Fraternidad</option>
-                  <option value="evento">Evento</option>
+                  <option value="evento">Retiro</option>
                 </select>
               </div>
 

@@ -74,7 +74,7 @@ export default function NewInscripcionPage() {
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string }
       if (e.code === '23505') {
-        setError('Esta persona ya está inscripta en ese evento.')
+        setError('Esta persona ya está inscripta en ese retiro.')
       } else {
         setError(e.message ?? 'Error al crear la inscripción')
       }
@@ -98,7 +98,7 @@ export default function NewInscripcionPage() {
       <Card className="border-border bg-card max-w-2xl">
         <CardHeader>
           <CardTitle className="text-foreground">Crear Nueva Inscripción</CardTitle>
-          <CardDescription>Registra una nueva inscripción a un evento</CardDescription>
+          <CardDescription>Registra una nueva inscripción a un retiro</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -121,22 +121,22 @@ export default function NewInscripcionPage() {
 
             {/* Evento */}
             <div className="space-y-2">
-              <Label htmlFor="evento_id">Evento *</Label>
+              <Label htmlFor="evento_id">Retiro *</Label>
               <Combobox
                 id="evento_id"
                 value={formData.evento_id}
                 onSelect={val => setFormData(prev => ({ ...prev, evento_id: val }))}
                 options={eventos.map(ev => ({ label: `${ev.nombre} (${ev.fecha_inicio})`, value: ev.id }))}
-                placeholder="Seleccionar evento..."
-                searchPlaceholder="Buscar evento..."
-                emptyText="No se encontraron eventos."
+                placeholder="Seleccionar retiro..."
+                searchPlaceholder="Buscar retiro..."
+                emptyText="No se encontraron retiros."
               />
             </div>
 
             {/* Rol y Estado */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="rol_en_evento">Rol en el Evento</Label>
+                <Label htmlFor="rol_en_evento">Rol en el Retiro</Label>
                 <select
                   id="rol_en_evento"
                   name="rol_en_evento"

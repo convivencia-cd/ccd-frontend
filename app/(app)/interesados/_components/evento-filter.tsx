@@ -22,9 +22,9 @@ export function EventoFilter({ eventos, defaultValue }: Props) {
         value={value}
         onSelect={setValue}
         options={options}
-        placeholder="Todos los eventos"
-        searchPlaceholder="Buscar evento..."
-        emptyText="No se encontraron eventos."
+        placeholder="Todos los retiros"
+        searchPlaceholder="Buscar retiro..."
+        emptyText="No se encontraron retiros."
         className="h-9 text-sm"
       />
     </>

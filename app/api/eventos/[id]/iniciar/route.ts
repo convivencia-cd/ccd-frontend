@@ -23,12 +23,12 @@ export async function POST(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   if (evento.estado !== 'publicado') {
     return NextResponse.json(
-      { error: `Solo se pueden iniciar eventos en estado "publicado". Estado actual: "${evento.estado}".` },
+      { error: `Solo se pueden iniciar retiros en estado "publicado". Estado actual: "${evento.estado}".` },
       { status: 422 }
     )
   }
@@ -40,7 +40,7 @@ export async function POST(
     !esCentralizadorDeEvento(ctx, evento)
   ) {
     return NextResponse.json(
-      { error: 'No tenés permiso para iniciar este evento' },
+      { error: 'No tenés permiso para iniciar este retiro' },
       { status: 403 }
     )
   }

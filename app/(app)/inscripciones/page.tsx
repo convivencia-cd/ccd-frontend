@@ -76,7 +76,7 @@ export default async function InscripcionesPage() {
           Mis Inscripciones
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Tus inscripciones a eventos. Mostrá el QR al ingresar.
+          Tus inscripciones a retiros. Mostrá el QR al ingresar.
         </p>
       </div>
 
@@ -88,7 +88,7 @@ export default async function InscripcionesPage() {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-foreground">
-                      {it.evento?.nombre ?? 'Evento'}
+                      {it.evento?.nombre ?? 'Retiro'}
                     </h3>
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${estadoClases[it.estado_participacion] ?? ''}`}
@@ -115,7 +115,7 @@ export default async function InscripcionesPage() {
                   {it.estado_participacion === 'inscripto' && (
                     <InscripcionQr
                       participanteId={it.id}
-                      eventoNombre={it.evento?.nombre ?? 'Evento'}
+                      eventoNombre={it.evento?.nombre ?? 'Retiro'}
                     />
                   )}
                   {it.evento?.id && (
@@ -123,7 +123,7 @@ export default async function InscripcionesPage() {
                       href={`/eventos/${it.evento.id}`}
                       className="text-sm text-primary hover:underline"
                     >
-                      Ver evento
+                      Ver retiro
                     </Link>
                   )}
                 </div>
@@ -138,7 +138,7 @@ export default async function InscripcionesPage() {
               <EmptyHeader>
                 <EmptyTitle>Sin inscripciones</EmptyTitle>
                 <EmptyDescription>
-                  Todavía no tenés inscripciones a eventos.
+                  Todavía no tenés inscripciones a retiros.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

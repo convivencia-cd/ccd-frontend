@@ -21,7 +21,7 @@ export async function exportInformeEconomicoXLSX({ info, movimientos, saldosInic
 
   // ── Datos ──
   const datos: Celda[][] = [
-    ['Evento', info.nombre],
+    ['Retiro', info.nombre],
     ['Fecha de Inicio', fechaAR(info.fecha_inicio)],
     ['Fecha de Finalización', fechaAR(info.fecha_fin)],
     ['Año', info.fecha_inicio ? Number(info.fecha_inicio.slice(0, 4)) : null],

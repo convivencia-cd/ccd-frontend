@@ -62,7 +62,7 @@ export default function EditarTipoEventoForm() {
         setLoadingData(false)
       })
       .catch(() => {
-        setError('No se pudo cargar el tipo de evento')
+        setError('No se pudo cargar el tipo de retiro')
         setLoadingData(false)
       })
 
@@ -162,7 +162,7 @@ export default function EditarTipoEventoForm() {
           </Link>
         </Button>
         <Tag className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-bold">Editar Tipo de Evento</h1>
+        <h1 className="text-2xl font-bold">Editar Tipo de Retiro</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -242,7 +242,7 @@ export default function EditarTipoEventoForm() {
                     onChange={handleChange}
                     className="h-4 w-4 rounded border-input"
                   />
-                  <span className="text-sm">Activo (disponible para elegir al crear eventos)</span>
+                  <span className="text-sm">Activo (disponible para elegir al crear retiros)</span>
                 </label>
               </div>
 
@@ -295,7 +295,7 @@ export default function EditarTipoEventoForm() {
               <CardTitle className="text-base font-semibold">Roles que pueden solicitar este tipo</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Solo los roles con el permiso "Solicitar eventos" están disponibles aquí.
+              Solo los roles con el permiso "Solicitar retiros" están disponibles aquí.
             </p>
           </CardHeader>
           <CardContent>
@@ -303,7 +303,7 @@ export default function EditarTipoEventoForm() {
               <p className="text-sm text-muted-foreground py-2">Cargando roles...</p>
             ) : rolesOpciones.length === 0 ? (
               <p className="text-sm text-muted-foreground py-2">
-                No hay roles con el permiso "Solicitar eventos" configurado.
+                No hay roles con el permiso "Solicitar retiros" configurado.
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -333,7 +333,7 @@ export default function EditarTipoEventoForm() {
               <CardTitle className="text-base font-semibold">Preguntas del Informe del Coordinador</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              El coordinador responderá estas preguntas al cerrar cada evento de este tipo.
+              El coordinador responderá estas preguntas al cerrar cada retiro de este tipo.
             </p>
           </CardHeader>
           <CardContent>
@@ -375,8 +375,8 @@ export default function EditarTipoEventoForm() {
               <CardTitle className="text-base font-semibold">Nombres de Grupo</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              De esta lista se eligen los nombres al armar los grupos de cada evento de este tipo (ej.: Jerusalem).
-              Dentro de un mismo evento cada nombre se usa una sola vez.
+              De esta lista se eligen los nombres al armar los grupos de cada retiro de este tipo (ej.: Jerusalem).
+              Dentro de un mismo retiro cada nombre se usa una sola vez.
             </p>
           </CardHeader>
           <CardContent>

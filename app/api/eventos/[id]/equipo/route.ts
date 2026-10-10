@@ -37,10 +37,10 @@ export async function PATCH(
     .eq('id', id)
     .single()
 
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
 
   if (!canGestionarAsignaciones(ctx, evento)) {
-    return NextResponse.json({ error: 'No tenés permiso para cambiar las asignaciones del evento' }, { status: 403 })
+    return NextResponse.json({ error: 'No tenés permiso para cambiar las asignaciones del retiro' }, { status: 403 })
   }
 
   const body = (await request.json()) as Record<string, unknown>

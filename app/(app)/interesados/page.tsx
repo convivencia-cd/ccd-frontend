@@ -84,7 +84,7 @@ export default async function InteresadosPage({
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground md:text-3xl">Interesados</h1>
         <p className="mt-1 text-muted-foreground">
-          Personas que manifestaron interés en un evento. Registrá el seguimiento de contacto.
+          Personas que manifestaron interés en un retiro. Registrá el seguimiento de contacto.
         </p>
       </div>
 

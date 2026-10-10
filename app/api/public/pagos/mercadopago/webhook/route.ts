@@ -39,7 +39,7 @@ async function enviarConfirmacionConQr(
       templates.pagoConfirmado,
       {
         nombre: persona.nombre,
-        evento: evento?.nombre ?? 'tu evento',
+        evento: evento?.nombre ?? 'tu retiro',
         monto: Number(pago.monto ?? 0),
         medioPago: 'Mercado Pago',
         fechaPago: pago.fecha_pago,

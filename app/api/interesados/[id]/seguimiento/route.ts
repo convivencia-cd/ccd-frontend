@@ -117,7 +117,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   let motivo: string | undefined
 
   if (monto <= 0) {
-    motivo = 'el evento no tiene precio de inscripción'
+    motivo = 'el retiro no tiene precio de inscripción'
   } else if (!(await hayCuentaCobroCentral())) {
     motivo = 'falta conectar Mercado Pago en la organización EQT'
   } else {

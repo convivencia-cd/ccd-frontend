@@ -58,7 +58,7 @@ export default function SuspenderEventoButton({ eventoId }: Props) {
         className="gap-2 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30 bg-transparent"
       >
         <OctagonX className="h-4 w-4" />
-        Suspender Evento
+        Suspender Retiro
       </Button>
     )
   }
@@ -67,10 +67,10 @@ export default function SuspenderEventoButton({ eventoId }: Props) {
     <div className="rounded-lg border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/20 p-4 space-y-3 w-full">
       <p className="text-sm font-semibold text-orange-800 dark:text-orange-300 flex items-center gap-2">
         <OctagonX className="h-4 w-4" />
-        Suspender Evento
+        Suspender Retiro
       </p>
       <p className="text-xs text-orange-700 dark:text-orange-400">
-        Esta acción es definitiva. El evento quedará en estado Suspendido y no podrá reactivarse.
+        Esta acción es definitiva. El retiro quedará en estado Suspendido y no podrá reactivarse.
       </p>
       <div>
         <p className="text-xs text-orange-700 dark:text-orange-400 mb-1">Motivo de la suspensión <span className="text-destructive">*</span></p>
@@ -106,9 +106,9 @@ export default function SuspenderEventoButton({ eventoId }: Props) {
       <ConfirmDialog
         open={confirmando}
         onOpenChange={setConfirmando}
-        titulo="¿Suspender este evento?"
-        descripcion="Esta acción es definitiva: el evento queda en estado Suspendido y no puede reactivarse."
-        confirmar="Suspender evento"
+        titulo="¿Suspender este retiro?"
+        descripcion="Esta acción es definitiva: el retiro queda en estado Suspendido y no puede reactivarse."
+        confirmar="Suspender retiro"
         tono="destructivo"
         onConfirm={handleSuspender}
       >

@@ -301,9 +301,9 @@ export default async function EventosPage({
       <div>
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <Calendar className="h-8 w-8 text-primary" />
-          Plataforma de Gestión de Eventos Convivencia con Dios
+          Plataforma de Gestión de Retiros Convivencia con Dios
         </h1>
-        <p className="mt-2 text-muted-foreground">Crea y administra eventos.</p>
+        <p className="mt-2 text-muted-foreground">Crea y administra retiros.</p>
       </div>
 
       {/* Pendientes de aprobación */}
@@ -315,7 +315,7 @@ export default async function EventosPage({
               Pendientes de tu aprobación
             </CardTitle>
             <CardDescription>
-              Estos eventos están esperando tu discernimiento
+              Estos retiros están esperando tu discernimiento
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -335,7 +335,7 @@ export default async function EventosPage({
               Solicitudes de Suspensión
             </CardTitle>
             <CardDescription>
-              Eventos con solicitud de suspensión pendiente de revisión
+              Retiros con solicitud de suspensión pendiente de revisión
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -385,17 +385,17 @@ export default async function EventosPage({
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-foreground">
-              Eventos Registrados
+              Retiros Registrados
             </CardTitle>
             <CardDescription>
-              Lista completa de eventos en el sistema
+              Lista completa de retiros en el sistema
             </CardDescription>
           </div>
           {canCreate && (
             <Link href="/eventos/nuevo">
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                Nuevo Evento
+                Nuevo Retiro
               </Button>
             </Link>
           )}
@@ -505,13 +505,13 @@ export default async function EventosPage({
               <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold text-foreground">
                 {q || estadoFiltro || tipoFiltro || fechaDesde || fechaHasta
-                  ? "No se encontraron eventos"
-                  : "No hay eventos registrados"}
+                  ? "No se encontraron retiros"
+                  : "No hay retiros registrados"}
               </h3>
               <p className="mt-2 text-muted-foreground">
                 {q || estadoFiltro || tipoFiltro || fechaDesde || fechaHasta
                   ? "Probá con otros filtros"
-                  : "Comienza agregando el primer evento al sistema"}
+                  : "Comienza agregando el primer retiro al sistema"}
               </p>
               {!q &&
                 !estadoFiltro &&
@@ -522,7 +522,7 @@ export default async function EventosPage({
                   <Link href="/eventos/nuevo" className="mt-4 inline-block">
                     <Button className="gap-2">
                       <Plus className="h-4 w-4" />
-                      Nuevo Evento
+                      Nuevo Retiro
                     </Button>
                   </Link>
                 )}

@@ -141,7 +141,7 @@ export default function NewPagoPage() {
       <Card className="border-border bg-card max-w-2xl">
         <CardHeader>
           <CardTitle className="text-foreground">Registrar Nuevo Pago</CardTitle>
-          <CardDescription>Registra un pago de inscripción o de pensión para un evento</CardDescription>
+          <CardDescription>Registra un pago de inscripción o de pensión para un retiro</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -199,7 +199,7 @@ export default function NewPagoPage() {
                   value: p.id,
                 }))}
                 placeholder="Seleccionar inscripción..."
-                searchPlaceholder="Buscar por persona o evento..."
+                searchPlaceholder="Buscar por persona o retiro..."
                 emptyText="No se encontraron inscripciones."
               />
             </div>

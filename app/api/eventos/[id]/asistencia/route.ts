@@ -41,7 +41,7 @@ export async function POST(
     .single()
 
   if (eventoError || !evento) {
-    return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   }
 
   // Esta ruta solo validaba que hubiera sesión: cualquier usuario logueado
@@ -52,14 +52,14 @@ export async function POST(
     !esCentralizadorDeEvento(ctx, evento)
   ) {
     return NextResponse.json(
-      { error: 'No tenés permiso para tomar asistencia en este evento' },
+      { error: 'No tenés permiso para tomar asistencia en este retiro' },
       { status: 403 }
     )
   }
 
   if (evento.estado !== 'publicado' && evento.estado !== 'en_curso') {
     return NextResponse.json(
-      { error: `Solo se puede tomar asistencia en eventos publicados o en curso. Estado actual: "${evento.estado}".` },
+      { error: `Solo se puede tomar asistencia en retiros publicados o en curso. Estado actual: "${evento.estado}".` },
       { status: 422 }
     )
   }
@@ -74,7 +74,7 @@ export async function POST(
 
   if (partError || !participante) {
     return NextResponse.json(
-      { error: 'El código no corresponde a un inscripto de este evento.' },
+      { error: 'El código no corresponde a un inscripto de este retiro.' },
       { status: 404 }
     )
   }

@@ -225,7 +225,7 @@ export function PanelPublicacionEventos({
             </Link>
           )}
           <span className="ml-auto self-center text-sm text-muted-foreground">
-            {eventos.length} {eventos.length === 1 ? "evento" : "eventos"}
+            {eventos.length} {eventos.length === 1 ? "retiro" : "retiros"}
           </span>
         </div>
       </form>
@@ -233,7 +233,7 @@ export function PanelPublicacionEventos({
       {/* Resultados */}
       {eventos.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border px-8 py-16 text-center text-muted-foreground">
-          No se encontraron eventos con esos filtros.
+          No se encontraron retiros con esos filtros.
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -314,7 +314,7 @@ export function PanelPublicacionEventos({
                     </Button>
                   ) : (
                     <Button size="sm" variant="outline" className="w-full" disabled>
-                      Evento suspendido
+                      Retiro suspendido
                     </Button>
                   )}
                 </CardFooter>

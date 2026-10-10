@@ -196,7 +196,7 @@ export default function FlyerUploadPanel({
       <CardHeader className="pb-4">
         <CardTitle className="text-base flex items-center gap-2">
           <GalleryHorizontal className="h-4 w-4 text-muted-foreground" />
-          Flyers del Evento
+          Flyers del Retiro
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

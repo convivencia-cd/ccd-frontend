@@ -20,11 +20,11 @@ export async function POST(
     .select(EVENTO_CIERRE_SELECT)
     .eq('id', id)
     .single()
-  if (eventoError || !evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (eventoError || !evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
 
   if (!canSubirFotosCierre(ctx, evento)) {
     return NextResponse.json(
-      { error: 'No tenés permiso para adjuntar fotos (o el evento no está finalizado)' },
+      { error: 'No tenés permiso para adjuntar fotos (o el retiro no está finalizado)' },
       { status: 403 }
     )
   }

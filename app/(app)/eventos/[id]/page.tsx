@@ -642,7 +642,7 @@ export default async function EventoDetailPage({
       <div className="flex items-center justify-between">
         <Link href="/eventos" className="inline-flex items-center gap-2 text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" />
-          Volver a Eventos
+          Volver a Retiros
         </Link>
         <div className="flex items-center gap-2 flex-wrap">
           {canPublish && <PublicarButton eventoId={id} />}
@@ -651,7 +651,7 @@ export default async function EventoDetailPage({
             <Link href={`/eventos/${id}/gestion`}>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                 <Settings2 className="h-4 w-4" />
-                Gestionar evento
+                Gestionar retiro
               </Button>
             </Link>
           )}
@@ -706,7 +706,7 @@ export default async function EventoDetailPage({
       {evento.estado === 'suspendido' && (
         <div className="rounded-lg border border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-950/30 p-5 space-y-1">
           <p className="font-semibold text-orange-800 dark:text-orange-300 text-sm uppercase tracking-wide">
-            Evento Suspendido
+            Retiro Suspendido
           </p>
           {(() => {
             const suspendidoPorPersona = (evento as Record<string, unknown>).suspendido_por_persona as { nombre: string; apellido: string } | null

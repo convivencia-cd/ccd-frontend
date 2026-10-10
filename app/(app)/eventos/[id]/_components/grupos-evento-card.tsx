@@ -183,7 +183,7 @@ export default function GruposEventoCard({
         {servidores.length === 0 && (
           <p className="text-xs text-muted-foreground">
             Todavía no hay nadie con rol <strong>Servidor</strong> en el equipo, así que no hay a quién poner a cargo.
-            Sumalos desde &ldquo;Equipo del Evento&rdquo;.
+            Sumalos desde &ldquo;Equipo del Retiro&rdquo;.
           </p>
         )}
 
@@ -191,12 +191,12 @@ export default function GruposEventoCard({
           <p className="text-xs font-medium uppercase tracking-wide text-foreground">Armar un grupo</p>
           {nombresDisponibles.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              El tipo de evento no tiene nombres de grupo cargados. Se definen en{' '}
-              <span className="text-foreground">Tipos de Eventos → editar → Nombres de Grupo</span>.
+              El tipo de retiro no tiene nombres de grupo cargados. Se definen en{' '}
+              <span className="text-foreground">Tipos de Retiros → editar → Nombres de Grupo</span>.
             </p>
           ) : libres.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Ya se usaron todos los nombres disponibles del tipo de evento.
+              Ya se usaron todos los nombres disponibles del tipo de retiro.
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
@@ -225,7 +225,7 @@ export default function GruposEventoCard({
         titulo="Borrar el grupo"
         descripcion={
           aBorrar
-            ? `Se borra el grupo "${aBorrar.nombre}". Sus conviventes quedan sin grupo, no se los da de baja del evento.`
+            ? `Se borra el grupo "${aBorrar.nombre}". Sus conviventes quedan sin grupo, no se los da de baja del retiro.`
             : undefined
         }
         confirmar="Borrar grupo"

@@ -23,7 +23,7 @@ export async function GET(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, evento } = await loadEvento(id)
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canGestionarPension(ctx, evento)) return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
 
   const { data, error } = await supabase
@@ -59,7 +59,7 @@ export async function PATCH(
   if (!ctx) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, evento } = await loadEvento(id)
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canGestionarPension(ctx, evento)) return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
 
   const body = await request.json()
@@ -108,7 +108,7 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  if (!data) return NextResponse.json({ error: 'Participante no encontrado en este evento' }, { status: 404 })
+  if (!data) return NextResponse.json({ error: 'Participante no encontrado en este retiro' }, { status: 404 })
 
   const valorPensionVal = valorPensionEfectivo(data.valor_pension, evento.pension)
   const saldo = calcularSaldoPension(valorPensionVal, Number(data.beca_pension || 0))

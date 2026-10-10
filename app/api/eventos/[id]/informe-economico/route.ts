@@ -24,9 +24,9 @@ export async function PATCH(
     .select('id, estado, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
     .eq('id', id)
     .single()
-  if (!evento) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+  if (!evento) return NextResponse.json({ error: 'Retiro no encontrado' }, { status: 404 })
   if (!canEditarInformeEconomico(ctx, evento)) {
-    return NextResponse.json({ error: 'No tenés permiso para cargar el informe económico (o el evento ya está cerrado)' }, { status: 403 })
+    return NextResponse.json({ error: 'No tenés permiso para cargar el informe económico (o el retiro ya está cerrado)' }, { status: 403 })
   }
 
   const body = await request.json()
