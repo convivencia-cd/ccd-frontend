@@ -1,6 +1,7 @@
 // Campos obligatorios de la Solicitud del evento (card #35).
 // Sin ellos el evento no puede crearse como solicitud ni pasar al siguiente estado.
-// La única excepción es el check "Es De Aporte Voluntario" (es_apv), que es opcional.
+// Las excepciones son el check "Es De Aporte Voluntario" (es_apv) y las
+// "Notas aclaratorias y observaciones" (notas), que son opcionales.
 
 export const CAMPOS_REQUERIDOS_SOLICITUD = {
   organizacion_id: 'Confraternidad',
@@ -15,7 +16,6 @@ export const CAMPOS_REQUERIDOS_SOLICITUD = {
   fecha_inicio: 'Fecha de inicio',
   fecha_fin: 'Fecha de fin',
   modalidad: 'Modalidad',
-  notas: 'Notas aclaratorias y observaciones',
 } as const
 
 export type CampoRequeridoSolicitud = keyof typeof CAMPOS_REQUERIDOS_SOLICITUD

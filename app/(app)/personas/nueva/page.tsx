@@ -151,8 +151,6 @@ export default function NewPersonaPage() {
     setError("")
 
     try {
-      if (!formData.documento)
-        throw new Error("El número de documento es requerido")
       if (crearAcceso && !formData.nombre_usuario)
         throw new Error(
           "El nombre de usuario es requerido para crear el acceso al sistema",
@@ -431,14 +429,13 @@ export default function NewPersonaPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="documento">Nro Documento *</Label>
+                <Label htmlFor="documento">Nro Documento</Label>
                 <Input
                   id="documento"
                   name="documento"
                   placeholder="12345678"
                   value={formData.documento}
                   onChange={handleChange}
-                  required
                 />
               </div>
             </div>

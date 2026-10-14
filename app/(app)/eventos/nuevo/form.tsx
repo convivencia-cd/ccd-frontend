@@ -632,7 +632,7 @@ export default function NuevoEventoForm({
 
             {/* Notas */}
             <div className="space-y-1">
-              <Label htmlFor="notas">Notas aclaratorias y observaciones *</Label>
+              <Label htmlFor="notas">Notas aclaratorias y observaciones</Label>
               <textarea
                 id="notas"
                 name="notas"
