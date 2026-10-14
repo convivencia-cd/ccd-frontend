@@ -117,7 +117,6 @@ export default async function EventoDetailPage({
       fecha_cierre, cerrado_por,
       cierre_bolso_manuales_completo, cierre_manuales_saldo_final,
       cierre_manuales_recibidos_de, cierre_manuales_entrego_a, cierre_manuales_notas,
-      tipo_evento:tipos_eventos!tipo_evento_id(preguntas_informe),
       flyer_horizontal_url, flyer_cuadrado_url,
       notas_noticias, notas_aprobacion_final,
       solicitud_suspension_notas, solicitud_suspension_fecha,
@@ -337,8 +336,24 @@ export default async function EventoDetailPage({
       (ROLES_CARISMAS as readonly string[]).indexOf(a.rol) - (ROLES_CARISMAS as readonly string[]).indexOf(b.rol) ||
       a.apellido.localeCompare(b.apellido) || a.nombre.localeCompare(b.nombre))
 
-  const tipoEvento = (evento as Record<string, unknown>).tipo_evento as { preguntas_informe: PreguntaInforme[] } | null
-  const preguntasInforme: PreguntaInforme[] = Array.isArray(tipoEvento?.preguntas_informe) ? tipoEvento!.preguntas_informe : []
+  // Preguntas de los informes del cierre: una lista por informe (migración 092).
+  // select('*') y no las columnas por nombre: si 092 todavía no se corrió, la
+  // consulta no falla y el Informe para Responsables cae a las de Equipo Timón,
+  // que es lo que mostraba antes.
+  let preguntasEqt: PreguntaInforme[] = []
+  let preguntasResponsables: PreguntaInforme[] = []
+  let preguntasCarismas: PreguntaInforme[] = []
+  if (showCierre && evento.tipo_evento_id) {
+    const { data: tipoEvento } = await supabase
+      .from('tipos_eventos')
+      .select('*')
+      .eq('id', evento.tipo_evento_id)
+      .maybeSingle()
+    const lista = (v: unknown): PreguntaInforme[] | null => (Array.isArray(v) ? (v as PreguntaInforme[]) : null)
+    preguntasEqt = lista(tipoEvento?.preguntas_informe) ?? []
+    preguntasResponsables = lista(tipoEvento?.preguntas_informe_responsables) ?? preguntasEqt
+    preguntasCarismas = lista(tipoEvento?.preguntas_carismas) ?? []
+  }
 
   // Solo Cecistas para el combo de entrega/recepción de manuales (punto 9 del cierre).
   // Consulta separada de `personasCecistas` (que pese al nombre trae TODAS las personas
@@ -1266,7 +1281,9 @@ export default async function EventoDetailPage({
           conviventes={conviventesCierre}
           servidores={servidoresCierre}
           cecistas={cecistasSoloList}
-          preguntas={preguntasInforme}
+          preguntasEqt={preguntasEqt}
+          preguntasResponsables={preguntasResponsables}
+          preguntasCarismas={preguntasCarismas}
           canVerInformeEconomico={showIE}
           inicial={{
             cierre_bolso_manuales_completo: (ev.cierre_bolso_manuales_completo as boolean | null) ?? null,

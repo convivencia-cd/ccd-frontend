@@ -51,8 +51,10 @@ export async function PATCH(
     activo: body.activo ?? true,
   }
 
-  if (Array.isArray(body.preguntas_informe)) {
-    updateData.preguntas_informe = body.preguntas_informe
+  // Preguntas de los informes del cierre, una lista por informe (migración 092):
+  // preguntas_informe = Equipo Timón.
+  for (const campo of ['preguntas_informe', 'preguntas_informe_responsables', 'preguntas_carismas']) {
+    if (Array.isArray(body[campo])) updateData[campo] = body[campo]
   }
 
   // Nombres de grupo de la convivencia (ej. "Jerusalem"): lista de strings sin

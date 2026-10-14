@@ -34,7 +34,11 @@ type Props = {
   conviventes: Convivente[]
   servidores: Servidor[]
   cecistas: Persona[]
-  preguntas: PreguntaInforme[]
+  /** Cada informe tiene sus propias preguntas, configuradas en Tipos de Retiro. */
+  preguntasEqt: PreguntaInforme[]
+  preguntasResponsables: PreguntaInforme[]
+  /** Se responden por cada servidor. Sin preguntas, la planilla es un texto libre por servidor. */
+  preguntasCarismas: PreguntaInforme[]
   /** El Informe Económico vive en su propio panel del detalle; acá solo se linkea si el usuario lo ve. */
   canVerInformeEconomico: boolean
   inicial: {
@@ -45,7 +49,7 @@ type Props = {
     cierre_manuales_notas: string | null
     informe_eqt_respuestas: Record<string, string> | null
     informe_responsables_respuestas: Record<string, string> | null
-    informe_carismas: { persona_id: string; texto: string }[] | null
+    informe_carismas: { persona_id: string; texto: string; respuestas?: Record<string, string> }[] | null
   }
 }
 
@@ -126,7 +130,7 @@ function InformeCcd({ titulo, preguntas, respuestas, onChange, otras, canEditar,
 }
 
 export default function CierrePanel(props: Props) {
-  const { eventoId, estado, eventoInfo, canEditar, canVerCarismas, canVerInformeEqt, canVerInformeResponsables, canEditarConfidencial, canCerrar, canSubirFotos, fotos, conviventes, servidores, cecistas, preguntas, canVerInformeEconomico, inicial } = props
+  const { eventoId, estado, eventoInfo, canEditar, canVerCarismas, canVerInformeEqt, canVerInformeResponsables, canEditarConfidencial, canCerrar, canSubirFotos, fotos, conviventes, servidores, cecistas, preguntasEqt, preguntasResponsables, preguntasCarismas, canVerInformeEconomico, inicial } = props
   const router = useRouter()
 
   const cerrado = estado === 'cerrado'
@@ -149,7 +153,12 @@ export default function CierrePanel(props: Props) {
     for (const c of inicial.informe_carismas ?? []) map[c.persona_id] = c.texto
     return map
   })
-
+  // Respuestas de la planilla por servidor: { [persona_id]: { [pregunta_id]: respuesta } }
+  const [carismasRespuestas, setCarismasRespuestas] = useState<Record<string, Record<string, string>>>(() => {
+    const map: Record<string, Record<string, string>> = {}
+    for (const c of inicial.informe_carismas ?? []) map[c.persona_id] = c.respuestas ?? {}
+    return map
+  })
 
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -189,7 +198,11 @@ export default function CierrePanel(props: Props) {
   }
 
   function guardarCarismas() {
-    const arr = servidores.map(s => ({ persona_id: s.persona_id, texto: carismas[s.persona_id] ?? '' }))
+    const arr = servidores.map(s => ({
+      persona_id: s.persona_id,
+      texto: carismas[s.persona_id] ?? '',
+      respuestas: carismasRespuestas[s.persona_id] ?? {},
+    }))
     patchCierre({ informe_carismas: arr }, 'carismas', 'Informe de carismas guardado.')
   }
 
@@ -249,11 +262,11 @@ export default function CierrePanel(props: Props) {
       </Section>
 
       {/* 6. Informes de la CcD: uno para Responsables y otro para Equipo Timón,
-          mismas preguntas, el coordinador completa los dos (confidenciales) */}
+          cada uno con sus preguntas; el coordinador completa los dos (confidenciales) */}
       {canVerInformeResponsables && (
         <InformeCcd
           titulo="Informe de la CcD (para Responsables)"
-          preguntas={preguntas}
+          preguntas={preguntasResponsables}
           respuestas={respuestasResponsables}
           onChange={setRespuestasResponsables}
           otras={canVerInformeEqt ? { nombre: 'Equipo Timón', respuestas: respuestasEqt } : null}
@@ -261,13 +274,13 @@ export default function CierrePanel(props: Props) {
           guardando={saving === 'responsables'}
           bloqueado={saving !== null}
           onGuardar={() => patchCierre({ informe_responsables_respuestas: respuestasResponsables }, 'responsables', 'Informe para Responsables guardado.')}
-          onExportar={() => exportInformeCcdPDF(eventoInfo, 'responsables', preguntas, respuestasResponsables)}
+          onExportar={() => exportInformeCcdPDF(eventoInfo, 'responsables', preguntasResponsables, respuestasResponsables)}
         />
       )}
       {canVerInformeEqt && (
         <InformeCcd
           titulo="Informe de la CcD (para Equipo Timón)"
-          preguntas={preguntas}
+          preguntas={preguntasEqt}
           respuestas={respuestasEqt}
           onChange={setRespuestasEqt}
           otras={canVerInformeResponsables ? { nombre: 'Responsables', respuestas: respuestasResponsables } : null}
@@ -275,7 +288,7 @@ export default function CierrePanel(props: Props) {
           guardando={saving === 'eqt'}
           bloqueado={saving !== null}
           onGuardar={() => patchCierre({ informe_eqt_respuestas: respuestasEqt }, 'eqt', 'Informe para Equipo Timón guardado.')}
-          onExportar={() => exportInformeCcdPDF(eventoInfo, 'eqt', preguntas, respuestasEqt)}
+          onExportar={() => exportInformeCcdPDF(eventoInfo, 'eqt', preguntasEqt, respuestasEqt)}
         />
       )}
 
@@ -287,6 +300,23 @@ export default function CierrePanel(props: Props) {
           ) : servidores.map(s => (
             <div key={s.persona_id} className="space-y-1">
               <p className="text-sm font-medium text-foreground">{s.apellido}, {s.nombre} <span className="text-xs text-muted-foreground">({s.rol} · {s.fraternidad ?? 'sin fraternidad registrada'})</span></p>
+              {preguntasCarismas.map((q, i) => (
+                <div key={q.id} className="space-y-1 pl-3">
+                  <p className="text-xs text-muted-foreground">{ROMANOS[i] ?? i + 1}) {q.texto}</p>
+                  <textarea
+                    className={`${inputClass} min-h-12`}
+                    value={carismasRespuestas[s.persona_id]?.[q.id] ?? ''}
+                    disabled={!canEditarConfidencial}
+                    onChange={e => setCarismasRespuestas(prev => ({
+                      ...prev,
+                      [s.persona_id]: { ...prev[s.persona_id], [q.id]: e.target.value },
+                    }))}
+                  />
+                </div>
+              ))}
+              {preguntasCarismas.length > 0 && (
+                <p className="pl-3 text-xs text-muted-foreground">Observaciones</p>
+              )}
               <textarea
                 className={`${inputClass} min-h-16`}
                 value={carismas[s.persona_id] ?? ''}
@@ -302,7 +332,7 @@ export default function CierrePanel(props: Props) {
               </Button>
             )}
             <Button size="sm" variant="outline" className="gap-1 bg-transparent"
-              onClick={() => exportInformeCarismasPDF(eventoInfo, servidores.map(s => ({ ...s, texto: carismas[s.persona_id] ?? '' })))}>
+              onClick={() => exportInformeCarismasPDF(eventoInfo, servidores.map(s => ({ ...s, texto: carismas[s.persona_id] ?? '', respuestas: carismasRespuestas[s.persona_id] ?? {} })), preguntasCarismas)}>
               <Download className="h-4 w-4" /> Exportar PDF
             </Button>
           </div>

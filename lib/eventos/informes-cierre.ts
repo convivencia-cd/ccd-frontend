@@ -6,9 +6,23 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 // permisos con canVerCarismas / canVerInformeCcd / canEditarInformesConfidenciales
 // (lib/eventos/cierre.ts). Solo importar desde Server Components o Route Handlers.
 
-export type Carisma = { persona_id: string; texto: string }
+/**
+ * Evaluación de un servidor: `respuestas` por pregunta de la planilla
+ * ({ [pregunta_id]: respuesta }) y `texto` libre.
+ */
+export type Carisma = { persona_id: string; texto: string; respuestas?: Record<string, string> }
 
-/** Destino del "Informe de la CcD": mismas preguntas, el coordinador completa uno para cada uno. */
+function soloTextos(obj: unknown): Record<string, string> {
+  const limpio: Record<string, string> = {}
+  if (obj && typeof obj === 'object') {
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string') limpio[k] = v
+    }
+  }
+  return limpio
+}
+
+/** Destino del "Informe de la CcD": cada uno con sus preguntas, el coordinador completa los dos. */
 export type DestinoInforme = 'responsables' | 'eqt'
 
 function adminClient() {
@@ -41,6 +55,7 @@ export async function cargarCarismas(eventoId: string): Promise<Carisma[]> {
   return (data ?? []).map(r => ({
     persona_id: r.persona_id as string,
     texto: String((r.contenido as { texto?: unknown } | null)?.texto ?? ''),
+    respuestas: soloTextos((r.contenido as { respuestas?: unknown } | null)?.respuestas),
   }))
 }
 
@@ -51,10 +66,7 @@ export async function guardarInformeCcd(
   personaId: string | null,
 ): Promise<void> {
   const supabase = adminClient()
-  const limpio: Record<string, string> = {}
-  for (const [k, v] of Object.entries(respuestas ?? {})) {
-    if (typeof v === 'string') limpio[k] = v
-  }
+  const limpio = soloTextos(respuestas)
 
   const { data: existente, error: selError } = await supabase
     .from('evento_informes_cierre')
@@ -102,7 +114,10 @@ export async function guardarCarismas(
 
   const ahora = new Date().toISOString()
   for (const c of filas) {
-    const contenido = { texto: typeof c.texto === 'string' ? c.texto : '' }
+    const contenido = {
+      texto: typeof c.texto === 'string' ? c.texto : '',
+      respuestas: soloTextos(c.respuestas),
+    }
     const id = idPorPersona.get(c.persona_id)
     const { error } = id
       ? await supabase

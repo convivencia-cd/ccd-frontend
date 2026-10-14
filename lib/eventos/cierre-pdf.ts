@@ -159,7 +159,8 @@ const ETIQUETA_CARISMA: Record<string, string> = { servidor: 'SERVIDOR', asesor:
 
 export async function exportInformeCarismasPDF(
   evento: EventoInfo,
-  carismas: { nombre: string; apellido: string; rol: string; fraternidad: string | null; texto: string }[],
+  carismas: { nombre: string; apellido: string; rol: string; fraternidad: string | null; texto: string; respuestas?: Record<string, string> }[],
+  preguntas: PreguntaInforme[] = [],
 ) {
   const doc = await nuevoDoc()
   const c: Cursor = { doc, y: MARGIN }
@@ -168,7 +169,15 @@ export async function exportInformeCarismasPDF(
     const etiqueta = ETIQUETA_CARISMA[item.rol] ?? item.rol.toUpperCase()
     const quien = `${item.apellido}, ${item.nombre} — Fraternidad: ${item.fraternidad || 'sin fraternidad registrada'}`
     writeWrapped(c, `${etiqueta}: ${quien}`, { size: 11, bold: true })
-    writeWrapped(c, item.texto || '—', { size: 11, gap: 4 })
+    preguntas.forEach((p, i) => {
+      writeWrapped(c, `${ROMANOS[i] ?? i + 1}) ${p.texto}`, { size: 10, bold: true })
+      writeWrapped(c, item.respuestas?.[p.id] || '—', { size: 11, gap: 2 })
+    })
+    // Sin preguntas la planilla es solo el texto libre; con preguntas, el texto
+    // libre se imprime solo si tiene algo.
+    if (preguntas.length === 0 || item.texto) {
+      writeWrapped(c, item.texto || '—', { size: 11, gap: 4 })
+    }
   })
   firma(c, 'Firma del Coordinador')
   doc.save(nombreArchivo(evento, 'planilla-carismas'))

@@ -17,6 +17,27 @@ interface Pregunta {
   texto: string
 }
 
+// Un módulo de preguntas por informe del cierre. `campo` es la columna de tipos_eventos.
+const MODULOS_PREGUNTAS = [
+  {
+    campo: 'preguntas_informe_responsables',
+    titulo: 'Preguntas del Informe para Responsables',
+    ayuda: 'El coordinador las responde al cerrar cada retiro de este tipo. Las ve quien tenga el permiso "Ver Informe de la CcD para Responsables".',
+  },
+  {
+    campo: 'preguntas_informe',
+    titulo: 'Preguntas del Informe para Equipo Timón',
+    ayuda: 'El coordinador las responde al cerrar cada retiro de este tipo. Las ve quien tenga el permiso "Ver Informe de la CcD para Equipo Timón".',
+  },
+  {
+    campo: 'preguntas_carismas',
+    titulo: 'Preguntas de la Planilla de Carismas',
+    ayuda: 'El coordinador las responde por cada servidor del equipo. Si no hay preguntas, la planilla es un texto libre por servidor.',
+  },
+] as const
+
+type CampoPreguntas = (typeof MODULOS_PREGUNTAS)[number]['campo']
+
 export default function EditarTipoEventoForm() {
   const router = useRouter()
   const params = useParams()
@@ -37,7 +58,11 @@ export default function EditarTipoEventoForm() {
   })
   const [rolesOpciones, setRolesOpciones] = useState<Ministerio[]>([])
   const [rolesSeleccionados, setRolesSeleccionados] = useState<Set<string>>(new Set())
-  const [preguntas, setPreguntas] = useState<Pregunta[]>([])
+  const [preguntas, setPreguntas] = useState<Record<CampoPreguntas, Pregunta[]>>({
+    preguntas_informe_responsables: [],
+    preguntas_informe: [],
+    preguntas_carismas: [],
+  })
   const [nombresGrupos, setNombresGrupos] = useState<string[]>([])
 
   useEffect(() => {
@@ -54,7 +79,12 @@ export default function EditarTipoEventoForm() {
             requisitos: data.requisitos ?? '',
             activo: data.activo ?? true,
           })
-          setPreguntas(Array.isArray(data.preguntas_informe) ? data.preguntas_informe : [])
+          const lista = (v: unknown): Pregunta[] => (Array.isArray(v) ? v : [])
+          setPreguntas({
+            preguntas_informe_responsables: lista(data.preguntas_informe_responsables),
+            preguntas_informe: lista(data.preguntas_informe),
+            preguntas_carismas: lista(data.preguntas_carismas),
+          })
           setNombresGrupos(
             Array.isArray(data.nombres_grupos) ? data.nombres_grupos.map((n: unknown) => String(n)) : []
           )
@@ -85,10 +115,12 @@ export default function EditarTipoEventoForm() {
     }))
   }
 
-  const addPregunta = () => setPreguntas(prev => [...prev, { id: crypto.randomUUID(), texto: '' }])
-  const updatePregunta = (pid: string, texto: string) =>
-    setPreguntas(prev => prev.map(p => (p.id === pid ? { ...p, texto } : p)))
-  const removePregunta = (pid: string) => setPreguntas(prev => prev.filter(p => p.id !== pid))
+  const addPregunta = (campo: CampoPreguntas) =>
+    setPreguntas(prev => ({ ...prev, [campo]: [...prev[campo], { id: crypto.randomUUID(), texto: '' }] }))
+  const updatePregunta = (campo: CampoPreguntas, pid: string, texto: string) =>
+    setPreguntas(prev => ({ ...prev, [campo]: prev[campo].map(p => (p.id === pid ? { ...p, texto } : p)) }))
+  const removePregunta = (campo: CampoPreguntas, pid: string) =>
+    setPreguntas(prev => ({ ...prev, [campo]: prev[campo].filter(p => p.id !== pid) }))
 
   const addNombreGrupo = () => setNombresGrupos(prev => [...prev, ''])
   const updateNombreGrupo = (i: number, nombre: string) =>
@@ -116,7 +148,9 @@ export default function EditarTipoEventoForm() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...formData,
-            preguntas_informe: preguntas.filter(p => p.texto.trim()),
+            preguntas_informe_responsables: preguntas.preguntas_informe_responsables.filter(p => p.texto.trim()),
+            preguntas_informe: preguntas.preguntas_informe.filter(p => p.texto.trim()),
+            preguntas_carismas: preguntas.preguntas_carismas.filter(p => p.texto.trim()),
             nombres_grupos: nombresGrupos.map(n => n.trim()).filter(Boolean),
           }),
         }),
@@ -326,47 +360,47 @@ export default function EditarTipoEventoForm() {
           </CardContent>
         </Card>
 
-        <Card className="max-w-2xl">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base font-semibold">Preguntas del Informe del Coordinador</CardTitle>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              El coordinador responderá estas preguntas al cerrar cada retiro de este tipo.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {preguntas.length === 0 && (
-                <p className="text-sm text-muted-foreground">No hay preguntas definidas todavía.</p>
-              )}
-              {preguntas.map((p, i) => (
-                <div key={p.id} className="flex items-start gap-2">
-                  <span className="mt-2 text-xs text-muted-foreground w-5 shrink-0">{i + 1}.</span>
-                  <textarea
-                    rows={2}
-                    value={p.texto}
-                    onChange={e => updatePregunta(p.id, e.target.value)}
-                    placeholder="Escribí la pregunta..."
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePregunta(p.id)}
-                    className="mt-2 text-destructive hover:opacity-70"
-                    title="Eliminar pregunta"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={addPregunta} className="gap-1">
-                <Plus className="h-4 w-4" /> Agregar pregunta
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {MODULOS_PREGUNTAS.map(({ campo, titulo, ayuda }) => (
+          <Card key={campo} className="max-w-2xl">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base font-semibold">{titulo}</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{ayuda}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {preguntas[campo].length === 0 && (
+                  <p className="text-sm text-muted-foreground">No hay preguntas definidas todavía.</p>
+                )}
+                {preguntas[campo].map((p, i) => (
+                  <div key={p.id} className="flex items-start gap-2">
+                    <span className="mt-2 text-xs text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                    <textarea
+                      rows={2}
+                      value={p.texto}
+                      onChange={e => updatePregunta(campo, p.id, e.target.value)}
+                      placeholder="Escribí la pregunta..."
+                      className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePregunta(campo, p.id)}
+                      className="mt-2 text-destructive hover:opacity-70"
+                      title="Eliminar pregunta"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => addPregunta(campo)} className="gap-1">
+                  <Plus className="h-4 w-4" /> Agregar pregunta
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
 
         <Card className="max-w-2xl">
           <CardHeader>
