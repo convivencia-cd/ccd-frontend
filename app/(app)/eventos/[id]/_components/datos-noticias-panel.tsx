@@ -78,6 +78,14 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
   const [error, setError] = useState('')
   const [savedOk, setSavedOk] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
+  // "Datos verificados" de cada centralizador. No se guarda: quien pide la
+  // publicación lo tilda en el momento, y se destilda si cambia la persona,
+  // el email o el celular.
+  const [verificados, setVerificados] = useState([false, false, false])
+
+  function setVerificado(i: number, valor: boolean) {
+    setVerificados(prev => prev.map((v, idx) => (idx === i ? valor : v)))
+  }
 
   const personaOptions = personas.map(p => ({ value: p.id, label: `${p.apellido}, ${p.nombre}` }))
 
@@ -89,6 +97,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
   function selectPersona(i: number, personaId: string) {
     const p = personas.find(x => x.id === personaId)
     setSavedOk(false)
+    setVerificado(i, false)
     if (!p) {
       setCentralizadores(prev => {
         const next = [...prev]
@@ -117,6 +126,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
       return next
     })
     setSavedOk(false)
+    setVerificado(i, false)
   }
 
   function buildPayload() {
@@ -168,6 +178,13 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
   function pedirPublicar() {
     if (!centralizadores[0].nombre.trim()) {
       setError('Seleccioná al menos el Centralizador 1')
+      return
+    }
+    const sinVerificar = centralizadores
+      .map((c, i) => (c.nombre.trim() && !verificados[i] ? i + 1 : null))
+      .filter((n): n is number => n !== null)
+    if (sinVerificar.length > 0) {
+      setError(`Tildá "Datos verificados" en: ${sinVerificar.map(n => `Centralizador ${n}`).join(', ')}`)
       return
     }
     setError('')
@@ -285,6 +302,19 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
                 />
               </div>
             </div>
+            {c.nombre.trim() && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={verificados[i]}
+                  onChange={e => setVerificado(i, e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                />
+                <span className="text-xs text-foreground">
+                  Datos verificados<span className="text-destructive ml-1">*</span>
+                </span>
+              </label>
+            )}
           </div>
         )
       })}

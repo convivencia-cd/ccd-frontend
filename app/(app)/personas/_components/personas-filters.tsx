@@ -18,15 +18,6 @@ const GEOREF_BASE = "https://apis.datos.gob.ar/georef/api"
 /** Tope de opciones renderizadas en el combobox de ciudad (el catálogo argentino son miles). */
 const MAX_LOCALIDADES = 80
 
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return debounced
-}
-
 /** Ordena alfabéticamente pero adelanta lo que empieza con el texto buscado. */
 function ordenarPorRelevancia(valores: string[], query: string): string[] {
   const q = normalizar(query)
@@ -115,7 +106,6 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
 
   // Ciudades: no hay catálogo estático, se consulta Georef igual que en los formularios de carga.
   const [localidadQuery, setLocalidadQuery] = useState("")
-  const debouncedLocalidadQuery = useDebounce(localidadQuery, 300)
   const [georefLocalidades, setGeorefLocalidades] = useState<string[]>([])
   const [localidadesLoading, setLocalidadesLoading] = useState(false)
 
@@ -126,17 +116,21 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
     return (getSubdivisiones("Argentina") ?? []).find((p) => normalizar(p) === key) ?? null
   }, [provincia])
 
+  // Se trae el listado completo (de la provincia, o de todo el país) una sola vez
+  // y el filtrado por texto se hace acá: la búsqueda por nombre de Georef no
+  // devuelve nada con menos de 4 letras. Sin provincia argentina elegida son
+  // ~4000 localidades, así que recién se piden cuando se empieza a escribir.
+  const buscaLocalidad = localidadQuery.trim() !== ""
+  const cargarPais = !provinciaArgentina && buscaLocalidad
+
   useEffect(() => {
-    const q = debouncedLocalidadQuery.trim()
-    // Sin provincia argentina elegida la consulta abarca todo el país: hace falta algo escrito.
-    if (!provinciaArgentina && q.length < 2) {
+    if (!provinciaArgentina && !cargarPais) {
       setGeorefLocalidades([])
       setLocalidadesLoading(false)
       return
     }
-    const params = new URLSearchParams({ max: "50", campos: "id,nombre" })
+    const params = new URLSearchParams({ max: "5000", campos: "id,nombre" })
     if (provinciaArgentina) params.set("provincia", provinciaArgentina)
-    if (q) params.set("nombre", q)
 
     let cancelado = false
     setLocalidadesLoading(true)
@@ -157,7 +151,7 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
     return () => {
       cancelado = true
     }
-  }, [provinciaArgentina, debouncedLocalidadQuery])
+  }, [provinciaArgentina, cargarPais])
 
   const localidadOptions = useMemo<ComboboxOption[]>(() => {
     // El Combobox delega la búsqueda (onSearch), así que el filtrado por texto se hace acá.
@@ -283,8 +277,8 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
             placeholder="Ciudad / Localidad"
             searchPlaceholder="Buscar ciudad..."
             emptyText={
-              !provinciaArgentina && localidadQuery.trim().length < 2
-                ? "Escribí al menos 2 letras para buscar."
+              !provinciaArgentina && !buscaLocalidad
+                ? "Escribí para buscar."
                 : "Sin resultados."
             }
             onSearch={setLocalidadQuery}
