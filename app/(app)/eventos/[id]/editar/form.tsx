@@ -17,16 +17,41 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { LocationFields } from "@/components/location-fields"
 import { Combobox } from "@/components/ui/combobox"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import FlyerUploadPanel from "../_components/flyer-upload-panel"
 import { muestraFlyers } from "@/lib/eventos/flyers"
 
 type OrgOption = { id: string; nombre: string; tipo: string }
 type FechaRow = { id?: string; fecha_inicio: string; fecha_fin: string }
 
+const ESTADOS: { value: string; label: string }[] = [
+  { value: "borrador", label: "Borrador" },
+  { value: "solicitud", label: "Pend. Disc. Confra/Delegado" },
+  { value: "discernimiento_confra", label: "Pend. Disc. Equipo Timón" },
+  { value: "discernimiento_eqt", label: "Disc. Equipo Timón" },
+  { value: "pendiente_datos_noticias", label: "Pendiente Datos Noticias" },
+  { value: "aprobado", label: "Aprobado" },
+  { value: "pendiente_aprobacion_final", label: "Pend. Aprobación Final EqT" },
+  { value: "publicado", label: "Publicado" },
+  { value: "en_curso", label: "En Curso" },
+  { value: "suspendido", label: "Suspendido" },
+  { value: "rechazado", label: "Rechazado" },
+  { value: "finalizado", label: "Finalizado" },
+  { value: "cerrado", label: "Cerrado" },
+  { value: "cancelado", label: "Cancelado" },
+]
+
+const estadoLabel = (estado: string) =>
+  ESTADOS.find((e) => e.value === estado)?.label ?? estado
+
+const ESTADOS_DESTRUCTIVOS = ["suspendido", "rechazado", "cancelado"]
+
 export default function EditarEventoForm({
   isAdmin = false,
+  personaId = null,
 }: {
   isAdmin?: boolean
+  personaId?: string | null
 }) {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -40,6 +65,13 @@ export default function EditarEventoForm({
   const [flyerUrls, setFlyerUrls] = useState<{ horizontal: string | null; cuadrado: string | null }>({ horizontal: null, cuadrado: null })
   // Estado persistido (no el del select), para decidir si se muestran los flyers.
   const [estadoGuardado, setEstadoGuardado] = useState<string | null>(null)
+  const [confirmandoEstado, setConfirmandoEstado] = useState(false)
+  // Sellos que ponen los botones del flujo (Publicar / Iniciar). Si el estado se
+  // cambia a mano desde acá y todavía están vacíos, se completan igual.
+  const [sellos, setSellos] = useState<{ fecha_publicacion: string | null; fecha_inicio_real: string | null }>({
+    fecha_publicacion: null,
+    fecha_inicio_real: null,
+  })
   const [formData, setFormData] = useState({
     nombre: "",
     tipo: "convivencia",
@@ -70,7 +102,7 @@ export default function EditarEventoForm({
       supabase
         .from("eventos")
         .select(
-          "id, nombre, tipo, fecha_solicitud, fecha_inicio, fecha_fin, organizacion_id, casa_retiro_id, cupo_maximo, precio, pension, audiencia, modalidad, estado, descripcion, link_pago_mercadopago, ciudad, codigo_postal, diocesis, provincia_evento, pais_evento, flyer_horizontal_url, flyer_cuadrado_url",
+          "id, nombre, tipo, fecha_solicitud, fecha_inicio, fecha_fin, organizacion_id, casa_retiro_id, cupo_maximo, precio, pension, audiencia, modalidad, estado, descripcion, link_pago_mercadopago, ciudad, codigo_postal, diocesis, provincia_evento, pais_evento, flyer_horizontal_url, flyer_cuadrado_url, fecha_publicacion, fecha_inicio_real",
         )
         .eq("id", id)
         .single(),
@@ -126,6 +158,10 @@ export default function EditarEventoForm({
           pais_evento: evento.pais_evento ?? "Argentina",
         })
         setEstadoGuardado(evento.estado ?? null)
+        setSellos({
+          fecha_publicacion: (evento as Record<string, unknown>).fecha_publicacion as string | null ?? null,
+          fecha_inicio_real: (evento as Record<string, unknown>).fecha_inicio_real as string | null ?? null,
+        })
         setFlyerUrls({
           horizontal: (evento as Record<string, unknown>).flyer_horizontal_url as string | null ?? null,
           cuadrado: (evento as Record<string, unknown>).flyer_cuadrado_url as string | null ?? null,
@@ -150,33 +186,50 @@ export default function EditarEventoForm({
     )
   }, [id])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Solo el admin puede tocar el estado desde acá; el resto lo mueve el flujo.
+  const cambiaEstado =
+    isAdmin && estadoGuardado !== null && formData.estado !== estadoGuardado
+
+  // Validate fechas de ejecución are within the proposed range
+  const validarFechas = (): string | null => {
+    const fechasCompletas = fechasEjecucion.filter(
+      (f) => f.fecha_inicio && f.fecha_fin,
+    )
+    for (const f of fechasCompletas) {
+      if (formData.fecha_inicio && f.fecha_inicio < formData.fecha_inicio) {
+        return "Las fechas de ejecución no pueden comenzar antes de la fecha de inicio propuesta."
+      }
+      if (formData.fecha_fin && f.fecha_fin > formData.fecha_fin) {
+        return "Las fechas de ejecución no pueden terminar después de la fecha de fin propuesta."
+      }
+    }
+    return null
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+
+    const errorFechas = validarFechas()
+    if (errorFechas) {
+      setError(errorFechas)
+      return
+    }
+
+    // El cambio de estado pide confirmación; el resto de los datos se guarda directo.
+    if (cambiaEstado) {
+      setConfirmandoEstado(true)
+      return
+    }
+    void guardar()
+  }
+
+  const guardar = async () => {
+    setConfirmandoEstado(false)
     setLoading(true)
     setError("")
 
     try {
-      // Validate fechas de ejecución are within the proposed range
-      const fechasCompletas = fechasEjecucion.filter(
-        (f) => f.fecha_inicio && f.fecha_fin,
-      )
-      for (const f of fechasCompletas) {
-        if (formData.fecha_inicio && f.fecha_inicio < formData.fecha_inicio) {
-          setError(
-            "Las fechas de ejecución no pueden comenzar antes de la fecha de inicio propuesta.",
-          )
-          setLoading(false)
-          return
-        }
-        if (formData.fecha_fin && f.fecha_fin > formData.fecha_fin) {
-          setError(
-            "Las fechas de ejecución no pueden terminar después de la fecha de fin propuesta.",
-          )
-          setLoading(false)
-          return
-        }
-      }
-
       const supabase = createClient()
 
       const updateData: Record<string, unknown> = {
@@ -186,7 +239,6 @@ export default function EditarEventoForm({
         fecha_fin: formData.fecha_fin,
         audiencia: formData.audiencia,
         modalidad: formData.modalidad,
-        estado: formData.estado,
         organizacion_id: formData.organizacion_id || null,
         casa_retiro_id: formData.casa_retiro_id || null,
         cupo_maximo: formData.cupo_maximo
@@ -203,12 +255,37 @@ export default function EditarEventoForm({
         pais_evento: formData.pais_evento || "Argentina",
       }
 
-      const { error: updateError } = await supabase
-        .from("eventos")
-        .update(updateData)
-        .eq("id", id)
+      // El estado solo viaja si se cambió a propósito. Antes se reenviaba siempre el
+      // que se había cargado al abrir el formulario, y guardar cualquier otro dato
+      // pisaba un estado que el flujo había movido mientras tanto.
+      if (cambiaEstado) {
+        updateData.estado = formData.estado
+        if (formData.estado === "publicado" && !sellos.fecha_publicacion) {
+          updateData.fecha_publicacion = new Date().toISOString().split("T")[0]
+          updateData.publicado_por = personaId
+        }
+        if (formData.estado === "en_curso" && !sellos.fecha_inicio_real) {
+          updateData.fecha_inicio_real = new Date().toISOString()
+        }
+      }
+
+      let update = supabase.from("eventos").update(updateData).eq("id", id)
+      // Si otro lo movió mientras se editaba, no pisar ese cambio.
+      if (cambiaEstado) update = update.eq("estado", estadoGuardado)
+
+      // .select() para detectar el caso en que no se actualiza ninguna fila:
+      // Supabase no lo informa como error.
+      const { data: actualizado, error: updateError } = await update.select("id")
 
       if (updateError) throw updateError
+      if (!actualizado || actualizado.length === 0) {
+        setError(
+          cambiaEstado
+            ? "No se guardó: el retiro cambió de estado mientras lo editabas, o no tenés permiso para modificarlo. Recargá la página y volvé a intentar."
+            : "No se guardaron los cambios: no tenés permiso para modificar este retiro.",
+        )
+        return
+      }
 
       // Sync evento_fechas
       const validas = fechasEjecucion.filter(
@@ -252,6 +329,7 @@ export default function EditarEventoForm({
       }
 
       router.push("/eventos")
+      router.refresh()
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Error al actualizar el retiro"
@@ -342,35 +420,24 @@ export default function EditarEventoForm({
                     onChange={handleChange}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
                   >
-                    <option value="borrador">Borrador</option>
-                    <option value="solicitud">Pend. Disc. Confra/Delegado</option>
-                    <option value="discernimiento_confra">
-                      Pend. Disc. Equipo Timón
-                    </option>
-                    <option value="discernimiento_eqt">
-                      Disc. Equipo Timón
-                    </option>
-                    <option value="pendiente_datos_noticias">
-                      Pendiente Datos Noticias
-                    </option>
-                    <option value="aprobado">Aprobado</option>
-                    <option value="pendiente_aprobacion_final">
-                      Pend. Aprobación Final EqT
-                    </option>
-                    <option value="publicado">Publicado</option>
-                    <option value="en_curso">En Curso</option>
-                    <option value="suspendido">Suspendido</option>
-                    <option value="rechazado">Rechazado</option>
-                    <option value="finalizado">Finalizado</option>
-                    <option value="cerrado">Cerrado</option>
-                    <option value="cancelado">Cancelado</option>
+                    {ESTADOS.map((e) => (
+                      <option key={e.value} value={e.value}>
+                        {e.label}
+                      </option>
+                    ))}
                   </select>
+                  {cambiaEstado && (
+                    <p className="text-xs text-muted-foreground">
+                      Estado actual: {estadoLabel(estadoGuardado!)}. El cambio se
+                      aplica al guardar.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
                   <Label>Estado</Label>
-                  <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground capitalize">
-                    {formData.estado.replace("_", " ")}
+                  <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                    {estadoLabel(formData.estado)}
                     <span className="ml-2 text-xs">
                       (gestionado por el flujo de aprobación)
                     </span>
@@ -692,6 +759,31 @@ export default function EditarEventoForm({
           </form>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmandoEstado}
+        onOpenChange={setConfirmandoEstado}
+        titulo="¿Cambiar el estado del retiro?"
+        descripcion={
+          <>
+            Pasará de &quot;{estadoLabel(estadoGuardado ?? "")}&quot; a &quot;
+            {estadoLabel(formData.estado)}&quot;.{" "}
+            {formData.estado === "publicado"
+              ? "Quedará visible en la home pública. "
+              : estadoGuardado === "publicado"
+                ? "Dejará de figurar como publicado en la home pública. "
+                : ""}
+            Es un cambio manual: no pasa por el flujo de aprobación.
+          </>
+        }
+        confirmar="Cambiar estado"
+        tono={
+          ESTADOS_DESTRUCTIVOS.includes(formData.estado)
+            ? "destructivo"
+            : "advertencia"
+        }
+        onConfirm={guardar}
+      />
 
       {isAdmin && muestraFlyers(estadoGuardado) && (
         <FlyerUploadPanel

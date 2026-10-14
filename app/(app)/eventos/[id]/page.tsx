@@ -591,8 +591,17 @@ export default async function EventoDetailPage({
     const confraId = evento.organizacion_id
 
     // Confra level — show if requiereConfra and user can approve_confra
+    // Manda el estado, no los datos de un discernimiento anterior: si el evento
+    // volvió a un estado pendiente (cambio manual), el panel tiene que pedir el
+    // discernimiento de nuevo aunque disc_*_estado siga cargado de la vez pasada.
     if (requiereConfra && canPerform(ctx, 'event.approve_confra', confraId)) {
-      if (evento.disc_confra_estado) {
+      if (estado === 'solicitud') {
+        // Confra needs to act on this solicitud
+        discNiveles.push({
+          nivel: 'confra',
+          title: 'Discernimiento Confraternidad / Delegado',
+        })
+      } else if (evento.disc_confra_estado) {
         // Already discerned — show read-only
         discNiveles.push({
           nivel: 'confra',
@@ -603,18 +612,22 @@ export default async function EventoDetailPage({
             notas: evento.disc_confra_notas ?? null,
           },
         })
-      } else if (estado === 'solicitud') {
-        // Confra needs to act on this solicitud
-        discNiveles.push({
-          nivel: 'confra',
-          title: 'Discernimiento Confraternidad / Delegado',
-        })
       }
     }
 
     // EqT level — show only if requiereEqt and user can approve_eqt
     if (requiereEqt && canPerform(ctx, 'event.approve_eqt')) {
-      if (evento.disc_eqt_estado) {
+      if (
+        estado === 'discernimiento_confra' ||
+        estado === 'discernimiento_eqt' ||
+        (estado === 'solicitud' && !requiereConfra)
+      ) {
+        discNiveles.push({
+          nivel: 'eqt',
+          title: 'Discernimiento Equipo Timón',
+        })
+      } else if (evento.disc_eqt_estado && estado !== 'solicitud') {
+        // En "solicitud" todavía no le toca al EqT: un discernimiento viejo no aplica.
         discNiveles.push({
           nivel: 'eqt',
           title: 'Discernimiento Equipo Timón',
@@ -623,15 +636,6 @@ export default async function EventoDetailPage({
             fecha: evento.disc_eqt_fecha ?? null,
             notas: evento.disc_eqt_notas ?? null,
           },
-        })
-      } else if (
-        estado === 'discernimiento_confra' ||
-        estado === 'discernimiento_eqt' ||
-        (estado === 'solicitud' && !requiereConfra)
-      ) {
-        discNiveles.push({
-          nivel: 'eqt',
-          title: 'Discernimiento Equipo Timón',
         })
       }
     }
