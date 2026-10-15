@@ -121,6 +121,17 @@ export async function POST(
     )
   }
 
+  // Cada centralizador cargado necesita celular
+  const sinCelular = ([1, 2, 3] as const).filter(n =>
+    body[`centralizador_${n}_nombre`]?.trim() && !body[`centralizador_${n}_telefono`]?.trim()
+  )
+  if (sinCelular.length > 0) {
+    return NextResponse.json(
+      { error: `Falta el celular en: ${sinCelular.map(n => `Centralizador ${n}`).join(', ')}` },
+      { status: 400 }
+    )
+  }
+
   const updates: Record<string, unknown> = { estado: 'pendiente_aprobacion_final' }
   for (const campo of CAMPOS_NOTICIAS) {
     updates[campo] = body[campo as keyof DatosNoticias] ?? null

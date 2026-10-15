@@ -180,6 +180,13 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
       setError('Seleccioná al menos el Centralizador 1')
       return
     }
+    const sinCelular = centralizadores
+      .map((c, i) => (c.nombre.trim() && !c.telefono.trim() ? i + 1 : null))
+      .filter((n): n is number => n !== null)
+    if (sinCelular.length > 0) {
+      setError(`Falta el celular en: ${sinCelular.map(n => `Centralizador ${n}`).join(', ')}`)
+      return
+    }
     const sinVerificar = centralizadores
       .map((c, i) => (c.nombre.trim() && !verificados[i] ? i + 1 : null))
       .filter((n): n is number => n !== null)
@@ -292,7 +299,9 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
                 />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Celular para el retiro</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Celular para el retiro{c.nombre.trim() && <span className="text-destructive ml-1">*</span>}
+                </p>
                 <input
                   type="tel"
                   className={inputClass}

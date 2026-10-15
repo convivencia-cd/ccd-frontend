@@ -70,7 +70,7 @@ const ESTADO_LABELS: Record<string, string> = {
   discernimiento_confra: "Pend. Disc. EqT",
   discernimiento_eqt: "Disc. EqT",
   pendiente_datos_noticias: "Pend. Datos Noticias",
-  pendiente_aprobacion_final: "Pend. Aprobación Final",
+  pendiente_aprobacion_final: "Pendiente de Aprobación Final EqT",
   aprobado: "Aprobado",
   publicado: "Publicado",
   en_curso: "En Curso",
@@ -1355,7 +1355,7 @@ export default async function DashboardPage() {
               <AlertCircle className="h-5 w-5 text-violet-500" />
               {canApproveEqt
                 ? "Aprobación Final — Equipo Timón"
-                : "En Aprobación Final — Equipo Timón"}
+                : "Pendiente de Aprobación Final EqT"}
             </CardTitle>
             <CardDescription>
               {canApproveEqt
