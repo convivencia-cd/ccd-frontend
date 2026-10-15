@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { canGestionarAsignaciones, canGestionarParticipantes } from '@/lib/eventos/equipo'
 import { cargarGruposDelEvento } from '@/lib/eventos/grupos'
+import { marcarPreinscriptos } from '@/lib/eventos/inscripcion-datos-server'
 import EditarEventoForm from './form'
 import EquipoEventoPanel, {
   type AsignacionesEvento,
@@ -55,6 +56,9 @@ export default async function EditarEventoPage({
       .order('fecha_inscripcion', { ascending: false }),
     cargarGruposDelEvento(supabase, id, evento.tipo_evento_id ?? null),
   ])
+  const participantes: ParticipanteEquipo[] = await marcarPreinscriptos(
+    (participantesRaw ?? []) as unknown as Omit<ParticipanteEquipo, 'preinscripto'>[]
+  )
 
   return (
     <div className="space-y-6">
@@ -63,7 +67,7 @@ export default async function EditarEventoPage({
         <EquipoEventoPanel
           eventoId={id}
           asignaciones={evento as unknown as AsignacionesEvento}
-          participantes={(participantesRaw ?? []) as unknown as ParticipanteEquipo[]}
+          participantes={participantes}
           grupos={grupos}
           nombresGrupos={nombresGrupos}
           canAsignaciones={canGestionarAsignaciones(ctx, evento)}

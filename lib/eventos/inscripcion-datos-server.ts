@@ -41,6 +41,35 @@ export async function cargarInscripcionDatos(participanteId: string): Promise<In
   }
 }
 
+/**
+ * De estos participantes, cuáles ya guardaron la planilla de inscripción.
+ * Solo devuelve ids, nada de lo que cargaron: sirve para mostrar a los
+ * interesados que completaron sus datos como "Preinscriptos".
+ */
+export async function participantesConInscripcionDatos(participanteIds: string[]): Promise<Set<string>> {
+  if (participanteIds.length === 0) return new Set()
+  const { data, error } = await adminClient()
+    .from('evento_inscripcion_datos')
+    .select('evento_participante_id')
+    .in('evento_participante_id', participanteIds)
+  if (error) throw error
+  return new Set((data ?? []).map(f => (f as { evento_participante_id: string }).evento_participante_id))
+}
+
+/**
+ * Marca `preinscripto` en las filas de evento_participantes: interesado que ya
+ * guardó la planilla pero todavía no tiene el pago confirmado. No es un estado
+ * en la base: sigue como 'interesado' y pasa a 'inscripto' con el pago (card #71).
+ */
+export async function marcarPreinscriptos<T extends { id: string; estado_participacion: string }>(
+  filas: T[]
+): Promise<(T & { preinscripto: boolean })[]> {
+  const conPlanilla = await participantesConInscripcionDatos(
+    filas.filter(p => p.estado_participacion === 'interesado').map(p => p.id)
+  )
+  return filas.map(p => ({ ...p, preinscripto: p.estado_participacion === 'interesado' && conPlanilla.has(p.id) }))
+}
+
 /** Guarda (crea o pisa) los datos de la inscripción. `datos` ya viene normalizado. */
 export async function guardarInscripcionDatos(participanteId: string, datos: InscripcionDatos): Promise<void> {
   const { error } = await adminClient()

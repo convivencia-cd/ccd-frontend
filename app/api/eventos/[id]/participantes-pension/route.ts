@@ -31,7 +31,8 @@ export async function GET(
     .select('id, valor_inscripcion, valor_pension, beca_pension, notas_beca, persona:personas!persona_id(id, nombre, apellido)')
     .eq('evento_id', id)
     .eq('rol_en_evento', 'convivente')
-    .neq('estado_participacion', 'cancelado')
+    // Becas en Pensión: solo quienes ya pagaron la inscripción (card #71).
+    .not('estado_participacion', 'in', '(cancelado,interesado)')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 

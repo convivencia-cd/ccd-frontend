@@ -12,6 +12,7 @@ import { esCentralizadorDeEvento, ROLES_SERVIDORES, formatMonto } from '@/lib/ev
 import { canGestionarPension } from '@/lib/eventos/pension'
 import { canGestionarAsignaciones, canGestionarParticipantes, ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
 import { cargarGruposDelEvento } from '@/lib/eventos/grupos'
+import { marcarPreinscriptos } from '@/lib/eventos/inscripcion-datos-server'
 import PensionBecasPanel from '../_components/pension-becas-panel'
 import EquipoEventoPanel, {
   type AsignacionesEvento,
@@ -57,6 +58,7 @@ type ParticipanteRow = {
   grupo_id: string | null
   notas: string | null
   notas_beca: string | null
+  preinscripto: boolean
   persona: { id: string; nombre: string; apellido: string; email: string | null; telefono: string | null } | null
 }
 
@@ -134,19 +136,24 @@ export default async function EventoGestionPage({
     .eq('evento_id', id)
     .order('fecha_inscripcion', { ascending: false })
 
-  const participantes = (participantesRaw ?? []) as unknown as ParticipanteRow[]
+  const participantes: ParticipanteRow[] = await marcarPreinscriptos(
+    (participantesRaw ?? []) as unknown as Omit<ParticipanteRow, 'preinscripto'>[]
+  )
 
   const conviventes = participantes.filter(
     p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'cancelado'
   )
-  // Los interesados se siguen desde el detalle del evento (card #57); acá,
-  // inscriptos y conviventes.
-  const inscriptos = conviventes.filter(p => p.estado_participacion !== 'interesado')
+  // Los interesados sin planilla se siguen desde el detalle del evento (card #57);
+  // acá, preinscriptos, inscriptos y conviventes.
+  const inscriptos = conviventes.filter(p => p.estado_participacion !== 'interesado' || p.preinscripto)
+  // Becas en Pensión: solo quienes ya pagaron la inscripción.
+  const pagaronInscripcion = conviventes.filter(p => p.estado_participacion !== 'interesado')
   const equipos = participantes.filter(
     p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado'
   )
 
   const conteoInscriptos = {
+    preinscripto: inscriptos.filter(p => p.preinscripto).length,
     inscripto: inscriptos.filter(p => p.estado_participacion === 'inscripto').length,
     en_curso: inscriptos.filter(p => p.estado_participacion === 'en_curso').length,
   }
@@ -182,7 +189,7 @@ export default async function EventoGestionPage({
 
   const canPension = canGestionarPension(ctx, cierreEvento)
   const participantesPension = canPension
-    ? conviventes.map(p => ({
+    ? pagaronInscripcion.map(p => ({
         id: p.id,
         persona: p.persona,
         valor_inscripcion: p.valor_inscripcion,
@@ -291,7 +298,7 @@ export default async function EventoGestionPage({
               Participantes
             </CardTitle>
             <CardDescription>
-              {conteoInscriptos.inscripto} inscriptos · {conteoInscriptos.en_curso} conviventes (con el presente dado)
+              {conteoInscriptos.preinscripto} preinscriptos (sin pago) · {conteoInscriptos.inscripto} inscriptos ·{conteoInscriptos.en_curso} conviventes (con el presente dado)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -322,7 +329,7 @@ export default async function EventoGestionPage({
                         </td>
                         <td className="px-3 py-2">
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${participacionClases[p.estado_participacion] ?? ''}`}>
-                            {participacionLabel[p.estado_participacion] ?? p.estado_participacion}
+                            {p.preinscripto ? 'Preinscripto' : participacionLabel[p.estado_participacion] ?? p.estado_participacion}
                           </span>
                         </td>
                       </tr>

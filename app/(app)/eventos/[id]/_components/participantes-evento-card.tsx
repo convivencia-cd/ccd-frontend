@@ -36,6 +36,8 @@ export type ParticipanteEquipo = {
   fecha_inscripcion: string | null
   grupo_id: string | null
   notas: string | null
+  /** Interesado que ya guardó la planilla de inscripción pero todavía no pagó (marcarPreinscriptos). */
+  preinscripto?: boolean
   persona: { id: string; nombre: string; apellido: string; email: string | null; telefono: string | null } | null
 }
 
@@ -96,6 +98,7 @@ export default function ParticipantesEventoCard({
   const dadosDeBaja = filas.filter(p => p.estado_participacion === 'cancelado')
 
   const conteo = {
+    preinscripto: activos.filter(p => p.preinscripto).length,
     inscripto: activos.filter(p => p.estado_participacion === 'inscripto').length,
     en_curso: activos.filter(p => p.estado_participacion === 'en_curso').length,
   }
@@ -179,7 +182,7 @@ export default function ParticipantesEventoCard({
         <CardDescription>
           {esEquipo
             ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al retiro son los de "Asignaciones del Retiro".`
-            : `${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados se siguen desde el detalle del retiro.`}
+            : `${conteo.preinscripto} preinscriptos (completaron sus datos, sin pago) · ${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados que todavía no completaron sus datos se siguen desde el detalle del retiro.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -243,13 +246,17 @@ export default function ParticipantesEventoCard({
                         >
                           {ESTADOS_PARTICIPACION_OPCIONES.map(e => (
                             <option key={e.value} value={e.value}>
-                              {e.label}
+                              {e.value === 'interesado' && p.preinscripto ? 'Preinscripto (sin pago)' : e.label}
                             </option>
                           ))}
                         </select>
                       </td>
                     )}
-                    {!esEquipo && grupos.length > 0 && (
+                    {/* Sin el pago de la inscripción todavía no entra a un grupo. */}
+                    {!esEquipo && grupos.length > 0 && p.estado_participacion === 'interesado' && (
+                      <td className="px-3 py-2 text-muted-foreground">—</td>
+                    )}
+                    {!esEquipo && grupos.length > 0 && p.estado_participacion !== 'interesado' && (
                       <td className="px-3 py-2">
                         <select
                           className={selectClass}
