@@ -41,7 +41,7 @@ async function getEventoAndCheckPermission(id: string) {
 
   const { data: evento, error } = await supabase
     .from('eventos')
-    .select('id, estado, organizacion_id, solicitado_por')
+    .select('id, estado, organizacion_id, solicitado_por, flyer_horizontal_url, flyer_cuadrado_url')
     .eq('id', id)
     .single()
 
@@ -117,6 +117,14 @@ export async function POST(
   if (!body.centralizador_1_nombre?.trim()) {
     return NextResponse.json(
       { error: 'Se requiere al menos un centralizador (Nombre del centralizador 1)' },
+      { status: 400 }
+    )
+  }
+
+  // Para pedir la publicación tiene que haber al menos un flyer subido
+  if (!evento.flyer_horizontal_url && !evento.flyer_cuadrado_url) {
+    return NextResponse.json(
+      { error: 'Subí al menos un flyer (horizontal o cuadrado) antes de solicitar la publicación.' },
       { status: 400 }
     )
   }

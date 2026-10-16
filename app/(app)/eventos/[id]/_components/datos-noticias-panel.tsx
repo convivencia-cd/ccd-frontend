@@ -50,6 +50,8 @@ type Props = {
   motivoDevolucion?: string | null
   /** Mostrar el atajo para crear una casa nueva (permiso casas_retiro.create). */
   canCrearCasaRetiro?: boolean
+  /** Ya hay al menos un flyer subido: es obligatorio para solicitar la publicación. */
+  tieneFlyer: boolean
 }
 
 function toStr(v: string | null | undefined): string {
@@ -60,7 +62,7 @@ function toNumStr(v: number | null | undefined): string {
   return v === null || v === undefined ? '' : String(v)
 }
 
-export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, personas, motivoDevolucion, canCrearCasaRetiro = false }: Props) {
+export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, personas, motivoDevolucion, canCrearCasaRetiro = false, tieneFlyer }: Props) {
   const router = useRouter()
 
   const [casaRetiroId, setCasaRetiroId] = useState(toStr(inicial.casa_retiro_id))
@@ -178,6 +180,10 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
   function pedirPublicar() {
     if (!centralizadores[0].nombre.trim()) {
       setError('Seleccioná al menos el Centralizador 1')
+      return
+    }
+    if (!tieneFlyer) {
+      setError('Subí al menos un flyer (horizontal o cuadrado) en "Flyers del Retiro" antes de solicitar la publicación.')
       return
     }
     const sinCelular = centralizadores

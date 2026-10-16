@@ -656,6 +656,16 @@ export default async function EventoDetailPage({
     }
   }
 
+  // Paneles de la columna lateral. Con uno solo queda fijo al scrollear; con
+  // varios apilados no, porque la columna puede ser más alta que la pantalla.
+  const cantPanelesLaterales = [
+    discNiveles.length > 0,
+    canDatosNoticias,
+    canAprobacionFinal,
+    canSolicitarSuspension,
+  ].filter(Boolean).length
+  const hayPanelesLaterales = cantPanelesLaterales > 0
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -773,9 +783,10 @@ export default async function EventoDetailPage({
       })()}
 
       {/* Main grid: event card + sidebar */}
-      <div className={discNiveles.length > 0 || canDatosNoticias || canAprobacionFinal || canSolicitarSuspension ? 'grid gap-6 lg:grid-cols-3 items-start' : undefined}>
+      <div className={hayPanelesLaterales ? 'grid gap-6 lg:grid-cols-3 items-start' : undefined}>
 
-      <Card className="border-border bg-card lg:col-span-2">
+      <div className="lg:col-span-2 space-y-6">
+      <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -1116,10 +1127,30 @@ export default async function EventoDetailPage({
         </CardContent>
       </Card>
 
+      {/* Flyers, debajo de la ficha: ocupan el espacio que deja la columna
+          lateral. Desde Pendiente Datos Noticias; quien carga los datos para
+          noticias también los sube, porque son obligatorios para pedir la
+          publicación. */}
+      {muestraFlyers(evento.estado) && (ctx?.is_admin || canDatosNoticias) && (
+        <FlyerUploadPanel
+          eventoId={id}
+          flyerHorizontalUrl={(ev.flyer_horizontal_url as string | null) ?? null}
+          flyerCuadradoUrl={(ev.flyer_cuadrado_url as string | null) ?? null}
+          obligatorio={evento.estado === 'pendiente_datos_noticias'}
+        />
+      )}
+      </div>
+
+      {/* Columna lateral. Todos los paneles van apilados en una sola columna:
+          sueltos, cada uno ocupaba su propia celda de la grilla y el segundo
+          (p. ej. Datos para Noticias junto al Discernimiento) caía debajo de la
+          tarjeta del evento, a la izquierda. */}
+      {hayPanelesLaterales && (
+      <div className={`lg:col-span-1 order-first lg:order-last space-y-6 ${cantPanelesLaterales === 1 ? 'lg:sticky lg:top-6' : ''}`}>
       {/* Discernimiento sidebar */}
       {discNiveles.length > 0 && (
-        <div className="lg:col-span-1 order-first lg:order-last">
-          <div className="sticky top-6">
+        <div>
+          <div>
             <DiscernimientoPanel
               eventoId={id}
               niveles={discNiveles}
@@ -1154,8 +1185,8 @@ export default async function EventoDetailPage({
 
       {/* Datos Noticias sidebar */}
       {canDatosNoticias && (
-        <div className="lg:col-span-1 order-first lg:order-last">
-          <div className="sticky top-6">
+        <div>
+          <div>
             <DatosNoticiasPannel
               eventoId={id}
               inicial={{
@@ -1182,6 +1213,7 @@ export default async function EventoDetailPage({
               personas={(personasCecistas ?? []) as { id: string; nombre: string; apellido: string; email?: string | null; telefono?: string | null }[]}
               motivoDevolucion={(evento as Record<string, unknown>).notas_aprobacion_final as string | null}
               canCrearCasaRetiro={!!ctx && canPerform(ctx, 'casas_retiro.create')}
+              tieneFlyer={!!ev.flyer_horizontal_url || !!ev.flyer_cuadrado_url}
             />
           </div>
         </div>
@@ -1189,8 +1221,8 @@ export default async function EventoDetailPage({
 
       {/* Aprobación Final sidebar (EqT) */}
       {canAprobacionFinal && (
-        <div className="lg:col-span-1 order-first lg:order-last">
-          <div className="sticky top-6">
+        <div>
+          <div>
             <AprobacionFinalPanel
               eventoId={id}
               inicial={{
@@ -1220,8 +1252,8 @@ export default async function EventoDetailPage({
 
       {/* Solicitar Suspensión sidebar (confra/solicitante) */}
       {canSolicitarSuspension && (
-        <div className="lg:col-span-1 order-first lg:order-last">
-          <div className="sticky top-6">
+        <div>
+          <div>
             <SolicitarSuspensionPanel
               eventoId={id}
               inicial={{
@@ -1231,6 +1263,8 @@ export default async function EventoDetailPage({
             />
           </div>
         </div>
+      )}
+      </div>
       )}
 
       </div>
@@ -1295,15 +1329,6 @@ export default async function EventoDetailPage({
             informe_responsables_respuestas: informeResponsablesCierre,
             informe_carismas: carismasCierre,
           }}
-        />
-      )}
-
-      {/* Flyers — admin only, desde Pendiente Datos Noticias */}
-      {ctx?.is_admin && muestraFlyers(evento.estado) && (
-        <FlyerUploadPanel
-          eventoId={id}
-          flyerHorizontalUrl={(ev.flyer_horizontal_url as string | null) ?? null}
-          flyerCuadradoUrl={(ev.flyer_cuadrado_url as string | null) ?? null}
         />
       )}
     </div>

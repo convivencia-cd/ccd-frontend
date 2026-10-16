@@ -342,8 +342,10 @@ function NivelDiscernimiento({
                         onChange={e => updateFecha(i, 'fecha_inicio', e.target.value)}
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
+                    <div className="flex gap-2 min-w-0">
+                      {/* min-w-0: sin esto el input de fecha no se achica y la
+                          fila se sale del panel (la × quedaba afuera). */}
+                      <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground mb-1">Fin período {i + 1}</p>
                         <input
                           type="date"

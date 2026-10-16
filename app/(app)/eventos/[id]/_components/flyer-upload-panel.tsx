@@ -112,10 +112,13 @@ export default function FlyerUploadPanel({
   eventoId,
   flyerHorizontalUrl,
   flyerCuadradoUrl,
+  obligatorio = false,
 }: {
   eventoId: string
   flyerHorizontalUrl: string | null
   flyerCuadradoUrl: string | null
+  /** Pendiente Datos Noticias: hace falta al menos un flyer para pedir la publicación. */
+  obligatorio?: boolean
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -197,7 +200,13 @@ export default function FlyerUploadPanel({
         <CardTitle className="text-base flex items-center gap-2">
           <GalleryHorizontal className="h-4 w-4 text-muted-foreground" />
           Flyers del Retiro
+          {obligatorio && <span className="text-destructive">*</span>}
         </CardTitle>
+        {obligatorio && (
+          <p className="text-xs text-muted-foreground">
+            Obligatorio: subí al menos un flyer para poder solicitar la publicación final.
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
         {error && (
