@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { createClient } from "@/lib/supabase/client"
 
-interface DiocesisRow {
+export interface DiocesisRow {
   nombre: string
   pais: string | null
   provincia: string | null
@@ -20,6 +20,13 @@ interface DiocesisComboboxProps {
   provincia?: string
   disabled?: boolean
   id?: string
+  /**
+   * Catálogo ya cargado en el servidor. Lo usan las páginas públicas sin
+   * sesión (/pago/[id]): la RLS de `diocesis` solo deja leer a usuarios
+   * logueados, así que la consulta del navegador volvía vacía y el campo caía
+   * a texto libre.
+   */
+  catalogo?: DiocesisRow[]
 }
 
 /**
@@ -34,11 +41,13 @@ export function DiocesisCombobox({
   provincia,
   disabled,
   id = "diocesis",
+  catalogo,
 }: DiocesisComboboxProps) {
-  const [rows, setRows] = React.useState<DiocesisRow[]>([])
-  const [loading, setLoading] = React.useState(true)
+  const [rows, setRows] = React.useState<DiocesisRow[]>(catalogo ?? [])
+  const [loading, setLoading] = React.useState(!catalogo)
 
   React.useEffect(() => {
+    if (catalogo) return
     let cancelled = false
     async function load() {
       const supabase = createClient()
@@ -56,7 +65,7 @@ export function DiocesisCombobox({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [catalogo])
 
   const options = React.useMemo<ComboboxOption[]>(() => {
     if (rows.length === 0) return []

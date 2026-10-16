@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { formatDateAR } from '@/lib/utils'
 import { DatosInscripcionForm, type PersonaDatos } from './datos-inscripcion-form'
 import type { EventoRealizado, InscripcionDatos } from '@/lib/eventos/inscripcion-datos'
+import type { DiocesisRow } from '@/components/diocesis-field'
 
 export type DatosPago = {
   alias: string
@@ -38,6 +39,7 @@ interface Props {
   inscripcionInicial: InscripcionDatos | null
   tiposRealizables: { id: string; nombre: string }[]
   eventosRealizados: EventoRealizado[]
+  diocesis: DiocesisRow[]
 }
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024
@@ -111,6 +113,7 @@ export function PagoStepper({
   inscripcionInicial,
   tiposRealizables,
   eventosRealizados,
+  diocesis,
 }: Props) {
   const [paso, setPaso] = useState<1 | 2>(1)
   const [loading, setLoading] = useState(false)
@@ -212,6 +215,7 @@ export function PagoStepper({
           inscripcionInicial={inscripcionInicial}
           tiposRealizables={tiposRealizables}
           eventosRealizados={eventosRealizados}
+          diocesis={diocesis}
           onGuardado={() => setPaso(2)}
         />
       ) : (

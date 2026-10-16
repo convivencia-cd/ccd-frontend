@@ -16,6 +16,8 @@ import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
 export const SEXOS = [
   { value: 'masculino', label: 'Masculino' },
   { value: 'femenino', label: 'Femenino' },
+  // Requiere la migración 093 (CHECK de personas.sexo).
+  { value: 'prefiero_no_decirlo', label: 'Prefiero no decirlo' },
 ] as const
 
 // Mismas opciones que el perfil de cecistas (/settings).
@@ -116,6 +118,39 @@ export const CAMPOS_PERSONA_INSCRIPCION = [
 
 export type CampoPersonaInscripcion = (typeof CAMPOS_PERSONA_INSCRIPCION)[number]
 
+/**
+ * Todos los campos de la persona son obligatorios en el link (card #42). El
+ * nombre de cada uno es el que ve la persona cuando le falta alguno.
+ */
+export const LABELS_CAMPO_PERSONA: Record<CampoPersonaInscripcion, string> = {
+  telefono: 'Teléfono celular',
+  tipo_documento: 'Tipo de documento',
+  documento: 'Número de documento',
+  fecha_nacimiento: 'Fecha de nacimiento',
+  direccion: 'Domicilio',
+  direccion_nro: 'Número, piso, dto.',
+  localidad: 'Localidad',
+  codigo_postal: 'Código postal',
+  provincia: 'Provincia',
+  pais: 'País',
+  apodo: 'Sobrenombre',
+  sexo: 'Sexo',
+  estado_vida: 'Estado civil',
+  nacionalidad: 'Nacionalidad',
+  nivel_estudios: 'Nivel de estudios',
+  ocupacion: 'Ocupación o profesión',
+  diocesis: 'Diócesis',
+  formacion_religiosa: 'Formación religiosa',
+  participacion_grupos_iglesia: 'Participación en grupos de la Iglesia',
+  accion_social: 'Otros grupos de acción social',
+}
+
+/** Un valor de la ficha cuenta como cargado. El estado civil "sin especificar" cuenta como vacío. */
+export function campoPersonaCompleto(campo: CampoPersonaInscripcion, valor: unknown): boolean {
+  if (typeof valor !== 'string' || valor.trim() === '') return false
+  return !(campo === 'estado_vida' && valor === 'sin_especificar')
+}
+
 /** Valores admitidos de los campos de `personas` que son de opción. */
 export const OPCIONES_CAMPO_PERSONA: Partial<Record<CampoPersonaInscripcion, readonly string[]>> = {
   tipo_documento: ['dni', 'pasaporte', 'cedula', 'otro'],
@@ -168,10 +203,40 @@ export function normalizarInscripcionDatos(
 ): { datos: InscripcionDatos; error: null } | { datos: null; error: string } {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
 
+  // Todas las preguntas son obligatorias (card #42). Las de Sí/No llegan como
+  // booleano aparte: con "No" el texto queda en null, con "Sí" es obligatorio.
   const comoSeEntero = texto(r.como_se_entero)
-  if (comoSeEntero && !COMO_SE_ENTERO.some(o => o.value === comoSeEntero)) {
+  if (!comoSeEntero) {
+    return { datos: null, error: 'Contanos cómo te enteraste de esta convivencia.' }
+  }
+  if (!COMO_SE_ENTERO.some(o => o.value === comoSeEntero)) {
     return { datos: null, error: 'Opción inválida en "¿Cómo te enteraste?".' }
   }
+  if (comoSeEntero === 'otro' && !texto(r.como_se_entero_otro)) {
+    return { datos: null, error: 'Contanos cómo te enteraste de esta convivencia.' }
+  }
+
+  const siNo = (
+    clave: string,
+    campoTexto: string,
+    pregunta: string,
+  ): { valor: string | null; error: null } | { valor: null; error: string } => {
+    const v = r[clave]
+    if (typeof v !== 'boolean') return { valor: null, error: `Respondé "${pregunta}".` }
+    if (!v) return { valor: null, error: null }
+    const t = texto(r[campoTexto])
+    if (!t) return { valor: null, error: `Completá el detalle de "${pregunta}".` }
+    return { valor: t, error: null }
+  }
+
+  const familiaResp = siNo('familia_hizo_convivencias', 'familia_quien', '¿Alguien más de tu familia hizo convivencias?')
+  if (familiaResp.error !== null) return { datos: null, error: familiaResp.error }
+  const acompanante = siNo('viene_acompanado', 'acompanante', '¿Asistirás con algún familiar, amigo o conocido?')
+  if (acompanante.error !== null) return { datos: null, error: acompanante.error }
+  const dificultad = siNo('tiene_dificultad_horario', 'dificultad_horario', '¿Se te presentará alguna dificultad en el horario?')
+  if (dificultad.error !== null) return { datos: null, error: dificultad.error }
+  const salud = siNo('tiene_salud_observaciones', 'salud_observaciones', '¿Hay algo importante que tengamos que saber?')
+  if (salud.error !== null) return { datos: null, error: salud.error }
 
   const validas = RESTRICCIONES_ALIMENTARIAS.map(o => o.value) as string[]
   const restricciones = Array.isArray(r.restricciones_alimentarias)
@@ -186,21 +251,25 @@ export function normalizarInscripcionDatos(
   // "Ninguna" no convive con otras: si marcó algo más, gana lo más restrictivo.
   const restriccionesFinal =
     restricciones.length > 1 ? restricciones.filter(v => v !== 'ninguna') : restricciones
-
-  const familia = typeof r.familia_hizo_convivencias === 'boolean' ? r.familia_hizo_convivencias : null
+  // Con cualquier restricción que no sea "Ninguna", el detalle es obligatorio.
+  const tieneRestriccion = restriccionesFinal.some(v => v !== 'ninguna')
+  const dietaDetalle = tieneRestriccion ? texto(r.dieta_detalle) : null
+  if (tieneRestriccion && !dietaDetalle) {
+    return { datos: null, error: 'Especificá el detalle de tu restricción alimentaria.' }
+  }
 
   return {
     error: null,
     datos: {
-      acompanante: texto(r.acompanante),
-      dificultad_horario: texto(r.dificultad_horario),
+      acompanante: acompanante.valor,
+      dificultad_horario: dificultad.valor,
       como_se_entero: comoSeEntero,
       como_se_entero_otro: comoSeEntero === 'otro' ? texto(r.como_se_entero_otro) : null,
-      familia_hizo_convivencias: familia,
-      familia_quien: familia ? texto(r.familia_quien) : null,
+      familia_hizo_convivencias: r.familia_hizo_convivencias as boolean,
+      familia_quien: familiaResp.valor,
       restricciones_alimentarias: restriccionesFinal,
-      dieta_detalle: texto(r.dieta_detalle),
-      salud_observaciones: texto(r.salud_observaciones),
+      dieta_detalle: dietaDetalle,
+      salud_observaciones: salud.valor,
     },
   }
 }
@@ -224,13 +293,14 @@ export function normalizarEventosRealizados(
     const c = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>
     if (typeof c.tipo_evento_id !== 'string' || !UUID_RE.test(c.tipo_evento_id)) continue
     if (eventos.some(e => e.tipo_evento_id === c.tipo_evento_id)) continue
+    // El año es obligatorio para lo que se tilda (card #42).
     const anioTexto = c.anio == null ? '' : String(c.anio).trim()
-    let anio: number | null = null
-    if (anioTexto) {
-      anio = Number(anioTexto)
-      if (!Number.isInteger(anio) || anio < 1950 || anio > anioMax) {
-        return { eventos: null, error: 'Hay un año inválido en las convivencias realizadas.' }
-      }
+    if (!anioTexto) {
+      return { eventos: null, error: 'Indicá el año de cada convivencia, retiro o taller que marcaste.' }
+    }
+    const anio = Number(anioTexto)
+    if (!Number.isInteger(anio) || anio < 1950 || anio > anioMax) {
+      return { eventos: null, error: 'Hay un año inválido en las convivencias realizadas.' }
     }
     eventos.push({ tipo_evento_id: c.tipo_evento_id, anio })
   }

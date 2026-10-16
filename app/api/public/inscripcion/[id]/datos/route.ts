@@ -4,7 +4,9 @@ import {
   CAMPOS_PERSONA_INSCRIPCION,
   ESTADOS_ECLESIALES,
   ESTADO_ECLESIAL_RANGOS,
+  LABELS_CAMPO_PERSONA,
   OPCIONES_CAMPO_PERSONA,
+  campoPersonaCompleto,
   normalizarEventosRealizados,
   normalizarInscripcionDatos,
 } from '@/lib/eventos/inscripcion-datos'
@@ -127,6 +129,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const institucion =
       typeof body.institucion_religiosa === 'string' ? body.institucion_religiosa.trim().slice(0, 200) : ''
     if (institucion) updates.institucion_religiosa = institucion
+  }
+
+  // Todos los campos son obligatorios (card #42): cada uno tiene que quedar
+  // cargado, sea porque ya estaba en la ficha o porque llegó ahora.
+  const faltantes = CAMPOS_PERSONA_INSCRIPCION.filter(
+    campo => !campoPersonaCompleto(campo, updates[campo] ?? actual[campo])
+  )
+  if (faltantes.length > 0) {
+    return NextResponse.json(
+      { error: `Completá: ${faltantes.map(c => LABELS_CAMPO_PERSONA[c]).join(', ')}.` },
+      { status: 400 }
+    )
+  }
+  if (updates.estado_eclesial) {
+    if (updates.estado_eclesial === 'clerigo' && !updates.estado_eclesial_rango) {
+      return NextResponse.json({ error: 'Completá: Rango.' }, { status: 400 })
+    }
+    if (!updates.institucion_religiosa) {
+      return NextResponse.json({ error: 'Completá: Institución / Congregación.' }, { status: 400 })
+    }
   }
 
   if (Object.keys(updates).length > 0) {

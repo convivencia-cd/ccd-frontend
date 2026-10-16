@@ -7,15 +7,18 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LocationFields, PAISES } from '@/components/location-fields'
 import { Combobox } from '@/components/ui/combobox'
-import { DiocesisCombobox } from '@/components/diocesis-field'
+import { DiocesisCombobox, type DiocesisRow } from '@/components/diocesis-field'
 import {
+  CAMPOS_PERSONA_INSCRIPCION,
   COMO_SE_ENTERO,
   ESTADOS_CIVILES,
   ESTADOS_ECLESIALES,
   ESTADO_ECLESIAL_RANGOS,
+  LABELS_CAMPO_PERSONA,
   NIVELES_ESTUDIOS,
   RESTRICCIONES_ALIMENTARIAS,
   SEXOS,
+  campoPersonaCompleto,
   type EventoRealizado,
   type InscripcionDatos,
 } from '@/lib/eventos/inscripcion-datos'
@@ -59,6 +62,8 @@ interface Props {
   tiposRealizables: { id: string; nombre: string }[]
   /** Lo que la persona ya tiene cargado en su historial. */
   eventosRealizados: EventoRealizado[]
+  /** Catálogo de diócesis, cargado en el servidor (sin sesión la RLS no deja leerlo). */
+  diocesis: DiocesisRow[]
   onGuardado: () => void
 }
 
@@ -86,8 +91,65 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   )
 }
 
-function Obligatorio() {
-  return <span className="text-destructive">*</span>
+/**
+ * Respuesta Sí/No guardada como texto: con "Sí" se guarda el detalle, con "No"
+ * queda null. Si la inscripción ya se guardó alguna vez, null es un "No".
+ */
+function siNoInicial(inicial: InscripcionDatos | null, texto: string | null | undefined): '' | 'si' | 'no' {
+  if (!inicial) return ''
+  return texto ? 'si' : 'no'
+}
+
+/** Pregunta de Sí/No que, con "Sí", pide el detalle. */
+function PreguntaSiNo({
+  id,
+  pregunta,
+  valor,
+  onValor,
+  detalle,
+  onDetalle,
+  placeholder,
+  disabled,
+  ayuda,
+}: {
+  id: string
+  pregunta: string
+  valor: string
+  onValor: (v: string) => void
+  detalle: string
+  onDetalle: (v: string) => void
+  placeholder: string
+  disabled: boolean
+  ayuda?: string
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{pregunta}</Label>
+      <select
+        id={id}
+        value={valor}
+        onChange={(e) => onValor(e.target.value)}
+        required
+        disabled={disabled}
+        className={selectClass}
+      >
+        <option value="">— Seleccionar —</option>
+        <option value="si">Sí</option>
+        <option value="no">No</option>
+      </select>
+      {valor === 'si' && (
+        <Textarea
+          aria-label={pregunta}
+          value={detalle}
+          onChange={(e) => onDetalle(e.target.value)}
+          placeholder={placeholder}
+          required
+          disabled={disabled}
+        />
+      )}
+      {ayuda && <p className="text-xs text-muted-foreground">{ayuda}</p>}
+    </div>
+  )
 }
 
 export function DatosInscripcionForm({
@@ -96,6 +158,7 @@ export function DatosInscripcionForm({
   inscripcionInicial,
   tiposRealizables,
   eventosRealizados,
+  diocesis,
   onGuardado,
 }: Props) {
   const [loading, setLoading] = useState(false)
@@ -114,7 +177,8 @@ export function DatosInscripcionForm({
     codigo_postal: persona.codigo_postal ?? '',
     apodo: persona.apodo ?? '',
     sexo: persona.sexo ?? '',
-    estado_vida: persona.estado_vida ?? '',
+    // "Sin especificar" cuenta como vacío: el estado civil es obligatorio.
+    estado_vida: persona.estado_vida === 'sin_especificar' ? '' : (persona.estado_vida ?? ''),
     nacionalidad: persona.nacionalidad ?? '',
     nivel_estudios: persona.nivel_estudios ?? '',
     ocupacion: persona.ocupacion ?? '',
@@ -128,8 +192,11 @@ export function DatosInscripcionForm({
   })
 
   const [insc, setInsc] = useState({
+    viene_acompanado: siNoInicial(inscripcionInicial, inscripcionInicial?.acompanante),
     acompanante: inscripcionInicial?.acompanante ?? '',
+    tiene_dificultad_horario: siNoInicial(inscripcionInicial, inscripcionInicial?.dificultad_horario),
     dificultad_horario: inscripcionInicial?.dificultad_horario ?? '',
+    tiene_salud_observaciones: siNoInicial(inscripcionInicial, inscripcionInicial?.salud_observaciones),
     como_se_entero: inscripcionInicial?.como_se_entero ?? '',
     como_se_entero_otro: inscripcionInicial?.como_se_entero_otro ?? '',
     familia_hizo_convivencias:
@@ -157,6 +224,8 @@ export function DatosInscripcionForm({
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   const handleInsc = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setInsc((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  const setInscCampo = (campo: keyof typeof insc) => (valor: string) =>
+    setInsc((prev) => ({ ...prev, [campo]: valor }))
 
   // El país arranca en "Argentina" aunque la ficha lo tenga vacío, así que la
   // ubicación se bloquea solo si ya había una provincia cargada.
@@ -191,8 +260,22 @@ export function DatosInscripcionForm({
     e.preventDefault()
     setError(null)
 
-    if (restricciones.length === 0) {
-      setError('Indicá si tenés alguna restricción alimentaria (o marcá "Ninguna").')
+    // Todo es obligatorio (card #42). Los inputs nativos llevan `required`; acá
+    // se revisa lo que el navegador no puede: comboboxes, checklist y ubicación.
+    const faltan: string[] = CAMPOS_PERSONA_INSCRIPCION.filter((c) => !campoPersonaCompleto(c, form[c])).map(
+      (c) => LABELS_CAMPO_PERSONA[c]
+    )
+    if (!estadoEclesialBloqueado && form.estado_eclesial !== 'laico') {
+      if (form.estado_eclesial === 'clerigo' && !form.estado_eclesial_rango) faltan.push('Rango')
+      if (!form.institucion_religiosa.trim()) faltan.push('Institución / Congregación')
+    }
+    if (Object.values(realizados).some((anio) => !anio.trim())) {
+      faltan.push('el año de cada convivencia, retiro o taller que marcaste')
+    }
+    if (restricciones.length === 0) faltan.push('Restricciones alimentarias (o marcá "Ninguna")')
+    if (tieneRestriccion && !insc.dieta_detalle.trim()) faltan.push('el detalle de tu dieta')
+    if (faltan.length > 0) {
+      setError(`Completá: ${faltan.join(', ')}.`)
       return
     }
 
@@ -207,6 +290,11 @@ export function DatosInscripcionForm({
             ...insc,
             familia_hizo_convivencias:
               insc.familia_hizo_convivencias === '' ? null : insc.familia_hizo_convivencias === 'si',
+            viene_acompanado: insc.viene_acompanado === '' ? null : insc.viene_acompanado === 'si',
+            tiene_dificultad_horario:
+              insc.tiene_dificultad_horario === '' ? null : insc.tiene_dificultad_horario === 'si',
+            tiene_salud_observaciones:
+              insc.tiene_salud_observaciones === '' ? null : insc.tiene_salud_observaciones === 'si',
             restricciones_alimentarias: restricciones,
           },
           eventos_realizados: Object.entries(realizados).map(([tipo_evento_id, anio]) => ({ tipo_evento_id, anio })),
@@ -228,8 +316,8 @@ export function DatosInscripcionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción. Los marcados
-        con <Obligatorio /> son obligatorios.
+        Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción: todos son
+        obligatorios.
       </p>
 
       <Seccion titulo="Datos personales">
@@ -253,12 +341,13 @@ export function DatosInscripcionForm({
               value={form.apodo}
               onChange={handleChange}
               placeholder="Para tu cartelito de identificación"
+              required
               disabled={loading || yaCargado(persona.apodo)}
             />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="sexo">
-              Sexo {!yaCargado(persona.sexo) && <Obligatorio />}
+              Sexo
             </Label>
             <select
               id="sexo"
@@ -299,7 +388,7 @@ export function DatosInscripcionForm({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="documento">
-              Número de documento {!yaCargado(persona.documento) && <Obligatorio />}
+              Número de documento
             </Label>
             <Input
               id="documento"
@@ -322,6 +411,7 @@ export function DatosInscripcionForm({
               type="date"
               value={form.fecha_nacimiento}
               onChange={handleChange}
+              required
               disabled={loading || yaCargado(persona.fecha_nacimiento)}
             />
           </div>
@@ -332,11 +422,12 @@ export function DatosInscripcionForm({
               name="estado_vida"
               value={form.estado_vida}
               onChange={handleChange}
+              required
               disabled={loading || estadoVidaCargado}
               className={selectClass}
             >
               <option value="">— Seleccionar —</option>
-              {ESTADOS_CIVILES.map((o) => (
+              {ESTADOS_CIVILES.filter((o) => o.value !== 'sin_especificar').map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -365,6 +456,7 @@ export function DatosInscripcionForm({
               name="ocupacion"
               value={form.ocupacion}
               onChange={handleChange}
+              required
               disabled={loading || yaCargado(persona.ocupacion)}
             />
           </div>
@@ -377,6 +469,7 @@ export function DatosInscripcionForm({
             name="nivel_estudios"
             value={form.nivel_estudios}
             onChange={handleChange}
+            required
             disabled={loading || yaCargado(persona.nivel_estudios)}
             className={selectClass}
           >
@@ -398,7 +491,7 @@ export function DatosInscripcionForm({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="telefono">
-              Teléfono celular {!yaCargado(persona.telefono) && <Obligatorio />}
+              Teléfono celular
             </Label>
             <Input
               id="telefono"
@@ -421,6 +514,7 @@ export function DatosInscripcionForm({
               name="direccion"
               value={form.direccion}
               onChange={handleChange}
+              required
               disabled={loading || yaCargado(persona.direccion)}
             />
           </div>
@@ -432,6 +526,7 @@ export function DatosInscripcionForm({
               value={form.direccion_nro}
               onChange={handleChange}
               className="sm:w-36"
+              required
               disabled={loading || yaCargado(persona.direccion_nro)}
             />
           </div>
@@ -476,6 +571,7 @@ export function DatosInscripcionForm({
               onChange={set('diocesis')}
               pais={form.pais}
               provincia={form.provincia}
+              catalogo={diocesis}
               disabled={loading || yaCargado(persona.diocesis)}
             />
           </div>
@@ -492,6 +588,7 @@ export function DatosInscripcionForm({
                   name="estado_eclesial_rango"
                   value={form.estado_eclesial_rango}
                   onChange={handleChange}
+                  required
                   disabled={loading}
                   className={selectClass}
                 >
@@ -511,6 +608,7 @@ export function DatosInscripcionForm({
                 name="institucion_religiosa"
                 value={form.institucion_religiosa}
                 onChange={handleChange}
+                required
                 disabled={loading}
               />
             </div>
@@ -524,7 +622,8 @@ export function DatosInscripcionForm({
             name="formacion_religiosa"
             value={form.formacion_religiosa}
             onChange={handleChange}
-            placeholder="Cursos, seminarios, colegios católicos, etc."
+            placeholder="Cursos, seminarios, colegios católicos, etc. Si no tenés, poné “Ninguna”."
+            required
             disabled={loading || yaCargado(persona.formacion_religiosa)}
           />
         </div>
@@ -536,7 +635,8 @@ export function DatosInscripcionForm({
             name="participacion_grupos_iglesia"
             value={form.participacion_grupos_iglesia}
             onChange={handleChange}
-            placeholder="Anterior o actual: ¿cuáles?, ¿cuánto tiempo?, ¿alguno de espiritualidad carismática?"
+            placeholder="Anterior o actual: ¿cuáles?, ¿cuánto tiempo?, ¿alguno de espiritualidad carismática? Si no participaste, poné “Ninguno”."
+            required
             disabled={loading || yaCargado(persona.participacion_grupos_iglesia)}
           />
         </div>
@@ -548,7 +648,8 @@ export function DatosInscripcionForm({
             name="accion_social"
             value={form.accion_social}
             onChange={handleChange}
-            placeholder="¿Cuáles?, ¿cuánto tiempo?"
+            placeholder="¿Cuáles?, ¿cuánto tiempo? Si no participaste, poné “Ninguno”."
+            required
             disabled={loading || yaCargado(persona.accion_social)}
           />
         </div>
@@ -556,7 +657,7 @@ export function DatosInscripcionForm({
         {tiposRealizables.length > 0 && (
           <div className="grid gap-2">
             <Label>Convivencias, Retiros y Talleres realizados</Label>
-            <p className="text-xs text-muted-foreground">Marcá las que hayas hecho e indicá el año (opcional).</p>
+            <p className="text-xs text-muted-foreground">Marcá las que hayas hecho e indicá el año. Si no hiciste ninguna, dejalas sin marcar.</p>
             <div className="space-y-2">
               {tiposRealizables.map((t) => {
                 const marcado = t.id in realizados
@@ -581,6 +682,7 @@ export function DatosInscripcionForm({
                       placeholder="Año"
                       value={realizados[t.id] ?? ''}
                       onChange={(e) => setRealizados((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                      required={marcado}
                       disabled={loading || !marcado || anioYaCargado(t.id)}
                       className="w-28"
                     />
@@ -600,6 +702,7 @@ export function DatosInscripcionForm({
             name="como_se_entero"
             value={insc.como_se_entero}
             onChange={handleInsc}
+            required
             disabled={loading}
             className={selectClass}
           >
@@ -617,6 +720,7 @@ export function DatosInscripcionForm({
               value={insc.como_se_entero_otro}
               onChange={handleInsc}
               placeholder="Contanos cómo"
+              required
               disabled={loading}
             />
           )}
@@ -629,6 +733,7 @@ export function DatosInscripcionForm({
             name="familia_hizo_convivencias"
             value={insc.familia_hizo_convivencias}
             onChange={handleInsc}
+            required
             disabled={loading}
             className={selectClass}
           >
@@ -643,41 +748,49 @@ export function DatosInscripcionForm({
               value={insc.familia_quien}
               onChange={handleInsc}
               placeholder="¿Quién? (parentesco, nombre y apellido)"
+              required
               disabled={loading}
             />
           )}
         </div>
 
-        <div className="grid gap-1.5">
-          <Label htmlFor="acompanante">¿Asistirás con algún familiar, amigo o conocido?</Label>
-          <Textarea
-            id="acompanante"
-            name="acompanante"
-            value={insc.acompanante}
-            onChange={handleInsc}
-            placeholder="Si venís con alguien, contanos quién (parentesco, nombre y apellido)"
-            disabled={loading}
-          />
-        </div>
+        <PreguntaSiNo
+          id="viene_acompanado"
+          pregunta="¿Asistirás con algún familiar, amigo o conocido?"
+          valor={insc.viene_acompanado}
+          onValor={setInscCampo('viene_acompanado')}
+          detalle={insc.acompanante}
+          onDetalle={setInscCampo('acompanante')}
+          placeholder="¿Con quién? (parentesco, nombre y apellido)"
+          disabled={loading}
+        />
 
-        <div className="grid gap-1.5">
-          <Label htmlFor="dificultad_horario">
-            ¿Se te presentará alguna dificultad en el horario de llegada o salida?
-          </Label>
-          <Textarea
-            id="dificultad_horario"
-            name="dificultad_horario"
-            value={insc.dificultad_horario}
-            onChange={handleInsc}
-            placeholder="Si es así, describila brevemente"
-            disabled={loading}
-          />
-        </div>
+        <PreguntaSiNo
+          id="tiene_dificultad_horario"
+          pregunta="¿Se te presentará alguna dificultad en el horario de llegada o salida?"
+          valor={insc.tiene_dificultad_horario}
+          onValor={setInscCampo('tiene_dificultad_horario')}
+          detalle={insc.dificultad_horario}
+          onDetalle={setInscCampo('dificultad_horario')}
+          placeholder="Describila brevemente"
+          disabled={loading}
+        />
+
+        {/* Va antes de las restricciones alimentarias (pedido de Coti, card #42). */}
+        <PreguntaSiNo
+          id="tiene_salud_observaciones"
+          pregunta="¿Hay algo importante que tengamos que saber?"
+          valor={insc.tiene_salud_observaciones}
+          onValor={setInscCampo('tiene_salud_observaciones')}
+          detalle={insc.salud_observaciones}
+          onDetalle={setInscCampo('salud_observaciones')}
+          placeholder="Ej.: no podés subir escaleras, tomás medicación, cursás algún tratamiento, alergias, etc."
+          disabled={loading}
+          ayuda="Esta información la ven solo quienes organizan la convivencia."
+        />
 
         <div className="grid gap-2">
-          <Label>
-            Restricciones alimentarias <Obligatorio />
-          </Label>
+          <Label>Restricciones alimentarias</Label>
           <div className="grid gap-2 sm:grid-cols-2">
             {RESTRICCIONES_ALIMENTARIAS.map((o) => (
               <label key={o.value} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
@@ -699,24 +812,10 @@ export function DatosInscripcionForm({
               value={insc.dieta_detalle}
               onChange={handleInsc}
               placeholder="Especificá todo lo que tengamos que saber sobre tu dieta"
+              required
               disabled={loading}
             />
           )}
-        </div>
-
-        <div className="grid gap-1.5">
-          <Label htmlFor="salud_observaciones">¿Hay algo importante que tengamos que saber?</Label>
-          <Textarea
-            id="salud_observaciones"
-            name="salud_observaciones"
-            value={insc.salud_observaciones}
-            onChange={handleInsc}
-            placeholder="Ej.: no podés subir escaleras, tomás medicación, cursás algún tratamiento, alergias, etc."
-            disabled={loading}
-          />
-          <p className="text-xs text-muted-foreground">
-            Esta información la ven solo quienes organizan la convivencia.
-          </p>
         </div>
       </Seccion>
 

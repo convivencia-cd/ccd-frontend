@@ -11,6 +11,7 @@ import {
   cargarTiposEventosRealizables,
 } from '@/lib/eventos/inscripcion-datos-server'
 import { nombreLegible } from '@/lib/personas/eventos-realizados'
+import type { DiocesisRow } from '@/components/diocesis-field'
 
 // El precio, los datos de la persona y el estado del pago cambian fuera de
 // esta página (centralizador, webhook de Mercado Pago) — nunca cachear.
@@ -159,7 +160,7 @@ export default async function PagoInscripcionPage({
 
   // Las inscripciones se cobran siempre en la cuenta central (Equipo Timón),
   // tanto por Mercado Pago como por transferencia.
-  const [mpDisponible, datosPago, inscripcionDatos, tiposRealizables, eventosRealizados] = await Promise.all([
+  const [mpDisponible, datosPago, inscripcionDatos, tiposRealizables, eventosRealizados, { data: diocesis }] = await Promise.all([
     hayCuentaCobroCentral(),
     obtenerDatosTransferenciaCentral() as Promise<DatosPago | null>,
     // Lo que la persona ya respondió, si vuelve a abrir el link antes de pagar.
@@ -168,6 +169,9 @@ export default async function PagoInscripcionPage({
     // misma tabla que el perfil del cecista.
     cargarTiposEventosRealizables(),
     cargarEventosRealizados(persona.id),
+    // Catálogo de diócesis: la RLS no deja leerlo sin sesión, así que el
+    // desplegable lo recibe desde acá.
+    supabase.from('diocesis').select('nombre, pais, provincia').eq('estado', 'activa').order('nombre'),
   ])
 
   const BannerIcon = banner?.icon
@@ -201,6 +205,7 @@ export default async function PagoInscripcionPage({
         inscripcionInicial={inscripcionDatos}
         tiposRealizables={tiposRealizables.map((t) => ({ id: t.id, nombre: nombreLegible(t.nombre) }))}
         eventosRealizados={eventosRealizados}
+        diocesis={(diocesis ?? []) as DiocesisRow[]}
       />
     </PublicShell>
   )
