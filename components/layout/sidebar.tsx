@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { NavigationPending } from "@/components/layout/navigation-pending"
 
 export interface SidebarPermissions {
   canCreatePerson: boolean
@@ -315,6 +316,9 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
           variant="outline"
           size="icon"
           onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={isOpen}
+          aria-controls="app-sidebar"
           className="bg-card"
         >
           {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -331,6 +335,7 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
 
       {/* Sidebar */}
       <aside
+        id="app-sidebar"
         className={`fixed left-0 top-0 z-40 h-full w-64 border-r border-border bg-card transition-transform duration-300 md:relative md:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -361,7 +366,7 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
               <div key={item.href}>
                 <Link
                   href={item.href}
-                  onClick={() => {
+                  onNavigate={() => {
                     setIsOpen(false)
                     if (item.children) {
                       toggleExpanded(item.href)
@@ -375,6 +380,7 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
                 >
                   {item.icon}
                   <span className="flex-1">{item.label}</span>
+                  <NavigationPending />
                   {item.children && (
                     <ChevronDown
                       className={`h-4 w-4 transition-transform ${
@@ -391,14 +397,15 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
                       <Link
                         key={child.href}
                         href={child.href}
-                        onClick={() => setIsOpen(false)}
-                        className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                        onNavigate={() => setIsOpen(false)}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
                           isActive(child.href)
                             ? "text-primary font-medium"
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {child.label}
+                        <NavigationPending />
                       </Link>
                     ))}
                   </div>
@@ -411,7 +418,7 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
           <div className="border-t border-border p-4 space-y-2">
             <Link
               href="/settings"
-              onClick={() => setIsOpen(false)}
+              onNavigate={() => setIsOpen(false)}
               className={`flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 isActive("/settings")
                   ? "bg-primary/10 text-primary"
@@ -420,6 +427,7 @@ export function Sidebar({ permissions }: { permissions: SidebarPermissions }) {
             >
               <Settings className="h-5 w-5" />
               <span>Configuración</span>
+              <NavigationPending />
             </Link>
             <Button
               onClick={handleSignOut}

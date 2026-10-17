@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { cache } from 'react'
 
 /** `ministerios.codigo_interno` del acceso mínimo de conviventes no cecistas (migración 082). */
 export const CODIGO_MINISTERIO_PARTICIPANTE = 'PAR'
@@ -53,10 +54,11 @@ export type UserContext = {
 
 /**
  * Obtiene el contexto completo de permisos del usuario autenticado.
- * Usar en Server Components y Route Handlers.
+ * Usar en Server Components y Route Handlers. React.cache comparte el trabajo
+ * entre layouts y páginas del mismo render; no persiste permisos entre peticiones.
  * Devuelve null si no hay sesión.
  */
-export async function getUserContext(): Promise<UserContext | null> {
+export const getUserContext = cache(async (): Promise<UserContext | null> => {
   const supabase = await createClient()
 
   const {
@@ -88,7 +90,28 @@ export async function getUserContext(): Promise<UserContext | null> {
     rolesQuery = rolesQuery.eq('usuario_id', user.id)
   }
 
-  const { data: roles } = await rolesQuery
+  // Roles técnicos y ministerios dependen del perfil, pero no entre sí.
+  const persona_id = perfil?.persona_id ?? null
+  const [{ data: roles }, { data: asignaciones }] = await Promise.all([
+    rolesQuery,
+    persona_id
+      ? supabase
+          .from('asignaciones_ministerio')
+          .select(`
+            organizacion_id,
+            ministerio_id,
+            ministerio:ministerios!ministerio_id(
+              nombre,
+              codigo_interno,
+              nivel_acceso,
+              ministerio_permisos(permiso:permisos!permiso_id(clave))
+            )
+          `)
+          .eq('persona_id', persona_id)
+          .eq('estado', 'activo')
+          .or(`fecha_fin.is.null,fecha_fin.gt.${hoy}`)
+      : Promise.resolve({ data: [] }),
+  ])
 
   const userRoles: UserRole[] = (roles ?? []).map((r: any) => ({
     rol: r.rol_sistema?.nombre as RolSistema,
@@ -107,19 +130,6 @@ export async function getUserContext(): Promise<UserContext | null> {
     .map((r: any) => r.rol_sistema_id)
     .filter(Boolean) as string[]
 
-  let legacyPermissions: string[] = []
-  if (rolSistemaIds.length > 0) {
-    const { data: permsData } = await supabase
-      .from('rol_permisos')
-      .select('permiso:permisos!permiso_id(clave)')
-      .in('rol_sistema_id', rolSistemaIds)
-      .eq('activo', true)
-
-    legacyPermissions = (permsData ?? [])
-      .map((p: any) => p.permiso?.clave)
-      .filter(Boolean) as string[]
-  }
-
   // Path B: Cargar permisos desde asignaciones_ministerio → ministerio_permisos (migración 007).
   let ministerioPermissions: string[] = []
   let ministerioNivelMax = 0
@@ -128,61 +138,54 @@ export async function getUserContext(): Promise<UserContext | null> {
   const ministerios: UserMinistry[] = []
   let tieneMinisterioInterno = false
 
-  const persona_id = perfil?.persona_id ?? null
-  if (persona_id) {
-    const { data: asignaciones } = await supabase
-      .from('asignaciones_ministerio')
-      .select(`
-        organizacion_id,
-        ministerio_id,
-        ministerio:ministerios!ministerio_id(
-          nombre,
-          codigo_interno,
-          nivel_acceso,
-          ministerio_permisos(permiso:permisos!permiso_id(clave))
-        )
-      `)
-      .eq('persona_id', persona_id)
-      .eq('estado', 'activo')
-      .or(`fecha_fin.is.null,fecha_fin.gt.${hoy}`)
-
-    for (const a of asignaciones ?? []) {
-      const min = a.ministerio as any
-      if (!min) continue
-      if (min.codigo_interno !== CODIGO_MINISTERIO_PARTICIPANTE) tieneMinisterioInterno = true
-      const nivelAcceso = min.nivel_acceso ?? 0
-      if (min.nombre) {
-        ministerios.push({
-          id: a.ministerio_id as string,
-          nombre: min.nombre,
-          nivel_acceso: nivelAcceso,
-          organizacion_id: a.organizacion_id ?? null,
-        })
-      }
-      ministerioNivelMax = Math.max(ministerioNivelMax, nivelAcceso)
-      if (nivelAcceso >= 100) ministerioIsAdmin = true
-      if (a.organizacion_id) ministerioOrgIds.push(a.organizacion_id as string)
-      for (const mp of min.ministerio_permisos ?? []) {
-        const clave = (mp as any).permiso?.clave
-        if (clave && !ministerioPermissions.includes(clave)) {
-          ministerioPermissions.push(clave)
-        }
+  for (const a of asignaciones ?? []) {
+    const min = a.ministerio as any
+    if (!min) continue
+    if (min.codigo_interno !== CODIGO_MINISTERIO_PARTICIPANTE) tieneMinisterioInterno = true
+    const nivelAcceso = min.nivel_acceso ?? 0
+    if (min.nombre) {
+      ministerios.push({
+        id: a.ministerio_id as string,
+        nombre: min.nombre,
+        nivel_acceso: nivelAcceso,
+        organizacion_id: a.organizacion_id ?? null,
+      })
+    }
+    ministerioNivelMax = Math.max(ministerioNivelMax, nivelAcceso)
+    if (nivelAcceso >= 100) ministerioIsAdmin = true
+    if (a.organizacion_id) ministerioOrgIds.push(a.organizacion_id as string)
+    for (const mp of min.ministerio_permisos ?? []) {
+      const clave = (mp as any).permiso?.clave
+      if (clave && !ministerioPermissions.includes(clave)) {
+        ministerioPermissions.push(clave)
       }
     }
   }
 
-  // Expandir ministerioOrgIds para incluir orgs hijas (fraternidades bajo la confraternidad asignada)
-  if (ministerioOrgIds.length > 0) {
-    const { data: childOrgs } = await supabase
-      .from('organizaciones')
-      .select('id')
-      .in('parent_id', ministerioOrgIds)
-      .is('fecha_baja', null)
+  // Permisos legacy y organizaciones hijas también son independientes.
+  const [{ data: permsData }, { data: childOrgs }] = await Promise.all([
+    rolSistemaIds.length > 0
+      ? supabase
+          .from('rol_permisos')
+          .select('permiso:permisos!permiso_id(clave)')
+          .in('rol_sistema_id', rolSistemaIds)
+          .eq('activo', true)
+      : Promise.resolve({ data: [] }),
+    ministerioOrgIds.length > 0
+      ? supabase
+          .from('organizaciones')
+          .select('id')
+          .in('parent_id', ministerioOrgIds)
+          .is('fecha_baja', null)
+      : Promise.resolve({ data: [] }),
+  ])
+  const legacyPermissions = (permsData ?? [])
+    .map((p: any) => p.permiso?.clave)
+    .filter(Boolean) as string[]
 
-    for (const org of childOrgs ?? []) {
-      if (!ministerioOrgIds.includes(org.id)) {
-        ministerioOrgIds.push(org.id)
-      }
+  for (const org of childOrgs ?? []) {
+    if (!ministerioOrgIds.includes(org.id)) {
+      ministerioOrgIds.push(org.id)
     }
   }
 
@@ -211,4 +214,4 @@ export async function getUserContext(): Promise<UserContext | null> {
     ministerio_ids: [...new Set(ministeriosOrdenados.map(m => m.id))],
     es_interno: userRoles.length > 0 || tieneMinisterioInterno,
   }
-}
+})

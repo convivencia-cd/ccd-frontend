@@ -55,49 +55,35 @@ export default async function PersonasPage({
   const canExport = ctx ? canPerform(ctx, 'personas.export') : false
   const supabase = await createClient()
 
-  // Load ministerios for the filter select
-  const [{ data: ministerios }, { data: organizaciones }] = await Promise.all([
+  // Catálogos y filtros relacionales son independientes. Las ubicaciones pueden
+  // requerir varias tandas; no deben retrasar el inicio de las otras consultas.
+  const [
+    { data: ministerios },
+    { data: organizaciones },
+    { ubicaciones, variantesProvincia, variantesLocalidad },
+    modoResult,
+    ministerioResult,
+    orgResult,
+  ] = await Promise.all([
     canManage
       ? supabase.from('ministerios').select('id, nombre').eq('activo', true).order('nombre')
       : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
     supabase.from('organizaciones').select('id, nombre, tipo').in('tipo', ['confraternidad', 'fraternidad']).is('fecha_baja', null).order('tipo').order('nombre'),
+    fetchUbicaciones(supabase),
+    modo
+      ? supabase.from('persona_modos').select('persona_id').eq('modo', modo).is('fecha_fin', null)
+      : Promise.resolve(null),
+    canManage && ministerio_id
+      ? supabase.from('asignaciones_ministerio').select('persona_id').eq('ministerio_id', ministerio_id).is('fecha_fin', null)
+      : Promise.resolve(null),
+    organizacion_id
+      ? supabase.from('persona_organizacion').select('persona_id').eq('organizacion_id', organizacion_id).is('fecha_fin', null)
+      : Promise.resolve(null),
   ])
 
-  // Ubicaciones cargadas (país + provincia + localidad): completan los catálogos de los
-  // combobox y dicen cómo está escrito cada valor en la base, para poder filtrar por él.
-  // Supabase no expone DISTINCT, así que se traen las columnas en tandas y se deduplican acá.
-  const { ubicaciones, variantesProvincia, variantesLocalidad } = await fetchUbicaciones(supabase)
-
-  // Relational filters: get persona ids matching modo/ministerio
-  let modoIds: string[] | null = null
-  if (modo) {
-    const { data } = await supabase
-      .from('persona_modos')
-      .select('persona_id')
-      .eq('modo', modo)
-      .is('fecha_fin', null)
-    modoIds = data?.map(r => r.persona_id) ?? []
-  }
-
-  let ministerioIds: string[] | null = null
-  if (canManage && ministerio_id) {
-    const { data } = await supabase
-      .from('asignaciones_ministerio')
-      .select('persona_id')
-      .eq('ministerio_id', ministerio_id)
-      .is('fecha_fin', null)
-    ministerioIds = data?.map(r => r.persona_id) ?? []
-  }
-
-  let orgIds: string[] | null = null
-  if (organizacion_id) {
-    const { data } = await supabase
-      .from('persona_organizacion')
-      .select('persona_id')
-      .eq('organizacion_id', organizacion_id)
-      .is('fecha_fin', null)
-    orgIds = data?.map(r => r.persona_id) ?? []
-  }
+  const modoIds = modoResult ? (modoResult.data?.map(r => r.persona_id) ?? []) : null
+  const ministerioIds = ministerioResult ? (ministerioResult.data?.map(r => r.persona_id) ?? []) : null
+  const orgIds = orgResult ? (orgResult.data?.map(r => r.persona_id) ?? []) : null
 
   // Intersect all relational filters
   let filterIds: string[] | null = null
