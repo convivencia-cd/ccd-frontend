@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { formatDateShort, formatDateLong } from "@/lib/utils"
 import { getUserContext, canPerform } from "@/lib/auth/context"
 import { createClient } from "@/lib/supabase/server"
+import { ordenarModos } from "@/lib/personas/modos"
 import {
   Card,
   CardContent,
@@ -1142,11 +1143,11 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {cecistas.map((persona: any) => {
-                  const currentModo = Array.isArray(persona.persona_modos)
-                    ? persona.persona_modos.find(
-                        (m: any) => m.fecha_fin === null,
-                      )
-                    : null
+                  const currentModos = Array.isArray(persona.persona_modos)
+                    ? ordenarModos(persona.persona_modos
+                        .filter((m: any) => m.fecha_fin === null)
+                        .map((m: any) => m.modo))
+                    : []
                   return (
                     <Link
                       key={persona.id}
@@ -1156,9 +1157,9 @@ export default async function DashboardPage() {
                       <p className="text-sm font-medium text-foreground">
                         {persona.apellido}, {persona.nombre}
                       </p>
-                      {currentModo && (
+                      {currentModos.length > 0 && (
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                          {MODO_LABELS[currentModo.modo] ?? currentModo.modo}
+                          {currentModos.map(modo => MODO_LABELS[modo] ?? modo).join(' + ')}
                         </span>
                       )}
                     </Link>

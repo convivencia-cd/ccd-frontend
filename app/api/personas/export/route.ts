@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
 import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
+import { agruparModosPorPersona, ordenarModos } from '@/lib/personas/modos'
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext()
@@ -204,7 +205,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Index by persona_id for fast lookup
-  const modoByPersona = Object.fromEntries(modos.map(m => [m.persona_id, m.modo]))
+  const modosPorPersona = agruparModosPorPersona(modos)
   const organizacionByPersona = new Map<string, { confraternidad: string | null; fraternidad: string | null }>()
   for (const row of organizaciones) {
     const actual = organizacionByPersona.get(row.persona_id) ?? { confraternidad: null, fraternidad: null }
@@ -231,7 +232,7 @@ export async function GET(req: NextRequest) {
       ? 'otro'
       : p.tipo_persona === 'convivente' || p.tipo_persona === 'no_cecista'
         ? 'convivente'
-        : modoByPersona[p.id] ?? '',
+        : ordenarModos(modosPorPersona.get(p.id) ?? []).join(' + '),
   }))
 
   return NextResponse.json(rows)

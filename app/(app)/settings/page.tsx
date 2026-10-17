@@ -20,6 +20,8 @@ import { AvatarUpload } from '@/components/avatar-upload'
 import { Combobox } from '@/components/ui/combobox'
 import { MultiCombobox } from '@/components/ui/multi-combobox'
 import { apellidoNombreConApodo, nombreCompletoConApodo } from '@/lib/personas/nombre'
+import { correspondeAsesorAutomatico, ordenarModos } from '@/lib/personas/modos'
+import { ESTADO_ECLESIAL_RANGOS } from '@/lib/eventos/inscripcion-datos'
 import { EVENTOS_REALIZADOS_CATEGORIAS, nombreLegible, ordenarTiposEventos } from '@/lib/personas/eventos-realizados'
 
 type FontSize = 'small' | 'medium' | 'large'
@@ -57,14 +59,6 @@ const ESTADO_ECLESIAL_TOP = [
   { value: 'clerigo', label: 'Clérigo' },
   { value: 'consagrado', label: 'Consagrado/a' },
 ]
-const ESTADO_ECLESIAL_RANGOS = [
-  { value: 'obispo', label: 'Obispo' },
-  { value: 'presbitero', label: 'Presbítero' },
-  { value: 'diacono', label: 'Diácono' },
-  { value: 'seminarista', label: 'Seminarista' },
-  { value: 'diacono_permanente', label: 'Diácono permanente' },
-]
-
 const MODOS_LABEL: Record<string, string> = {
   colaborador: 'Colaborador',
   servidor: 'Servidor',
@@ -237,7 +231,8 @@ export default function SettingsPage() {
 
   // Perfil tab state
   const [persona, setPersona] = useState<Persona | null>(null)
-  const [modoActual, setModoActual] = useState<string | null>(null)
+  const [modosActuales, setModosActuales] = useState<string[]>([])
+  const modosActualesLabel = modosActuales.map(modo => MODOS_LABEL[modo] ?? modo).join(' + ')
   const [confraternidadNombre, setConfraternidadNombre] = useState<string | null>(null)
   const [fraternidadNombre, setFraternidadNombre] = useState<string | null>(null)
   const [loadingPersona, setLoadingPersona] = useState(true)
@@ -457,14 +452,13 @@ export default function SettingsPage() {
           .is('fecha_fin', null)
         setAcompanados((acompanadosData as unknown as AcompanadoRow[]) ?? [])
 
-        const { data: modo } = await supabase
+        const { data: modos } = await supabase
           .from('persona_modos')
           .select('modo')
           .eq('persona_id', data.id)
           .is('fecha_fin', null)
-          .maybeSingle()
 
-        setModoActual(modo?.modo ?? null)
+        setModosActuales(ordenarModos((modos ?? []).map((row: { modo: string }) => row.modo)))
 
         // Confraternidad / Fraternidad vigentes (persona_organizacion activa).
         // Solo lectura — se importan/gestionan desde la Administración de CcD.
@@ -615,17 +609,18 @@ export default function SettingsPage() {
     if (error) {
       setSaveStatus('error')
       setEditError(translateSupabaseError(error.message))
-      return
+      return false
     }
     setSaveStatus('saved')
     window.setTimeout(() => setSaveStatus(s => (s === 'saved' ? 'idle' : s)), 2000)
+    return true
   }
 
   async function saveProfile(manual: boolean) {
     if (!persona) return
     if (manual) setEditLoading(true)
     const esClerigoConsagrado = editForm.estado_eclesial === 'clerigo' || editForm.estado_eclesial === 'consagrado'
-    await runSave(() =>
+    const saved = await runSave(() =>
       createClient()
         .from('personas')
         .update({
@@ -665,6 +660,17 @@ export default function SettingsPage() {
         })
         .eq('id', persona.id)
     )
+    if (!saved) {
+      if (manual) setEditLoading(false)
+      return
+    }
+    // El trigger puede haber sumado Asesor en la misma transacción del perfil.
+    const { data: modos, error: modosError } = await createClient()
+      .from('persona_modos')
+      .select('modo')
+      .eq('persona_id', persona.id)
+      .is('fecha_fin', null)
+    if (!modosError) setModosActuales(ordenarModos((modos ?? []).map((row: { modo: string }) => row.modo)))
     setPersona(prev =>
       prev
         ? {
@@ -1067,11 +1073,11 @@ export default function SettingsPage() {
                           {TIPOS_PERSONA_LABEL[persona.tipo_persona] ?? persona.tipo_persona}
                         </span>
                       )}
-                      {modoActual && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
-                          {MODOS_LABEL[modoActual] ?? modoActual}
+                      {modosActuales.map(modo => (
+                        <span key={modo} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
+                          {MODOS_LABEL[modo] ?? modo}
                         </span>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </CardContent>
@@ -1099,7 +1105,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Modo de participación</Label>
-                    <Input value={modoActual ? (MODOS_LABEL[modoActual] ?? modoActual) : '—'} readOnly disabled className="bg-muted" />
+                    <Input value={modosActualesLabel || '—'} readOnly disabled className="bg-muted" />
                   </div>
                   <div className="space-y-2">
                     <Label>Nombre de usuario de la plataforma</Label>
@@ -1124,7 +1130,7 @@ export default function SettingsPage() {
                 </CardContent>
 
                 {/* Subsección editable — la completa el propio cecista */}
-                {(modoActual === 'servidor' || modoActual === 'familiar') && (
+                {(modosActuales.includes('servidor') || modosActuales.includes('familiar')) && (
                   <CardContent className="grid gap-4 border-t border-border pt-6 md:grid-cols-2">
                     <div className={cn('md:col-span-2 space-y-1', !canEditSocioActivo && 'rounded-md bg-muted p-3')}>
                       <div className="flex items-center gap-3">
@@ -1379,6 +1385,11 @@ export default function SettingsPage() {
                             <option key={o.value} value={o.value}>{o.label}</option>
                           ))}
                         </select>
+                        {correspondeAsesorAutomatico({ ...editForm, tipo_persona: persona.tipo_persona }) && (
+                          <p className="text-sm text-muted-foreground">
+                            Se agrega Asesor automáticamente, conservando tu modo de participación actual.
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -1546,7 +1557,7 @@ export default function SettingsPage() {
                       />
                       <p className="text-xs text-muted-foreground">
                         Desde cuándo rige tu modo de participación actual
-                        {modoActual ? ` (${MODOS_LABEL[modoActual] ?? modoActual})` : ''}.
+                        {modosActualesLabel ? ` (${modosActualesLabel})` : ''}.
                       </p>
                     </div>
                   </div>

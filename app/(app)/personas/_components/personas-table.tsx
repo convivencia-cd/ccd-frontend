@@ -16,6 +16,7 @@ import PersonaDetailModal from "./persona-detail-modal"
 import ExportButton from "./export-button"
 import SortableHeader from "@/components/ui/sortable-header"
 import { apellidoNombreConApodo } from "@/lib/personas/nombre"
+import { ordenarModos } from "@/lib/personas/modos"
 
 type Persona = {
   id: string
@@ -29,7 +30,7 @@ type Persona = {
   estado_eclesial?: string | null
   confraternidad: string | null
   fraternidad: string | null
-  modo_participacion: string | null
+  modo_participacion: string[]
 }
 
 type Props = {
@@ -356,8 +357,8 @@ export default function PersonasTable({
                           {persona.fraternidad ?? "—"}
                         </td>
                         <td className="py-3 px-4 text-muted-foreground">
-                          {persona.modo_participacion
-                            ? modoLabels[persona.modo_participacion] ?? persona.modo_participacion
+                          {persona.modo_participacion.length
+                            ? ordenarModos(persona.modo_participacion).map(modo => modoLabels[modo] ?? modo).join(' + ')
                             : "—"}
                         </td>
                       </>

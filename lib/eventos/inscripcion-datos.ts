@@ -46,10 +46,11 @@ export const ESTADOS_ECLESIALES = [
   { value: 'consagrado', label: 'Consagrado/a' },
 ] as const
 
-// Segundo nivel del estado eclesial, solo para clérigos (migración 050).
+// Segundo nivel del estado eclesial, solo para clérigos (050 + 094).
 export const ESTADO_ECLESIAL_RANGOS = [
   { value: 'obispo', label: 'Obispo' },
-  { value: 'presbitero', label: 'Presbítero' },
+  { value: 'presbitero', label: 'Sacerdote (Presbítero)' },
+  { value: 'cardenal', label: 'Cardenal' },
   { value: 'diacono', label: 'Diácono' },
   { value: 'seminarista', label: 'Seminarista' },
   { value: 'diacono_permanente', label: 'Diácono permanente' },

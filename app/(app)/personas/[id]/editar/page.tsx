@@ -16,7 +16,7 @@ export default async function EditPersonaPage({ params }: { params: Promise<{ id
 
   const [
     { data: persona },
-    { data: modoActual },
+    { data: modosActuales },
     { data: historialModos },
     { data: asignacionesActivas },
     { data: historialAsignaciones },
@@ -32,8 +32,7 @@ export default async function EditPersonaPage({ params }: { params: Promise<{ id
       .from("persona_modos")
       .select("id, modo, fecha_inicio")
       .eq("persona_id", id)
-      .is("fecha_fin", null)
-      .maybeSingle(),
+      .is("fecha_fin", null),
     supabase
       .from("persona_modos")
       .select("id, modo, fecha_inicio, fecha_fin, motivo_fin, documento_url")
@@ -106,7 +105,7 @@ export default async function EditPersonaPage({ params }: { params: Promise<{ id
   return (
     <EditPersonaForm
       persona={persona}
-      modoActual={modoActual ?? null}
+      modoActual={modosActuales?.find(row => row.modo !== 'asesor') ?? modosActuales?.[0] ?? null}
       historialModos={historialModos ?? []}
       asignacionesActivas={asignacionesActivas ?? []}
       historialAsignaciones={historialAsignaciones ?? []}

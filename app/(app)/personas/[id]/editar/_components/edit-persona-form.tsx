@@ -14,6 +14,7 @@ import { LocationFields } from "@/components/location-fields"
 import { Combobox } from "@/components/ui/combobox"
 import { cn } from "@/lib/utils"
 import { apellidoNombreConApodo } from "@/lib/personas/nombre"
+import { correspondeAsesorAutomatico } from "@/lib/personas/modos"
 
 type Persona = {
   id: string
@@ -35,6 +36,7 @@ type Persona = {
   acepta_comunicaciones: boolean | null
   notas: string | null
   estado_eclesial: string | null
+  estado_eclesial_rango: string | null
   estado_vida: string | null
   diocesis: string | null
   tipo_persona: string | null
@@ -403,6 +405,10 @@ export function EditPersonaForm({
     e.preventDefault()
     if (!nuevoModo) return
     setModoError(null)
+    if (historialModos.some(row => row.fecha_fin === null && row.modo === nuevoModo)) {
+      setModoError('La persona ya tiene ese modo de participación vigente.')
+      return
+    }
     setModoLoading(true)
 
     const supabase = createClient()
@@ -423,7 +429,8 @@ export function EditPersonaForm({
       documentoUrl = urlData.publicUrl
     }
 
-    if (modoActual) {
+    // Al asignar un modo principal se conserva el Asesor adicional.
+    if (modoActual && !(modoActual.modo === 'asesor' && correspondeAsesorAutomatico(persona))) {
       const { error: closeError } = await supabase
         .from("persona_modos")
         .update({ fecha_fin: today, estado: "inactivo", motivo_fin: motivoFin || null })
@@ -921,9 +928,11 @@ export function EditPersonaForm({
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm font-medium text-foreground">Modo de Participación:</span>
                 {modoActual ? (
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                    {modoLabels[modoActual.modo] ?? modoActual.modo}
-                  </span>
+                  historialModos.filter(row => row.fecha_fin === null).map(row => (
+                    <span key={row.id} className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                      {modoLabels[row.modo] ?? row.modo}
+                    </span>
+                  ))
                 ) : (
                   <span className="text-sm text-muted-foreground italic">Sin modo asignado</span>
                 )}

@@ -11,6 +11,7 @@ import PersonasFilters from './_components/personas-filters'
 import DataPagination from '@/components/data-pagination'
 import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
 import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
+import { agruparModosPorPersona } from '@/lib/personas/modos'
 
 export default async function PersonasPage({
   searchParams,
@@ -107,7 +108,7 @@ export default async function PersonasPage({
     estado_eclesial?: string | null
     confraternidad: string | null
     fraternidad: string | null
-    modo_participacion: string | null
+    modo_participacion: string[]
   }
 
   let personas: PersonaRow[] = []
@@ -180,7 +181,7 @@ export default async function PersonasPage({
       organizacionesActuales = (organizacionesData ?? []) as unknown as typeof organizacionesActuales
     }
 
-    const modoPorPersona = new Map(modosActuales.map(row => [row.persona_id, row.modo]))
+    const modosPorPersona = agruparModosPorPersona(modosActuales)
     const organizacionesPorPersona = new Map<string, { confraternidad: string | null; fraternidad: string | null }>()
 
     for (const row of organizacionesActuales) {
@@ -193,10 +194,10 @@ export default async function PersonasPage({
     personas = personaRows.map(persona => {
       const organizacion = organizacionesPorPersona.get(persona.id)
       const modoParticipacion = persona.tipo_persona === 'otro'
-        ? 'otro'
+        ? ['otro']
         : persona.tipo_persona === 'convivente' || persona.tipo_persona === 'no_cecista'
-          ? 'convivente'
-          : modoPorPersona.get(persona.id) ?? null
+          ? ['convivente']
+          : modosPorPersona.get(persona.id) ?? []
 
       return {
         id: persona.id,

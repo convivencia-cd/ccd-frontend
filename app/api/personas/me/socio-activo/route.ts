@@ -37,14 +37,14 @@ export async function PATCH(request: NextRequest) {
 
   // Defensa en profundidad: solo aplica a modo servidor/familiar, igual que
   // la visibilidad del campo en la pantalla de Configuración.
-  const { data: modoRow } = await supabase
+  const { data: modos } = await supabase
     .from('persona_modos')
     .select('modo')
     .eq('persona_id', ctx.persona_id)
+    .in('modo', ['servidor', 'familiar'])
     .is('fecha_fin', null)
-    .maybeSingle()
 
-  if (!modoRow || (modoRow.modo !== 'servidor' && modoRow.modo !== 'familiar')) {
+  if (!modos?.length) {
     return NextResponse.json(
       { error: 'Este campo no aplica al modo de participación actual' },
       { status: 400 },
