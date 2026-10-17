@@ -256,7 +256,7 @@ export default async function EventoGestionPage({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border p-4">
-              <p className="text-xs text-muted-foreground">Monto de Inscripción</p>
+              <p className="text-xs text-muted-foreground">Valor de Inscripción</p>
               <p className="text-lg font-semibold text-foreground">${formatMonto(Number(evento.precio ?? 0))}</p>
             </div>
             <div className="rounded-lg border border-border p-4">

@@ -599,7 +599,7 @@ export default function InformeEconomicoPanel(props: Props) {
                 )}
               </div>
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Valor inscripción</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Valor de Inscripción</h4>
                 <p className="text-sm tabular-nums">{info.valor_inscripcion != null ? fmt(info.valor_inscripcion) : '—'}</p>
               </div>
             </div>

@@ -839,7 +839,7 @@ export default async function EventoDetailPage({
             </div>
             <Field label="Modalidad" value={evento.modalidad} />
             <div>
-              <p className="text-xs text-muted-foreground">Costo</p>
+              <p className="text-xs text-muted-foreground">Valor de Inscripción</p>
               {evento.es_apv ? (
                 <p className="text-sm text-foreground">De Aporte Voluntario (DAV)</p>
               ) : (evento as Record<string, unknown>).precio != null && Number((evento as Record<string, unknown>).precio) > 0 ? (

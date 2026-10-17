@@ -179,7 +179,7 @@ export default function NewRetiroAdminPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="precio">Precio</Label>
+                <Label htmlFor="precio">Valor de Inscripción</Label>
                 <Input
                   id="precio"
                   name="precio"

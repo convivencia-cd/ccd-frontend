@@ -100,7 +100,7 @@ export default function PensionBecasPanel({ eventoId, precioEvento, participante
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wide">
                     <th className="px-2 py-2 text-left font-medium">Persona</th>
-                    <th className="px-2 py-2 text-left font-medium">Valor Inscripción</th>
+                    <th className="px-2 py-2 text-left font-medium">Valor de Inscripción</th>
                     <th className="px-2 py-2 text-left font-medium">Valor Pensión</th>
                     <th className="px-2 py-2 text-left font-medium">Beca Pensión</th>
                     <th className="px-2 py-2 text-right font-medium">Saldo Pensión</th>

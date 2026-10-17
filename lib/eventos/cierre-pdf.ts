@@ -256,7 +256,7 @@ export async function exportInformeEconomicoPDF({ info, movimientos, saldosInici
   doc.setFont('helvetica', 'bold')
   doc.text('BECAS OTORGADAS', MARGIN, c.y)
   if (info.valor_inscripcion != null) {
-    doc.text('Valor Inscripción', xDer, c.y)
+    doc.text('Valor de Inscripción', xDer, c.y)
     doc.text(fmt(info.valor_inscripcion), xDer + colW, c.y, { align: 'right' })
   }
   c.y += LINE

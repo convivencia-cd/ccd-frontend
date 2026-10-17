@@ -94,7 +94,7 @@ export async function exportInformeEconomicoXLSX({ info, movimientos, saldosInic
     ['Saldo', saldo],
     ['Diezmo al EqT', diezmo],
     [],
-    ['BECAS OTORGADAS', null, null, 'Valor Inscripción', info.valor_inscripcion],
+    ['BECAS OTORGADAS', null, null, 'Valor de Inscripción', info.valor_inscripcion],
     ['Nombre y Apellido', 'Importe'],
     ...becas.map(b => [b.nombre, b.importe] as Celda[]),
     [],

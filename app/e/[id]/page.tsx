@@ -252,7 +252,7 @@ export default async function PublicEventDetailPage({
               </div>
               {evento.precio != null && Number(evento.precio) > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Monto</span>
+                  <span className="text-muted-foreground">Valor de Inscripción</span>
                   <span className="font-medium text-foreground">${Number(evento.precio).toLocaleString('es-AR')}</span>
                 </div>
               )}
@@ -434,7 +434,7 @@ export default async function PublicEventDetailPage({
               <div className="flex items-start gap-3">
                 <Wallet className="h-5 w-5 shrink-0 mt-0.5 text-[#F08020]" aria-hidden="true" />
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Precio</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Valor de Inscripción</p>
                   <p className="text-sm font-medium text-foreground">${montoInscripcion.toLocaleString('es-AR')}</p>
                   {inscripcionesAbiertas && (
                     <p className="text-xs text-muted-foreground/70 mt-0.5">
