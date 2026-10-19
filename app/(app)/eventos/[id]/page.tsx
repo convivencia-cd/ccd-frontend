@@ -186,7 +186,8 @@ export default async function EventoDetailPage({
   // Personas con un ministerio institucional dado actualmente asignado (para los
   // desplegables de "Coordinador/es" y "Asesor/es" en discernimiento).
   // asignaciones_ministerio con fecha_fin IS NULL = vigente.
-  async function personasConMinisterioActivo(nombreMinisterio: string): Promise<{ id: string; nombre: string; apellido: string }[]> {
+  type PersonaRol = { id: string; nombre: string; apellido: string; apodo: string | null }
+  async function personasConMinisterioActivo(nombreMinisterio: string): Promise<PersonaRol[]> {
     const { data: ministerio } = await supabase
       .from('ministerios')
       .select('id')
@@ -196,15 +197,15 @@ export default async function EventoDetailPage({
 
     const { data: asignaciones } = await supabase
       .from('asignaciones_ministerio')
-      .select('persona:personas!persona_id(id, nombre, apellido)')
+      .select('persona:personas!persona_id(id, nombre, apellido, apodo)')
       .eq('ministerio_id', ministerio.id)
       .eq('estado', 'activo')
       .is('fecha_fin', null)
 
     const seen = new Set<string>()
-    return ((asignaciones ?? []) as unknown as { persona: { id: string; nombre: string; apellido: string } | null }[])
+    return ((asignaciones ?? []) as unknown as { persona: PersonaRol | null }[])
       .map(a => a.persona)
-      .filter((p): p is { id: string; nombre: string; apellido: string } => {
+      .filter((p): p is PersonaRol => {
         if (!p || seen.has(p.id)) return false
         seen.add(p.id)
         return true
@@ -221,24 +222,38 @@ export default async function EventoDetailPage({
   // Join embebido en vez de un .in('id', [...]) sobre personas: con ~900 ids activos
   // ese .in() arma una URL de más de 30.000 caracteres que Supabase rechaza con
   // "Bad Request", y al no chequear el error la lista quedaba silenciosamente vacía.
-  const { data: modosServidorFamiliar } = await supabase
-    .from('persona_modos')
-    .select('persona_id, personas(id, nombre, apellido, fecha_baja)')
-    .in('modo', ['servidor', 'familiar'])
-    .is('fecha_fin', null)
-    .is('personas.fecha_baja', null)
+  // Paginado: ya son más de 900 filas y PostgREST corta en 1000.
+  type PersonaEmbebida = { id: string; nombre: string; apellido: string; apodo: string | null; fecha_baja: string | null }
+  const modosServidorFamiliar: { personas: PersonaEmbebida | null }[] = []
+  {
+    const pageSize = 1000
+    let from = 0
+    while (true) {
+      const { data: page } = await supabase
+        .from('persona_modos')
+        .select('persona_id, personas(id, nombre, apellido, apodo, fecha_baja)')
+        .in('modo', ['servidor', 'familiar'])
+        .is('fecha_fin', null)
+        .is('personas.fecha_baja', null)
+        .order('id')
+        .range(from, from + pageSize - 1)
+      if (!page || page.length === 0) break
+      modosServidorFamiliar.push(...(page as unknown as { personas: PersonaEmbebida | null }[]))
+      if (page.length < pageSize) break
+      from += pageSize
+    }
+  }
 
-  type PersonaEmbebida = { id: string; nombre: string; apellido: string; fecha_baja: string | null }
   const seenSF = new Set<string>()
-  const personasServidoresFamiliares: { id: string; nombre: string; apellido: string }[] =
-    ((modosServidorFamiliar ?? []) as unknown as { personas: PersonaEmbebida | null }[])
+  const personasServidoresFamiliares: { id: string; nombre: string; apellido: string; apodo: string | null }[] =
+    modosServidorFamiliar
       .map(pm => pm.personas)
       .filter((p): p is PersonaEmbebida => {
         if (!p || seenSF.has(p.id)) return false
         seenSF.add(p.id)
         return true
       })
-      .map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))
+      .map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido, apodo: p.apodo }))
       .sort((a, b) => a.apellido.localeCompare(b.apellido) || a.nombre.localeCompare(b.nombre))
 
   // ─── Datos del Cierre (solo si el evento está finalizado/cerrado y el usuario puede verlo) ───

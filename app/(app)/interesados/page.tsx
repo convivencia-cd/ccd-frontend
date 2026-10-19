@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
 import { getUserContext } from "@/lib/auth/context"
 import { resolverAccesoInteresados } from "@/lib/interesados/access"
+import { filtroBusquedaPersonas } from "@/lib/personas/busqueda"
 import { EventoFilter } from "./_components/evento-filter"
 import { InteresadoCard, INTERESADO_SELECT } from "./_components/interesado-card"
 
@@ -36,11 +37,12 @@ export default async function InteresadosPage({
 
   // Relational search by persona name/email → resolve matching persona ids
   let personaIds: string[] | null = null
-  if (q) {
+  const filtroPersona = q ? filtroBusquedaPersonas(q) : null
+  if (filtroPersona) {
     const { data } = await supabase
       .from("personas")
       .select("id")
-      .or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,apodo.ilike.%${q}%,email.ilike.%${q}%`)
+      .or(filtroPersona)
     personaIds = data?.map((r) => r.id) ?? []
   }
   const noResults = personaIds !== null && personaIds.length === 0

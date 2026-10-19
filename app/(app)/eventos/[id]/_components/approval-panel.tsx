@@ -36,7 +36,7 @@ type EventoCamposEditables = {
 
 type FechaEjecucion = { id?: string | null; fecha_inicio: string; fecha_fin: string }
 type CasaRetiro = { id: string; nombre: string; ciudad?: string | null; provincia?: string | null }
-type Persona = { id: string; nombre: string; apellido: string }
+type Persona = { id: string; nombre: string; apellido: string; apodo?: string | null }
 
 type DiscernimientoNivel = {
   nivel: 'confra' | 'eqt'

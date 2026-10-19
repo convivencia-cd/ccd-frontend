@@ -2,8 +2,9 @@
 
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
+import { apellidoNombreConApodo } from '@/lib/personas/nombre'
 
-type PersonaOpt = { id: string; nombre: string; apellido: string }
+type PersonaOpt = { id: string; nombre: string; apellido: string; apodo?: string | null }
 
 const OTRO = '__otro__'
 
@@ -60,13 +61,16 @@ export function PersonaRolSelector({ value, onChange, opcionesRol, mode, otro, c
 
   const searchOptions = useMemo<ComboboxOption[]>(() => {
     if (otro.tipo !== 'buscador') return []
-    const opts = otro.opciones.map(p => ({
-      label: `${p.apellido}, ${p.nombre}`,
+    // El buscador matchea por palabras contra la etiqueta y el "Nombre Apellido",
+    // así "Diego Pascualini" encuentra a "Garcia Pascualini, Diego Rodolfo".
+    const opts: ComboboxOption[] = otro.opciones.map(p => ({
+      label: apellidoNombreConApodo(p),
       value: mode === 'id' ? p.id : nombreCompleto(p),
+      keywords: [nombreCompleto(p)],
     }))
     if (mostrarOtro && value && !opts.some(o => o.value === value)) {
       const fallback = mode === 'id' ? otro.personasFallback?.find(p => p.id === value) : undefined
-      opts.unshift({ label: fallback ? `${fallback.apellido}, ${fallback.nombre}` : value, value })
+      opts.unshift({ label: fallback ? apellidoNombreConApodo(fallback) : value, value })
     }
     return opts
   }, [otro, mode, mostrarOtro, value])
@@ -80,7 +84,7 @@ export function PersonaRolSelector({ value, onChange, opcionesRol, mode, otro, c
       >
         <option value="">— Sin asignar —</option>
         {opcionesRol.map(p => (
-          <option key={p.id} value={p.id}>{p.apellido}, {p.nombre}</option>
+          <option key={p.id} value={p.id}>{apellidoNombreConApodo(p)}</option>
         ))}
         <option value={OTRO}>Otro…</option>
       </select>
@@ -92,7 +96,7 @@ export function PersonaRolSelector({ value, onChange, opcionesRol, mode, otro, c
               onSelect={onChange}
               options={searchOptions}
               placeholder="Buscar servidor o familiar..."
-              searchPlaceholder="Buscar por apellido o nombre..."
+              searchPlaceholder="Buscar por nombre, apellido o apodo..."
               emptyText="No se encontraron servidores ni familiares."
             />
           ) : (

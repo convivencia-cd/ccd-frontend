@@ -4,6 +4,7 @@ import { getUserContext, canPerform } from '@/lib/auth/context'
 import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
 import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
 import { agruparModosPorPersona, ordenarModos } from '@/lib/personas/modos'
+import { filtroBusquedaPersonas } from '@/lib/personas/busqueda'
 
 export async function GET(req: NextRequest) {
   const ctx = await getUserContext()
@@ -98,7 +99,8 @@ export async function GET(req: NextRequest) {
       `)
       .is('fecha_baja', null)
 
-    if (q) q_ = q_.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,apodo.ilike.%${q}%,email.ilike.%${q}%`)
+    const filtroPersona = filtroBusquedaPersonas(q)
+    if (filtroPersona) q_ = q_.or(filtroPersona)
     if (estado) q_ = q_.eq('estado', estado)
     if (estado_eclesial) q_ = q_.eq('estado_eclesial', estado_eclesial)
     // Mismo criterio que el listado: se buscan las variantes tal cual están guardadas.

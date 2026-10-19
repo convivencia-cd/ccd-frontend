@@ -34,13 +34,18 @@ function normalize(text: string): string {
     .trim()
 }
 
-/** Filtro accent-insensitive que además considera los `keywords` de cada opción. */
-function fuzzyFilter(value: string, search: string, keywords?: string[]): number {
+/**
+ * Filtro accent-insensitive que además considera los `keywords` de cada opción.
+ * Busca por palabras en cualquier orden: "diego pascualini" encuentra "Pascualini, Diego".
+ */
+export function fuzzyFilter(value: string, search: string, keywords?: string[]): number {
   const q = normalize(search)
   if (!q) return 1
   const haystack = [value, ...(keywords ?? [])].map(normalize)
   if (haystack.some((h) => h.startsWith(q))) return 1
-  if (haystack.some((h) => h.includes(q))) return 0.5
+  if (haystack.some((h) => h.includes(q))) return 0.75
+  const tokens = q.split(/[\s,]+/).filter(Boolean)
+  if (tokens.every((t) => haystack.some((h) => h.includes(t)))) return 0.5
   return 0
 }
 

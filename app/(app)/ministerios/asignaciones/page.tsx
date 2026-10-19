@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/server"
 import { getUserContext, canPerform } from "@/lib/auth/context"
 import { nombreCompletoConApodo } from "@/lib/personas/nombre"
+import { filtroBusquedaPersonas } from "@/lib/personas/busqueda"
 import DataPagination from "@/components/data-pagination"
 
 const PAGE_SIZE = 25
@@ -43,11 +44,12 @@ export default async function AsignacionesPage({
   // sobre las filas ya traídas, y como PostgREST corta en 1000 filas la persona
   // buscada podía quedar fuera del corte y "no existir".
   let personaIds: string[] | null = null
-  if (q) {
+  const filtroPersona = q ? filtroBusquedaPersonas(q) : null
+  if (filtroPersona) {
     const { data } = await supabase
       .from("personas")
       .select("id")
-      .or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,apodo.ilike.%${q}%,email.ilike.%${q}%`)
+      .or(filtroPersona)
     personaIds = data?.map((p) => p.id) ?? []
   }
 

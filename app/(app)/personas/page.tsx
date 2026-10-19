@@ -12,6 +12,7 @@ import DataPagination from '@/components/data-pagination'
 import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
 import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
 import { agruparModosPorPersona } from '@/lib/personas/modos'
+import { filtroBusquedaPersonas } from '@/lib/personas/busqueda'
 
 export default async function PersonasPage({
   searchParams,
@@ -131,9 +132,8 @@ export default async function PersonasPage({
       .order(sortCol, { ascending: sortAsc })
       .range(from, to)
 
-    if (q) {
-      query = query.or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,apodo.ilike.%${q}%,email.ilike.%${q}%`)
-    }
+    const filtroPersona = filtroBusquedaPersonas(q)
+    if (filtroPersona) query = query.or(filtroPersona)
     if (canManage && estado) query = query.eq('estado', estado)
     if (canManage && estado_eclesial) query = query.eq('estado_eclesial', estado_eclesial)
     // Se filtra por las variantes guardadas ("Cordoba" además de "Córdoba"); si la

@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import type { ComboboxOption } from "@/components/ui/combobox"
+import { fuzzyFilter, type ComboboxOption } from "@/components/ui/combobox"
 
 interface MultiComboboxProps {
   values: string[]
@@ -76,7 +76,7 @@ export function MultiCombobox({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-          <Command>
+          <Command filter={fuzzyFilter}>
             <CommandInput
               placeholder={searchPlaceholder}
               value={search}
@@ -89,6 +89,7 @@ export function MultiCombobox({
                   <CommandItem
                     key={option.value}
                     value={option.label}
+                    keywords={option.keywords}
                     onSelect={() => toggle(option.value)}
                     className="data-[selected=true]:bg-muted data-[selected=true]:text-foreground"
                   >

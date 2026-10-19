@@ -135,7 +135,7 @@ export function PersonaCombobox({
       disabled={disabled}
       className={className}
       placeholder={placeholder}
-      searchPlaceholder="Buscar por nombre, apellido o email..."
+      searchPlaceholder="Buscar por nombre, apellido, apodo o email..."
       emptyText="No se encontraron personas."
     />
   )
