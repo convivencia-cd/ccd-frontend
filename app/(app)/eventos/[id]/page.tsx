@@ -1228,7 +1228,7 @@ export default async function EventoDetailPage({
               personas={(personasCecistas ?? []) as { id: string; nombre: string; apellido: string; email?: string | null; telefono?: string | null }[]}
               motivoDevolucion={(evento as Record<string, unknown>).notas_aprobacion_final as string | null}
               canCrearCasaRetiro={!!ctx && canPerform(ctx, 'casas_retiro.create')}
-              tieneFlyer={!!ev.flyer_horizontal_url || !!ev.flyer_cuadrado_url}
+              tieneFlyer={!!ev.flyer_horizontal_url && !!ev.flyer_cuadrado_url}
             />
           </div>
         </div>
