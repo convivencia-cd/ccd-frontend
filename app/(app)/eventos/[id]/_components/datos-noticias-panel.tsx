@@ -50,7 +50,7 @@ type Props = {
   motivoDevolucion?: string | null
   /** Mostrar el atajo para crear una casa nueva (permiso casas_retiro.create). */
   canCrearCasaRetiro?: boolean
-  /** Ya hay al menos un flyer subido: es obligatorio para solicitar la publicación. */
+  /** Están los dos flyers subidos: son obligatorios para solicitar la publicación (card #84). */
   tieneFlyer: boolean
 }
 
@@ -183,7 +183,7 @@ export default function DatosNoticiasPannel({ eventoId, inicial, casasRetiro, pe
       return
     }
     if (!tieneFlyer) {
-      setError('Subí al menos un flyer (horizontal o cuadrado) en "Flyers del Retiro" antes de solicitar la publicación.')
+      setError('Subí los dos flyers (horizontal y cuadrado) en "Flyers del Retiro" antes de solicitar la publicación.')
       return
     }
     const sinCelular = centralizadores

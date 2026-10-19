@@ -117,7 +117,7 @@ export default function FlyerUploadPanel({
   eventoId: string
   flyerHorizontalUrl: string | null
   flyerCuadradoUrl: string | null
-  /** Pendiente Datos Noticias: hace falta al menos un flyer para pedir la publicación. */
+  /** Pendiente Datos Noticias: hacen falta los dos flyers para pedir la publicación. */
   obligatorio?: boolean
 }) {
   const router = useRouter()
@@ -204,7 +204,7 @@ export default function FlyerUploadPanel({
         </CardTitle>
         {obligatorio && (
           <p className="text-xs text-muted-foreground">
-            Obligatorio: subí al menos un flyer para poder solicitar la publicación final.
+            Obligatorio: subí los dos flyers para poder solicitar la publicación final.
           </p>
         )}
       </CardHeader>

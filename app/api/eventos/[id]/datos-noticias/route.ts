@@ -121,10 +121,10 @@ export async function POST(
     )
   }
 
-  // Para pedir la publicación tiene que haber al menos un flyer subido
-  if (!evento.flyer_horizontal_url && !evento.flyer_cuadrado_url) {
+  // Para pedir la publicación tienen que estar los dos flyers (card #84)
+  if (!evento.flyer_horizontal_url || !evento.flyer_cuadrado_url) {
     return NextResponse.json(
-      { error: 'Subí al menos un flyer (horizontal o cuadrado) antes de solicitar la publicación.' },
+      { error: 'Subí los dos flyers (horizontal y cuadrado) antes de solicitar la publicación.' },
       { status: 400 }
     )
   }
