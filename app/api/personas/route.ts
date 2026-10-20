@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { translateSupabaseError } from '@/lib/errors/supabase'
+import { correspondeAsesorAutomatico } from '@/lib/personas/modos'
 
 export async function POST(request: Request) {
   const ctx = await getUserContext()
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
   if (body.provincia) insertData.provincia = body.provincia
   if (body.pais) insertData.pais = body.pais
   if (body.estado_eclesial) insertData.estado_eclesial = body.estado_eclesial
+  if (body.estado_eclesial === 'clerigo' && body.estado_eclesial_rango) insertData.estado_eclesial_rango = body.estado_eclesial_rango
   if (body.estado_vida) insertData.estado_vida = body.estado_vida
   if (body.diocesis) insertData.diocesis = body.diocesis
   if (body.tipo_persona) insertData.tipo_persona = body.tipo_persona
@@ -72,14 +74,27 @@ export async function POST(request: Request) {
 
   if (body.modo_inicial && persona) {
     const today = new Date().toISOString().split('T')[0]
-    const { error: modoError } = await supabase
-      .from('persona_modos')
-      .insert({
-        persona_id: persona.id,
-        modo: body.modo_inicial,
-        fecha_inicio: today,
-        documento_url: body.documento_url_modo ?? null,
-      })
+    // Si el trigger de 094 ya creó el Asesor, solo se le adjunta el documento.
+    const asesorYaCreado = body.modo_inicial === 'asesor' && correspondeAsesorAutomatico({
+      tipo_persona: body.tipo_persona ?? null,
+      estado_eclesial: body.estado_eclesial ?? null,
+      estado_eclesial_rango: body.estado_eclesial_rango ?? null,
+    })
+    const { error: modoError } = asesorYaCreado
+      ? await supabase
+          .from('persona_modos')
+          .update({ documento_url: body.documento_url_modo ?? null })
+          .eq('persona_id', persona.id)
+          .eq('modo', 'asesor')
+          .is('fecha_fin', null)
+      : await supabase
+          .from('persona_modos')
+          .insert({
+            persona_id: persona.id,
+            modo: body.modo_inicial,
+            fecha_inicio: today,
+            documento_url: body.documento_url_modo ?? null,
+          })
     if (modoError) {
       return NextResponse.json({ error: translateSupabaseError(modoError.message) }, { status: 400 })
     }
