@@ -7,6 +7,7 @@ import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { DiocesisCombobox } from "@/components/diocesis-field"
 import { PAISES } from "@/lib/geo/paises"
 import { getSubdivisiones } from "@/lib/geo/subdivisiones"
+import { buscarCodigoPostal } from "@/lib/geo/codigos-postales"
 
 export { PAISES }
 
@@ -130,18 +131,43 @@ export function LocationFields({
       .map((n) => ({ label: n, value: n }))
   }, [todasLocalidades, localidadQuery])
 
+  // CP completado automáticamente (card #77). Si después cambia la ciudad y la
+  // nueva no tiene CP conocido, se borra solo si nadie lo editó a mano.
+  const [cpAutomatico, setCpAutomatico] = React.useState<string | null>(null)
+
+  function limpiarCpAutomatico() {
+    if (cpAutomatico !== null && codigoPostal === cpAutomatico) {
+      onCodigoPostalChange?.("")
+    }
+    setCpAutomatico(null)
+  }
+
+  async function handleLocalidadChange(val: string) {
+    onLocalidadChange(val)
+    if (!onCodigoPostalChange) return
+    const cp = val ? await buscarCodigoPostal(provincia, val) : null
+    if (cp) {
+      onCodigoPostalChange(cp)
+      setCpAutomatico(cp)
+    } else {
+      limpiarCpAutomatico()
+    }
+  }
+
   function handlePaisChange(val: string) {
     onPaisChange(val)
     // Reset downstream fields when country changes
     onProvinciaChange("")
     onLocalidadChange("")
     setLocalidadQuery("")
+    limpiarCpAutomatico()
   }
 
   function handleProvinciaChange(val: string) {
     onProvinciaChange(val)
     onLocalidadChange("")
     setLocalidadQuery("")
+    limpiarCpAutomatico()
   }
 
   return (
@@ -190,7 +216,7 @@ export function LocationFields({
           {isArgentina ? (
             <Combobox
               value={localidad}
-              onSelect={onLocalidadChange}
+              onSelect={handleLocalidadChange}
               options={localidades}
               placeholder={provincia ? "Buscar ciudad..." : "Seleccionar provincia primero"}
               searchPlaceholder="Escribir para buscar..."
@@ -219,6 +245,14 @@ export function LocationFields({
               onChange={(e) => onCodigoPostalChange(e.target.value)}
               disabled={disabled}
             />
+            {cpAutomatico !== null && codigoPostal === cpAutomatico && (
+              <p className="text-[11px] text-muted-foreground/70">
+                CP sugerido · datos de{" "}
+                <a href="https://www.geonames.org" target="_blank" rel="noopener noreferrer" className="hover:underline">
+                  GeoNames
+                </a>
+              </p>
+            )}
           </div>
         )}
       </div>
