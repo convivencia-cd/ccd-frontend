@@ -116,6 +116,20 @@ export function canTomarAsistencia(ctx: UserContext | null, evento: EventoEquipo
  * scopeado, lo puede hacer el centralizador del evento: es el rol operativo que
  * lleva el padrón de inscriptos mientras el evento está en curso.
  */
+/**
+ * Ver (solo lectura) el equipo cargado del retiro en su ficha (card #99): quien
+ * tenga event.view_equipo scopeado a la organización del evento, o quien ya
+ * entra a la Gestión (ahí lo ve igual).
+ */
+export function canVerEquipoRetiro(ctx: UserContext | null, evento: EventoEquipoScope): boolean {
+  if (!ctx) return false
+  return (
+    canPerform(ctx, 'event.view_equipo', evento.organizacion_id ?? null) ||
+    (evento.fraternidad_id ? canPerform(ctx, 'event.view_equipo', evento.fraternidad_id) : false) ||
+    canGestionarEvento(ctx, evento)
+  )
+}
+
 export function canGestionarParticipantes(ctx: UserContext | null, evento: EventoEquipoScope): boolean {
   if (!ctx) return false
   return (

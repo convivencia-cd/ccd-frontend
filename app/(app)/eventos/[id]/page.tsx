@@ -33,7 +33,8 @@ import {
   type PreguntaInforme,
 } from '@/lib/eventos/cierre'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
-import { canGestionarEvento, canTomarAsistencia } from '@/lib/eventos/equipo'
+import { canGestionarEvento, canTomarAsistencia, canVerEquipoRetiro } from '@/lib/eventos/equipo'
+import { EquipoRetiroCard, type IntegranteEquipo } from './_components/equipo-retiro-card'
 import { canExportarFichasInscripcion } from '@/lib/eventos/inscripcion-datos'
 import { ExportarFichasButton } from './_components/exportar-fichas-button'
 import { cargarCarismas, cargarInformeCcd } from '@/lib/eventos/informes-cierre'
@@ -285,6 +286,40 @@ export default async function EventoDetailPage({
       .order('fecha_inscripcion', { ascending: false })
     interesadosEvento = interesadosData ?? []
   }
+
+  // ─── Equipo del retiro (card #99): solo lectura, desde que se publica ───
+  const ESTADOS_EQUIPO_VISIBLE = ['publicado', 'en_curso', 'finalizado', 'cerrado']
+  const showEquipo = ESTADOS_EQUIPO_VISIBLE.includes(evento.estado) && canVerEquipoRetiro(ctx, cierreEvento)
+  let equipoRetiro: IntegranteEquipo[] = []
+  if (showEquipo) {
+    const [{ data: equipoData }, { data: gruposData }] = await Promise.all([
+      supabase
+        .from('evento_participantes')
+        .select('id, rol_en_evento, persona:personas!persona_id(nombre, apellido)')
+        .eq('evento_id', id)
+        .in('rol_en_evento', ['servidor', 'musica', 'equipo_auxiliar'])
+        .neq('estado_participacion', 'cancelado'),
+      supabase.from('evento_grupos').select('nombre, servidor_participante_id').eq('evento_id', id),
+    ])
+    const grupoPorServidor = new Map(
+      ((gruposData ?? []) as { nombre: string; servidor_participante_id: string | null }[])
+        .filter(g => g.servidor_participante_id)
+        .map(g => [g.servidor_participante_id as string, g.nombre])
+    )
+    equipoRetiro = ((equipoData ?? []) as unknown as Omit<IntegranteEquipo, 'grupo'>[]).map(i => ({
+      ...i,
+      grupo: grupoPorServidor.get(i.id) ?? null,
+    }))
+  }
+
+  // Botón "Inscriptos": mismo acceso que /inscriptos (card #98) para este evento.
+  const canVerInscriptosEvento =
+    !!ctx &&
+    ['publicado', 'en_curso', 'finalizado', 'cerrado'].includes(evento.estado) &&
+    (canPerform(ctx, 'view.inscriptos', evento.organizacion_id ?? null) ||
+      (evento.fraternidad_id ? canPerform(ctx, 'view.inscriptos', evento.fraternidad_id) : false) ||
+      (!!ctx.persona_id && ctx.persona_id === cierreEvento.coordinador_asignado_id) ||
+      esCentralizadorDeEvento(ctx, cierreEvento))
 
   type ParticipanteRow = {
     persona_id: string
@@ -707,6 +742,14 @@ export default async function EventoDetailPage({
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                 <Users className="h-4 w-4" />
                 Tomar asistencia
+              </Button>
+            </Link>
+          )}
+          {canVerInscriptosEvento && (
+            <Link href={`/inscriptos?evento_id=${id}`}>
+              <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                <Users className="h-4 w-4" />
+                Inscriptos
               </Button>
             </Link>
           )}
@@ -1287,6 +1330,8 @@ export default async function EventoDetailPage({
       )}
 
       </div>
+
+      {showEquipo && <EquipoRetiroCard integrantes={equipoRetiro} />}
 
       {/* Interesados — seguimiento de contacto de este evento */}
       {canInteresados && interesadosEvento.length > 0 && (

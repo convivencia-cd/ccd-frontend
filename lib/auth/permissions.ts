@@ -31,6 +31,7 @@ export type Permission =
   | 'event.manage'        // botón "Gestionar retiro": pantalla de Gestión (equipo, becas en pensión, exportaciones) — scopeado
   | 'event.attendance'    // botón "Tomar asistencia" — scopeado (el centralizador del evento no lo necesita)
   | 'event.manage_participants'
+  | 'event.view_equipo'   // ver (solo lectura) el equipo cargado del retiro en su ficha — scopeado
   | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
   | 'inscripcion.export_fichas'        // descargar las fichas de inscripción de los participantes (PDF/Excel) — scopeado a la org del evento
   | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
@@ -92,6 +93,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.manage',
     'event.attendance',
     'event.manage_participants',
+    'event.view_equipo',
     'inscripcion.view_datos_sensibles',
     'inscripcion.export_fichas',
     'payment.verify',
