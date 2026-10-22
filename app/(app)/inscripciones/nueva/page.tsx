@@ -56,8 +56,6 @@ export default function NewInscripcionPage() {
     }
 
     try {
-      const supabase = createClient()
-
       const insertData: Record<string, unknown> = {
         persona_id: formData.persona_id,
         evento_id: formData.evento_id,
@@ -67,8 +65,13 @@ export default function NewInscripcionPage() {
       }
       if (formData.notas) insertData.notas = formData.notas
 
-      const { error: inscError } = await supabase.from('evento_participantes').insert(insertData)
-      if (inscError) throw inscError
+      const response = await fetch(`/api/eventos/${formData.evento_id}/participantes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(insertData),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error ?? 'Error al crear la inscripción')
 
       router.push('/inscripciones')
     } catch (err: unknown) {

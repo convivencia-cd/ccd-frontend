@@ -82,28 +82,20 @@ export default function InscripcionRetiroPage() {
       return
     }
 
-    const { error: inscError } = await supabase
-      .from("evento_participantes")
-      .insert({
-        evento_id: eventoId,
-        persona_id: personaId,
-        rol_en_evento: "convivente",
-        estado_participacion: "interesado",
-        notas: notas || null,
+    try {
+      const response = await fetch(`/api/eventos/${eventoId}/interes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notas: notas || null }),
       })
-
-    if (inscError) {
-      if (inscError.code === "23505") {
-        setError("Ya estás inscrito en este retiro.")
-      } else {
-        setError(inscError.message)
-      }
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error ?? "No se pudo registrar el interés.")
+      setIsSuccess(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo registrar el interés.")
+    } finally {
       setIsSubmitting(false)
-      return
     }
-
-    setIsSuccess(true)
-    setIsSubmitting(false)
   }
 
   if (isLoading) {

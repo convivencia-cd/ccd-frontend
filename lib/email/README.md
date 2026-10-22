@@ -91,6 +91,41 @@ se pueden previsualizar sin enviar con `buildTemplateEmail(...)`.
 
 ## Diagnóstico
 
+### Cambios de estado de retiros
+
+Las transiciones del flujo y los cambios manuales del administrador pasan por
+`lib/eventos/actualizar-estado.ts`. Solo se notifica después de guardar un cambio
+real; una actualización rechazada o concurrente no dispara un correo.
+
+`lib/eventos/notificar-estado.ts` resuelve los ministerios vigentes EFRATER,
+RCONFRA y DEQT de la organización/fraternidad y sus padres, TIMON a nivel
+comunitario y el coordinador asignado. Descarta personas inactivas, correos
+internos y direcciones duplicadas. Cada destinatario recibe un correo individual
+con el nombre guardado del retiro y el enlace interno `/eventos/:id`.
+
+El envío usa la configuración de Resend existente. Los fallos se registran con
+el prefijo `[evento-estado]` sin revertir el cambio; no hay reintento automático.
+Pruebas sin envíos reales: `node --test tests/evento-estado.test.cjs`.
+
+### Alta de interesados
+
+`lib/interesados/notificar-alta.ts` avisa a los hasta tres centralizadores
+asignados al retiro después de insertar un nuevo convivente con estado
+`interesado`. Lo llaman el formulario público, la gestión/carga interna y la
+inscripción propia de usuarios registrados. Un registro duplicado, una edición
+de seguimiento o un alta fallida no dispara el aviso.
+
+Se usa el email de contacto del centralizador en el retiro, con el correo de su
+persona vinculada como alternativa. Se deduplican personas y direcciones y se
+descartan correos internos. Cada correo incluye nombre y contacto del interesado,
+nombre del retiro y un enlace a `/interesados?evento_id=...`.
+
+Los errores se registran como `[interesado-alta]` sin revertir el registro; no hay
+reintento automático. Pruebas sin envíos reales:
+`node --test tests/interesado-alta.test.cjs`.
+
+### Configuración de envío
+
 Con sesión de admin:
 
 - `GET /api/email/test` — muestra la configuración detectada (sin enviar).

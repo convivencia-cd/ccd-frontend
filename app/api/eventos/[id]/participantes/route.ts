@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
+import { getPublicOrigin } from '@/lib/http'
+import { notificarAltaInteresado } from '@/lib/interesados/notificar-alta'
 import {
   ESTADOS_PARTICIPACION,
   MAX_MINISTERIO_MUSICA,
@@ -97,6 +99,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     persona_id?: string
     rol_en_evento?: string
     estado_participacion?: string
+    tipo_participante?: 'cecista' | 'no_cecista'
     notas?: string | null
   }
 
@@ -108,6 +111,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const estado = body.estado_participacion ?? 'inscripto'
   const invalido = validarRolYEstado(rol, estado)
   if (invalido) return NextResponse.json({ error: invalido }, { status: 400 })
+  if (body.tipo_participante !== undefined && !['cecista', 'no_cecista'].includes(body.tipo_participante)) {
+    return NextResponse.json({ error: 'Tipo de participante inválido' }, { status: 400 })
+  }
 
   const { data: persona } = await supabase
     .from('personas')
@@ -163,13 +169,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       persona_id: body.persona_id,
       rol_en_evento: rol,
       estado_participacion: estado,
-      tipo_participante: persona.tipo_persona === 'cecista' ? 'cecista' : 'no_cecista',
+      tipo_participante: body.tipo_participante ?? (persona.tipo_persona === 'cecista' ? 'cecista' : 'no_cecista'),
       notas: body.notas?.trim() || null,
     })
     .select('id')
     .single()
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 400 })
+
+  if (rol === 'convivente' && estado === 'interesado') {
+    await notificarAltaInteresado(creado.id, getPublicOrigin(request))
+  }
 
   return NextResponse.json({ ok: true, id: creado.id })
 }

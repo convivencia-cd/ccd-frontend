@@ -1,3 +1,4 @@
+import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
@@ -92,7 +93,7 @@ export async function POST(
 
   const today = new Date().toISOString().split('T')[0]
 
-  const updates: Record<string, unknown> = {
+  const updates: Record<string, unknown> & { estado: string } = {
     estado: ESTADO_POR_ACCION[body.accion],
     notas_aprobacion_final: motivo,
   }
@@ -114,10 +115,9 @@ export async function POST(
     }
   }
 
-  const { error: updateError } = await supabase
-    .from('eventos')
-    .update(updates)
-    .eq('id', id)
+  const { error: updateError } = await actualizarEstadoEvento(
+    supabase, request, id, evento.estado, updates,
+  )
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
 
