@@ -61,6 +61,7 @@ export type Permission =
   | 'event.view_aprobados'     // ver los eventos aprobados (aprobado ≠ publicado: todavía no son públicos)
   | 'event.view_all_estados'   // ver el listado de eventos en cualquier estado (no solo publicado/en_curso/finalizado)
   | 'view.interesados'         // ver la sección Interesados dentro de Eventos, scopeado a la propia organización
+  | 'view.inscriptos'          // ver la sección Inscriptos dentro de Eventos, scopeado a la propia organización
 
 // ─── Mapa de permisos por rol ─────────────────────────────────────────────────
 //
@@ -115,6 +116,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.view_aprobados',
     'event.view_all_estados',
     'view.interesados',
+    'view.inscriptos',
   ],
 
   tecnico_confraternidad: [

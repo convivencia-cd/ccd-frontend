@@ -14,10 +14,12 @@ export default async function AppLayout({
   const ctx = await getUserContext()
   if (!ctx) redirect('/auth/login')
 
-  // "Interesados" también lo ve quien es Coordinador/Centralizador de algún
-  // evento puntual, aunque no tenga el permiso view.interesados de catálogo.
+  // "Interesados" e "Inscriptos" también los ve quien es Coordinador/Centralizador
+  // de algún evento puntual, aunque no tenga el permiso de catálogo.
+  const canViewInteresados = canPerform(ctx, 'view.interesados')
+  const canViewInscriptos = canPerform(ctx, 'view.inscriptos')
   let esCoordinadorOCentralizador = false
-  if (!canPerform(ctx, 'view.interesados') && ctx.persona_id) {
+  if ((!canViewInteresados || !canViewInscriptos) && ctx.persona_id) {
     const supabase = await createClient()
     const eventoIds = await eventoIdsComoCoordinadorOCentralizador(supabase, ctx.persona_id)
     esCoordinadorOCentralizador = eventoIds.length > 0
@@ -36,7 +38,8 @@ export default async function AppLayout({
     canViewVotos:          canPerform(ctx, 'votos.list') || canPerform(ctx, 'votos.edit'),
     canViewCasasRetiro:    canPerform(ctx, 'view.casas_retiro'),
     canCreateCasaRetiro:   canPerform(ctx, 'casas_retiro.create'),
-    canViewInteresados:    canPerform(ctx, 'view.interesados') || esCoordinadorOCentralizador,
+    canViewInteresados:    canViewInteresados || esCoordinadorOCentralizador,
+    canViewInscriptos:     canViewInscriptos || esCoordinadorOCentralizador,
     isAdmin:               ctx.is_admin,
     esInterno:             ctx.es_interno,
   }
