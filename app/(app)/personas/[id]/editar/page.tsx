@@ -49,7 +49,7 @@ export default async function EditPersonaPage({ params }: { params: Promise<{ id
       .eq("persona_id", id)
       .order("fecha_inicio", { ascending: false }),
     supabase.from("ministerios").select("id, nombre, tipo, nivel").eq("activo", true).order("tipo").order("nombre"),
-    supabase.from("organizaciones").select("id, nombre, tipo").is("fecha_baja", null).order("nombre"),
+    supabase.from("organizaciones").select("id, nombre, tipo, parent_id").is("fecha_baja", null).order("nombre"),
     supabase
       .from("persona_organizacion")
       .select("id, tipo_relacion, organizacion_id, organizacion:organizaciones!organizacion_id(nombre)")

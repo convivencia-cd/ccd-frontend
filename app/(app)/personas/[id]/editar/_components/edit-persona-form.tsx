@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client"
 import { translateSupabaseError } from "@/lib/errors/supabase"
 import { LocationFields } from "@/components/location-fields"
 import { Combobox } from "@/components/ui/combobox"
+import { confraternidadDe, fraternidadPerteneceA, fraternidadesDe } from "@/lib/organizaciones/fraternidades"
 import { cn } from "@/lib/utils"
 import { apellidoNombreConApodo } from "@/lib/personas/nombre"
 import { correspondeAsesorAutomatico } from "@/lib/personas/modos"
@@ -83,7 +84,7 @@ type HistorialAsignacion = {
 }
 
 type Ministerio = { id: string; nombre: string; tipo: string; nivel: string }
-type Organizacion = { id: string; nombre: string; tipo: string }
+type Organizacion = { id: string; nombre: string; tipo: string; parent_id: string | null }
 type PersonaOpcion = { id: string; nombre: string; apellido: string; apodo?: string | null }
 
 type AcompañamientoActual = {
@@ -916,7 +917,11 @@ export function EditPersonaForm({
                     <Combobox
                       id="confraternidad_id"
                       value={selectedConfraternidad}
-                      onSelect={setSelectedConfraternidad}
+                      onSelect={(val) => {
+                        setSelectedConfraternidad(val)
+                        // Si la fraternidad elegida es de otra confraternidad, se descarta.
+                        if (!fraternidadPerteneceA(organizaciones, selectedFraternidad, val)) setSelectedFraternidad("")
+                      }}
                       disabled={orgLoading}
                       options={organizaciones.filter(o => o.tipo === "confraternidad").map(o => ({ label: o.nombre, value: o.id }))}
                       placeholder="Sin confraternidad"
@@ -929,9 +934,13 @@ export function EditPersonaForm({
                     <Combobox
                       id="fraternidad_id"
                       value={selectedFraternidad}
-                      onSelect={setSelectedFraternidad}
+                      onSelect={(val) => {
+                        setSelectedFraternidad(val)
+                        // Elegir la fraternidad primero completa su confraternidad.
+                        if (!selectedConfraternidad && val) setSelectedConfraternidad(confraternidadDe(organizaciones, val))
+                      }}
                       disabled={orgLoading}
-                      options={organizaciones.filter(o => o.tipo === "fraternidad").map(o => ({ label: o.nombre, value: o.id }))}
+                      options={fraternidadesDe(organizaciones, selectedConfraternidad).map(o => ({ label: o.nombre, value: o.id }))}
                       placeholder="Sin fraternidad"
                       searchPlaceholder="Buscar fraternidad..."
                       emptyText="No se encontraron fraternidades."

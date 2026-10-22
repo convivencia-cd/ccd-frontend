@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { redirect } from "next/navigation"
 import { formatDateShort, formatDateLong } from "@/lib/utils"
 import { getUserContext, canPerform } from "@/lib/auth/context"
+import { cargarPendientesDeAprobacion } from "@/lib/eventos/pendientes-aprobacion"
 import { createClient } from "@/lib/supabase/server"
 import { ordenarModos } from "@/lib/personas/modos"
 import {
@@ -206,8 +207,9 @@ export default async function DashboardPage() {
       .from("eventos")
       .select("id", { count: "exact", head: true })
       .in("estado", estadosContados)
+      // Mismo criterio que el filtro de fechas de /eventos, al que lleva el indicador.
       .gte("fecha_inicio", today)
-      .lte("fecha_inicio", in30),
+      .lte("fecha_fin", in30),
 
     // 5. Eventos publicados. El mismo permiso protege la página
     // /eventos/publicados y determina si este resumen existe en el dashboard.
@@ -367,46 +369,8 @@ export default async function DashboardPage() {
   const proximosCount = proximosCountResult.count ?? 0
 
   // Pendientes: misma lógica que eventos/page.tsx, con filtrado post-fetch por rol
-  let pendientes: any[] | null = null
-  if (canApprove) {
-    const canApproveConfra = canPerform(ctx, "event.approve_confra")
-    const canApproveEqt = canPerform(ctx, "event.approve_eqt")
-    const pendingStates: string[] = []
-    if (canApproveConfra) {
-      pendingStates.push("solicitud")
-    }
-    if (canApproveEqt) {
-      pendingStates.push("discernimiento_confra", "discernimiento_eqt")
-      if (!pendingStates.includes("solicitud")) pendingStates.push("solicitud")
-    }
-    const { data: pendingData } = await supabase
-      .from("eventos")
-      .select(
-        "id, nombre, tipo, estado, fecha_inicio, requiere_discernimiento_confra, requiere_discernimiento_eqt, organizacion:organizaciones!organizacion_id(id, nombre)",
-      )
-      .in("estado", pendingStates)
-      .order("fecha_solicitud", { ascending: true })
-      .limit(10)
-    pendientes = (pendingData ?? []).filter((ev: any) => {
-      const confraId = ev.organizacion?.id as string | null
-      const requiereConfra = ev.requiere_discernimiento_confra ?? false
-      const requiereEqt = ev.requiere_discernimiento_eqt ?? false
-      // discernimiento_confra = confra done, EqT needs to act
-      if (ev.estado === "discernimiento_confra" && canApproveEqt) return true
-      // discernimiento_eqt = legacy state, also EqT's turn
-      if (ev.estado === "discernimiento_eqt" && canApproveEqt) return true
-      if (ev.estado === "solicitud") {
-        // EqT acts directly when no confra step required
-        if (!requiereConfra && requiereEqt && canApproveEqt) return true
-        // Confra acts on solicitud
-        if (requiereConfra && canApproveConfra) {
-          if (ctx.is_admin) return true
-          return confraId ? ctx.org_ids.includes(confraId) : false
-        }
-      }
-      return false
-    })
-  }
+  // Misma fuente que la vista de pendientes de /eventos, así el número coincide (card #78).
+  const pendientes: any[] | null = canApprove ? await cargarPendientesDeAprobacion(supabase, ctx) : null
 
   // Cecistas: two-step fetch — same pattern as /personas page
   // Also derives totalPersonas for non-admin (consistent with fecha_baja filter)
@@ -684,7 +648,8 @@ export default async function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link
-          href="/personas"
+          // Mismo alcance que el número: con organización propia, filtrado por ella.
+          href={primaryOrgId ? `/personas?organizacion_id=${primaryOrgId}` : "/personas"}
           aria-label="Ver lista de personas"
           className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
@@ -751,7 +716,8 @@ export default async function DashboardPage() {
         )}
 
         <Link
-          href={canViewAllEstados ? "/eventos" : "/eventos?estado=publicado"}
+          // Mismos estados que cuenta el número (estadosContados).
+          href={`/eventos?estado=${estadosContados.join(",")}`}
           aria-label="Ver lista de retiros"
           className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
@@ -767,14 +733,14 @@ export default async function DashboardPage() {
                 {totalEventos}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {canViewAllEstados ? "Aprobados o publicados" : "Publicados"}
+                {canViewAprobados ? "Aprobados o publicados" : "Publicados"}
               </p>
             </CardContent>
           </Card>
         </Link>
 
         <Link
-          href={`/eventos?fecha_desde=${today}&fecha_hasta=${in30}${canViewAllEstados ? "" : "&estado=publicado"}`}
+          href={`/eventos?fecha_desde=${today}&fecha_hasta=${in30}&estado=${estadosContados.join(",")}`}
           aria-label="Ver retiros de los próximos 30 días"
           className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
@@ -796,42 +762,55 @@ export default async function DashboardPage() {
           </Card>
         </Link>
 
+        {/* Card #78: todos los indicadores llevan a su listado. */}
         {canApprove && (
-          <Card className="bg-card hover:border-amber-500/50 transition-colors border-amber-200 dark:border-amber-900">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Pendientes
-              </CardTitle>
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                {pendientes?.length ?? 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Retiros por aprobar
-              </p>
-            </CardContent>
-          </Card>
+          <Link
+            href="/eventos?vista=pendientes"
+            aria-label="Ver retiros pendientes de aprobación"
+            className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Card className="h-full cursor-pointer bg-card transition-all border-amber-200 dark:border-amber-900 group-hover:border-amber-500/50 group-hover:shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">
+                  Pendientes
+                </CardTitle>
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                  {pendientes?.length ?? 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Retiros por aprobar
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         )}
 
         {canVerifyPayments && (
-          <Card className="bg-card hover:border-emerald-500/50 transition-colors border-emerald-200 dark:border-emerald-900">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">
-                Pagos pendientes
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {pagosPendientesCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Comprobantes por verificar
-              </p>
-            </CardContent>
-          </Card>
+          <Link
+            href="/pagos#pendientes"
+            aria-label="Ver pagos pendientes de verificación"
+            className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Card className="h-full cursor-pointer bg-card transition-all border-emerald-200 dark:border-emerald-900 group-hover:border-emerald-500/50 group-hover:shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">
+                  Pagos pendientes
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {pagosPendientesCount}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Comprobantes por verificar
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         )}
       </div>
 
@@ -1081,7 +1060,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendientes.map((evento: any) => (
+              {pendientes.slice(0, 5).map((evento: any) => (
                 <div
                   key={evento.id}
                   className="flex items-center justify-between rounded-lg border border-border p-3"
@@ -1112,9 +1091,9 @@ export default async function DashboardPage() {
                 </div>
               ))}
             </div>
-            <Link href="/eventos?estado=solicitud" className="block mt-4">
+            <Link href="/eventos?vista=pendientes" className="block mt-4">
               <Button variant="outline" className="w-full bg-transparent">
-                Ver todas las solicitudes
+                Ver todos los pendientes ({pendientes.length})
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
@@ -1642,12 +1621,15 @@ export default async function DashboardPage() {
                 )
               })}
             </div>
-            <Link href="/admin/inscripciones" className="block mt-4">
-              <Button variant="outline" className="w-full bg-transparent">
-                Ver todos los interesados
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
+            {/* Antes iba a /admin/inscripciones, que solo abre el admin general (card #78). */}
+            {canPerform(ctx, "view.interesados") && (
+              <Link href="/interesados" className="block mt-4">
+                <Button variant="outline" className="w-full bg-transparent">
+                  Ver todos los interesados
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}

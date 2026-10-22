@@ -160,8 +160,11 @@ export default async function PagosPage() {
         </Card>
       </div>
 
+      {/* id: destino del indicador "Pagos pendientes" del Panel de Inicio (card #78). */}
       {(tienePermisoVerificar || pagosPendientes.length > 0) && (
-        <VerificacionPendientes pagos={pagosPendientes} mostrarVacio={tienePermisoVerificar} />
+        <div id="pendientes" className="scroll-mt-6">
+          <VerificacionPendientes pagos={pagosPendientes} mostrarVacio={tienePermisoVerificar} />
+        </div>
       )}
 
       <Card className="border-border bg-card">

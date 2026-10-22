@@ -12,6 +12,7 @@ import {
 import { Calendar, Plus, Eye, Edit2, Clock, AlertTriangle } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getUserContext, canPerform } from "@/lib/auth/context"
+import { cargarPendientesDeAprobacion } from "@/lib/eventos/pendientes-aprobacion"
 import { formatDateAR } from "@/lib/utils"
 
 const estadoClases: Record<string, string> = {
@@ -70,6 +71,8 @@ const FILTROS = [
   { value: "pendiente_aprobacion_final", label: "Pend. Aprobación Final" },
   { value: "aprobado", label: "Aprobados" },
   { value: "publicado", label: "Publicados" },
+  // Lo que cuenta el indicador "Retiros" del Panel de Inicio (card #78).
+  { value: "aprobado,publicado", label: "Aprobados y publicados" },
   { value: "suspendido", label: "Suspendidos" },
 ]
 
@@ -162,9 +165,11 @@ export default async function EventosPage({
     tipo?: string
     fecha_desde?: string
     fecha_hasta?: string
+    vista?: string
   }>
 }) {
   const {
+    vista,
     q,
     estado: estadoFiltro,
     tipo: tipoFiltro,
@@ -172,6 +177,7 @@ export default async function EventosPage({
     fecha_hasta: fechaHasta,
   } = await searchParams
   const [supabase, ctx] = await Promise.all([createClient(), getUserContext()])
+  const soloPendientes = vista === "pendientes"
   const canCreate = ctx && (ctx.is_admin || ctx.nivel_max >= 50)
   const canSuspend = ctx && canPerform(ctx, "event.suspend")
   const canViewAllEstados = ctx ? canPerform(ctx, "event.view_all_estados") : false
@@ -192,7 +198,11 @@ export default async function EventosPage({
 
   if (!canViewAllEstados) query = query.in("estado", estadosVisibles)
   if (q) query = query.ilike("nombre", `%${q}%`)
-  if (estadoFiltro) query = query.eq("estado", estadoFiltro)
+  // Admite varios estados separados por coma ("aprobado,publicado").
+  if (estadoFiltro) {
+    const estados = estadoFiltro.split(",").map((e) => e.trim()).filter(Boolean)
+    query = estados.length > 1 ? query.in("estado", estados) : query.eq("estado", estadoFiltro)
+  }
   if (tipoFiltro) query = query.eq("tipo", tipoFiltro)
   if (fechaDesde) query = query.gte("fecha_inicio", fechaDesde)
   if (fechaHasta) query = query.lte("fecha_fin", fechaHasta)
@@ -210,71 +220,13 @@ export default async function EventosPage({
           : false)
       : false
 
-  // Pendientes section: events pending the user's approval
-  let pendientes: EventoRow[] = []
-  if (ctx) {
-    const canApproveConfra = canPerform(ctx, "event.approve_confra")
-    const canApproveTimon = canPerform(ctx, "event.approve_eqt")
-
-    if (canApproveConfra || canApproveTimon) {
-      const pendingStates: string[] = []
-      if (canApproveConfra) {
-        pendingStates.push("solicitud")
-      }
-      if (canApproveTimon) {
-        pendingStates.push(
-          "discernimiento_confra",
-          "discernimiento_eqt",
-          "pendiente_aprobacion_final",
-        )
-        if (!pendingStates.includes("solicitud"))
-          pendingStates.push("solicitud")
-      }
-
-      const { data: pendingData } = await supabase
-        .from("eventos")
-        .select(
-          "id, nombre, tipo, estado, fecha_inicio, fecha_fin, requiere_discernimiento_confra, requiere_discernimiento_eqt, organizacion:organizaciones!organizacion_id(nombre, id)",
-        )
-        .in("estado", pendingStates)
-        .order("fecha_solicitud", { ascending: true })
-
-      // Filter: only show events this user can actually act on
-      pendientes = (pendingData ?? [])
-        .filter((ev: any) => {
-          const confraId = ev.organizacion?.id as string | null
-          const requiereConfra = ev.requiere_discernimiento_confra ?? false
-          const requiereEqt = ev.requiere_discernimiento_eqt ?? false
-
-          // discernimiento_confra = confra done, EqT needs to act
-          if (ev.estado === "discernimiento_confra" && canApproveTimon)
-            return true
-          // discernimiento_eqt = legacy state, also EqT's turn
-          if (ev.estado === "discernimiento_eqt" && canApproveTimon) return true
-          // pendiente_aprobacion_final = awaiting EqT final approval
-          if (ev.estado === "pendiente_aprobacion_final" && canApproveTimon)
-            return true
-
-          if (ev.estado === "solicitud") {
-            // EqT acts directly when no confra step required
-            if (!requiereConfra && requiereEqt && canApproveTimon) return true
-            // Confra acts on solicitud
-            if (requiereConfra && canApproveConfra) {
-              if (ctx.is_admin) return true
-              return confraId ? ctx.org_ids.includes(confraId) : false
-            }
-          }
-
-          return false
-        })
-        .map((ev: any) => ({
-          ...ev,
-          organizacion: ev.organizacion
-            ? { nombre: ev.organizacion.nombre }
-            : null,
-        }))
-    }
-  }
+  // Pendientes section: events pending the user's approval (misma fuente que el Panel de Inicio)
+  const pendientes: EventoRow[] = ctx
+    ? ((await cargarPendientesDeAprobacion(supabase, ctx)).map((ev) => ({
+        ...ev,
+        organizacion: ev.organizacion ? { nombre: ev.organizacion.nombre } : null,
+      })) as EventoRow[])
+    : []
 
   // Solicitudes de suspensión pendientes — solo Timonel
   let solicitudesSuspension: {
@@ -306,26 +258,40 @@ export default async function EventosPage({
         <p className="mt-2 text-muted-foreground">Crea y administra retiros.</p>
       </div>
 
-      {/* Pendientes de aprobación */}
-      {pendientes.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
-          <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <Clock className="h-5 w-5 text-amber-600" />
-              Pendientes de tu aprobación
-            </CardTitle>
-            <CardDescription>
-              Estos retiros están esperando tu discernimiento
-            </CardDescription>
+      {/* Pendientes de aprobación. Con ?vista=pendientes (indicador del Panel de
+          Inicio, card #78) se muestra solo esto, aunque esté vacío. */}
+      {(pendientes.length > 0 || soloPendientes) && (
+        <Card id="pendientes" className="scroll-mt-6 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Clock className="h-5 w-5 text-amber-600" />
+                Pendientes de tu aprobación ({pendientes.length})
+              </CardTitle>
+              <CardDescription>
+                Estos retiros están esperando tu discernimiento
+              </CardDescription>
+            </div>
+            {soloPendientes && (
+              <Link href="/eventos" className="shrink-0 text-sm text-primary hover:underline">
+                Ver todos los retiros
+              </Link>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
-            {pendientes.map((ev) => (
-              <EventoItem key={ev.id} evento={ev} isPendiente />
-            ))}
+            {pendientes.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No tenés retiros pendientes de aprobación.
+              </p>
+            ) : (
+              pendientes.map((ev) => <EventoItem key={ev.id} evento={ev} isPendiente />)
+            )}
           </CardContent>
         </Card>
       )}
 
+      {!soloPendientes && (
+      <>
       {/* Solicitudes de Suspensión — solo Timonel */}
       {canSuspend && solicitudesSuspension.length > 0 && (
         <Card className="border-orange-300 dark:border-orange-700 bg-card">
@@ -434,7 +400,9 @@ export default async function EventosPage({
             >
               {(canViewAllEstados
                 ? FILTROS
-                : FILTROS.filter((f) => f.value === "" || estadosVisibles.includes(f.value))
+                : FILTROS.filter(
+                    (f) => f.value === "" || f.value.split(",").every((e) => estadosVisibles.includes(e))
+                  )
               ).map((f) => (
                 <option key={f.value} value={f.value}>
                   {f.label}
@@ -530,6 +498,8 @@ export default async function EventosPage({
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   )
 }

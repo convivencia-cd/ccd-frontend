@@ -19,6 +19,7 @@ import { ArrowLeft, Eye, EyeOff, Paperclip, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { LocationFields } from "@/components/location-fields"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
+import { confraternidadDe, fraternidadPerteneceA, fraternidadesDe } from "@/lib/organizaciones/fraternidades"
 import { PersonaCombobox } from "@/components/persona-combobox"
 import { cn } from "@/lib/utils"
 import { correspondeAsesorAutomatico } from "@/lib/personas/modos"
@@ -28,6 +29,7 @@ interface Organizacion {
   id: string
   nombre: string
   tipo: string
+  parent_id: string | null
 }
 
 interface Ministerio {
@@ -127,7 +129,7 @@ export default function NewPersonaPage() {
       ] = await Promise.all([
         supabase
           .from("organizaciones")
-          .select("id, nombre, tipo")
+          .select("id, nombre, tipo, parent_id")
           .eq("estado", "activa")
           .order("nombre"),
         supabase
@@ -288,12 +290,11 @@ export default function NewPersonaPage() {
         .map((o) => ({ label: o.nombre, value: o.id })),
     [organizaciones],
   )
+  // Card: con una confraternidad elegida, solo sus fraternidades.
   const fraternidadOptions = useMemo<ComboboxOption[]>(
     () =>
-      organizaciones
-        .filter((o) => o.tipo === "fraternidad")
-        .map((o) => ({ label: o.nombre, value: o.id })),
-    [organizaciones],
+      fraternidadesDe(organizaciones, formData.confraternidad_id).map((o) => ({ label: o.nombre, value: o.id })),
+    [organizaciones, formData.confraternidad_id],
   )
   const organizacionOptions = useMemo<ComboboxOption[]>(
     () => organizaciones.map((o) => ({ label: o.nombre, value: o.id })),
@@ -682,7 +683,14 @@ export default function NewPersonaPage() {
                       id="confraternidad_id"
                       value={formData.confraternidad_id}
                       onSelect={(val) =>
-                        setFormData((prev) => ({ ...prev, confraternidad_id: val }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          confraternidad_id: val,
+                          // Si la fraternidad elegida es de otra confraternidad, se descarta.
+                          fraternidad_id: fraternidadPerteneceA(organizaciones, prev.fraternidad_id, val)
+                            ? prev.fraternidad_id
+                            : "",
+                        }))
                       }
                       options={confraternidadOptions}
                       placeholder="Sin confraternidad"
@@ -696,7 +704,12 @@ export default function NewPersonaPage() {
                       id="fraternidad_id"
                       value={formData.fraternidad_id}
                       onSelect={(val) =>
-                        setFormData((prev) => ({ ...prev, fraternidad_id: val }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          fraternidad_id: val,
+                          // Elegir la fraternidad primero completa su confraternidad.
+                          confraternidad_id: prev.confraternidad_id || (val ? confraternidadDe(organizaciones, val) : ""),
+                        }))
                       }
                       options={fraternidadOptions}
                       placeholder="Sin fraternidad"
