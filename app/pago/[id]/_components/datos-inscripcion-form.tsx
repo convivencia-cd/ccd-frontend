@@ -77,6 +77,16 @@ const TIPOS_DOCUMENTO = [
 const selectClass =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
 
+/** Marca de campo obligatorio, mismo estilo que el modal de "Me interesa". */
+function Req() {
+  return (
+    <span className="text-destructive" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  )
+}
+
 /** Un dato ya cargado se muestra, pero no se puede pisar desde el link. */
 function yaCargado(valor: string | null | undefined) {
   return !!valor && valor.trim() !== ''
@@ -124,7 +134,10 @@ function PreguntaSiNo({
 }) {
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{pregunta}</Label>
+      <Label htmlFor={id}>
+        {pregunta}
+        <Req />
+      </Label>
       <select
         id={id}
         value={valor}
@@ -316,8 +329,8 @@ export function DatosInscripcionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción: todos son
-        obligatorios.
+        Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción. Los campos
+        marcados con <span className="text-destructive">*</span> son obligatorios.
       </p>
 
       <Seccion titulo="Datos personales">
@@ -334,7 +347,10 @@ export function DatosInscripcionForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="apodo">Sobrenombre</Label>
+            <Label htmlFor="apodo">
+              Sobrenombre
+              <Req />
+            </Label>
             <Input
               id="apodo"
               name="apodo"
@@ -348,6 +364,7 @@ export function DatosInscripcionForm({
           <div className="grid gap-1.5">
             <Label htmlFor="sexo">
               Sexo
+              <Req />
             </Label>
             <select
               id="sexo"
@@ -370,7 +387,10 @@ export function DatosInscripcionForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="tipo_documento">Tipo de documento</Label>
+            <Label htmlFor="tipo_documento">
+              Tipo de documento
+              <Req />
+            </Label>
             <select
               id="tipo_documento"
               name="tipo_documento"
@@ -389,6 +409,7 @@ export function DatosInscripcionForm({
           <div className="grid gap-1.5">
             <Label htmlFor="documento">
               Número de documento
+              <Req />
             </Label>
             <Input
               id="documento"
@@ -404,7 +425,10 @@ export function DatosInscripcionForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="fecha_nacimiento">Fecha de nacimiento</Label>
+            <Label htmlFor="fecha_nacimiento">
+              Fecha de nacimiento
+              <Req />
+            </Label>
             <Input
               id="fecha_nacimiento"
               name="fecha_nacimiento"
@@ -416,7 +440,10 @@ export function DatosInscripcionForm({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="estado_vida">Estado civil</Label>
+            <Label htmlFor="estado_vida">
+              Estado civil
+              <Req />
+            </Label>
             <select
               id="estado_vida"
               name="estado_vida"
@@ -438,7 +465,10 @@ export function DatosInscripcionForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label>Nacionalidad</Label>
+            <Label>
+              Nacionalidad
+              <Req />
+            </Label>
             <Combobox
               value={form.nacionalidad}
               onSelect={set('nacionalidad')}
@@ -450,7 +480,10 @@ export function DatosInscripcionForm({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="ocupacion">Ocupación o profesión</Label>
+            <Label htmlFor="ocupacion">
+              Ocupación o profesión
+              <Req />
+            </Label>
             <Input
               id="ocupacion"
               name="ocupacion"
@@ -463,7 +496,10 @@ export function DatosInscripcionForm({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="nivel_estudios">Máximo nivel de estudios alcanzado</Label>
+          <Label htmlFor="nivel_estudios">
+            Máximo nivel de estudios alcanzado
+            <Req />
+          </Label>
           <select
             id="nivel_estudios"
             name="nivel_estudios"
@@ -492,6 +528,7 @@ export function DatosInscripcionForm({
           <div className="grid gap-1.5">
             <Label htmlFor="telefono">
               Teléfono celular
+              <Req />
             </Label>
             <Input
               id="telefono"
@@ -508,7 +545,10 @@ export function DatosInscripcionForm({
 
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
           <div className="grid gap-1.5">
-            <Label htmlFor="direccion">Domicilio (calle)</Label>
+            <Label htmlFor="direccion">
+              Domicilio (calle)
+              <Req />
+            </Label>
             <Input
               id="direccion"
               name="direccion"
@@ -519,7 +559,10 @@ export function DatosInscripcionForm({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="direccion_nro">Número, piso, dto.</Label>
+            <Label htmlFor="direccion_nro">
+              Número, piso, dto.
+              <Req />
+            </Label>
             <Input
               id="direccion_nro"
               name="direccion_nro"
@@ -542,13 +585,17 @@ export function DatosInscripcionForm({
           onLocalidadChange={set('localidad')}
           onCodigoPostalChange={set('codigo_postal')}
           disabled={loading || ubicacionBloqueada}
+          required
         />
       </Seccion>
 
       <Seccion titulo="Vida de fe">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="estado_eclesial">Estado eclesial</Label>
+            <Label htmlFor="estado_eclesial">
+              Estado eclesial
+              <Req />
+            </Label>
             <select
               id="estado_eclesial"
               name="estado_eclesial"
@@ -565,7 +612,10 @@ export function DatosInscripcionForm({
             </select>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="diocesis">Diócesis</Label>
+            <Label htmlFor="diocesis">
+              Diócesis
+              <Req />
+            </Label>
             <DiocesisCombobox
               value={form.diocesis}
               onChange={set('diocesis')}
@@ -582,7 +632,10 @@ export function DatosInscripcionForm({
           <div className="grid gap-4 sm:grid-cols-2">
             {form.estado_eclesial === 'clerigo' && (
               <div className="grid gap-1.5">
-                <Label htmlFor="estado_eclesial_rango">Rango</Label>
+                <Label htmlFor="estado_eclesial_rango">
+                  Rango
+                  <Req />
+                </Label>
                 <select
                   id="estado_eclesial_rango"
                   name="estado_eclesial_rango"
@@ -602,7 +655,10 @@ export function DatosInscripcionForm({
               </div>
             )}
             <div className="grid gap-1.5">
-              <Label htmlFor="institucion_religiosa">Institución / Congregación</Label>
+              <Label htmlFor="institucion_religiosa">
+                Institución / Congregación
+                <Req />
+              </Label>
               <Input
                 id="institucion_religiosa"
                 name="institucion_religiosa"
@@ -616,7 +672,10 @@ export function DatosInscripcionForm({
         )}
 
         <div className="grid gap-1.5">
-          <Label htmlFor="formacion_religiosa">Formación religiosa</Label>
+          <Label htmlFor="formacion_religiosa">
+            Formación religiosa
+            <Req />
+          </Label>
           <Textarea
             id="formacion_religiosa"
             name="formacion_religiosa"
@@ -629,7 +688,10 @@ export function DatosInscripcionForm({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="participacion_grupos_iglesia">Participación en grupos de la Iglesia Católica</Label>
+          <Label htmlFor="participacion_grupos_iglesia">
+            Participación en grupos de la Iglesia Católica
+            <Req />
+          </Label>
           <Textarea
             id="participacion_grupos_iglesia"
             name="participacion_grupos_iglesia"
@@ -642,7 +704,10 @@ export function DatosInscripcionForm({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="accion_social">Otros grupos de acción social</Label>
+          <Label htmlFor="accion_social">
+            Otros grupos de acción social
+            <Req />
+          </Label>
           <Textarea
             id="accion_social"
             name="accion_social"
@@ -696,7 +761,10 @@ export function DatosInscripcionForm({
 
       <Seccion titulo="Sobre esta convivencia">
         <div className="grid gap-1.5">
-          <Label htmlFor="como_se_entero">¿Cómo te enteraste de esta convivencia?</Label>
+          <Label htmlFor="como_se_entero">
+            ¿Cómo te enteraste de esta convivencia?
+            <Req />
+          </Label>
           <select
             id="como_se_entero"
             name="como_se_entero"
@@ -727,7 +795,10 @@ export function DatosInscripcionForm({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="familia_hizo_convivencias">¿Alguien más de tu familia hizo convivencias?</Label>
+          <Label htmlFor="familia_hizo_convivencias">
+            ¿Alguien más de tu familia hizo convivencias?
+            <Req />
+          </Label>
           <select
             id="familia_hizo_convivencias"
             name="familia_hizo_convivencias"
@@ -790,7 +861,10 @@ export function DatosInscripcionForm({
         />
 
         <div className="grid gap-2">
-          <Label>Restricciones alimentarias</Label>
+          <Label>
+            Restricciones alimentarias
+            <Req />
+          </Label>
           <div className="grid gap-2 sm:grid-cols-2">
             {RESTRICCIONES_ALIMENTARIAS.map((o) => (
               <label key={o.value} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">

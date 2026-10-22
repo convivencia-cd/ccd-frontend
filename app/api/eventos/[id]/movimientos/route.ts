@@ -133,6 +133,11 @@ export async function POST(
   const body = await request.json() as MovimientoInput
   const valid = validarAsiento(body)
   if ('error' in valid) return NextResponse.json({ error: valid.error }, { status: 400 })
+  // El comprobante es obligatorio al registrar un movimiento (pedido de Coti).
+  // Al editar uno viejo sin comprobante no se exige.
+  if (body.comprobante_path === undefined || body.comprobante_path === null || body.comprobante_path === '') {
+    return NextResponse.json({ error: 'Adjuntá el comprobante del movimiento.' }, { status: 400 })
+  }
   const comprobante = await validarComprobante(body, id, ctx.auth_user_id)
   if ('error' in comprobante) return NextResponse.json({ error: comprobante.error }, { status: 400 })
 

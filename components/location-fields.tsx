@@ -65,7 +65,7 @@ export function LocationFields({
   provinciaLabel = "Provincia",
 }: LocationFieldsProps) {
   const isArgentina = pais === "Argentina"
-  const req = required ? " *" : ""
+  const req = required ? <span className="text-destructive"> *</span> : null
 
   // Provincias / estados del país seleccionado, del listado estático (para Argentina
   // son los mismos nombres oficiales que usa Georef para las localidades).

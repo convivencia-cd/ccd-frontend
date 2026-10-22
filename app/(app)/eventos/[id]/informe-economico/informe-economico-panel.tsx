@@ -150,6 +150,8 @@ export default function InformeEconomicoPanel(props: Props) {
     const monto = Number(form.monto)
     if (!Number.isFinite(monto) || monto <= 0) return toast.error('Ingresá un monto válido.')
     if (!form.fecha) return toast.error('La fecha es obligatoria.')
+    // Obligatorio al registrar; al editar se conserva el que ya tenía (o ninguno, en los viejos).
+    if (!editandoId && !comprobante) return toast.error('Adjuntá el comprobante del movimiento.')
     if (comprobante && (!TIPOS_COMPROBANTE.includes(comprobante.type) || !comprobante.size || comprobante.size > MAX_COMPROBANTE_BYTES)) {
       return toast.error('El comprobante debe ser PDF, JPG, PNG o WebP y no superar los 10 MB.')
     }
@@ -339,7 +341,14 @@ export default function InformeEconomicoPanel(props: Props) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <label htmlFor="comprobante-movimiento" className="font-medium text-foreground">
-                    Comprobante (opcional)
+                    Comprobante
+                    {editando ? (
+                      <span className="font-normal text-muted-foreground">
+                        {editando.comprobante_path ? ' (opcional: reemplaza el actual)' : ' (opcional)'}
+                      </span>
+                    ) : (
+                      <span className="text-destructive"> *</span>
+                    )}
                   </label>
                   <input ref={comprobanteInputRef} id="comprobante-movimiento" type="file"
                     accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
