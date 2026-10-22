@@ -2,6 +2,8 @@ import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
+import { avisarCentralizadores, centralizadoresDe } from '@/lib/eventos/avisos-equipo'
+import { getPublicOrigin } from '@/lib/http'
 
 type DatosNoticias = {
   casa_retiro_id?: string | null
@@ -151,6 +153,9 @@ export async function POST(
   )
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
+
+  // Los centralizadores quedan firmes al enviar los datos: se les avisa (card #21).
+  await avisarCentralizadores(supabase, id, getPublicOrigin(request), centralizadoresDe(updates))
 
   return NextResponse.json({ estado: 'pendiente_aprobacion_final' })
 }

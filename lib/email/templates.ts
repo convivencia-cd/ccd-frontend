@@ -279,6 +279,32 @@ export const recordatorioEvento = defineTemplate<InscripcionProps & { diasRestan
   },
 })
 
+// ─── Equipo del evento ────────────────────────────────────────────────────────
+
+export type AsignacionCentralizadorProps = InscripcionProps & {
+  eventoUrl: string
+}
+
+/**
+ * Aviso al centralizador cuando lo asignan (card #21): al enviarse los Datos
+ * para Noticias, o si después lo cambian desde la aprobación final, Editar
+ * evento o Gestión.
+ */
+export const asignacionCentralizador = defineTemplate<AsignacionCentralizadorProps>({
+  subject: p => `Fuiste designado/a Centralizador/a de ${p.evento}`,
+  preheader: p => `Centralizador/a — ${p.evento}`,
+  tags: () => ({ categoria: 'asignacion_equipo', rol: 'centralizador' }),
+  blocks: p => [
+    block.heading(`¡Hola, ${p.nombre}!`),
+    block.paragraph(
+      `Te contamos que fuiste designado/a Centralizador/a de ${p.evento}. Desde la plataforma vas a poder ver el retiro y todo lo que necesitás para acompañarlo: también te aparece en tu pantalla de inicio.`
+    ),
+    block.facts([{ label: 'Rol', value: 'Centralizador/a' }, ...datosEvento(p)]),
+    block.button('Ver el retiro', p.eventoUrl),
+    block.note('Si creés que hay un error en esta designación, avisale al Equipo Timón.'),
+  ],
+})
+
 // ─── Pagos ────────────────────────────────────────────────────────────────────
 
 export type PagoProps = {
@@ -432,6 +458,7 @@ export const templates = {
   inscripcionRegistrada,
   interesConfirmado,
   nuevoInteresado,
+  asignacionCentralizador,
   recordatorioEvento,
   pagoConfirmado,
   pagoRechazado,

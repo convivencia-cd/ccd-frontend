@@ -2,6 +2,8 @@ import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
+import { avisarCentralizadores, centralizadoresNuevos, COLUMNAS_CENTRALIZADORES_AVISO } from '@/lib/eventos/avisos-equipo'
+import { getPublicOrigin } from '@/lib/http'
 
 type AprobacionFinalBody = {
   accion: 'publicar' | 'suspender' | 'devolver'
@@ -47,7 +49,7 @@ export async function POST(
 
   const { data: evento, error: fetchError } = await supabase
     .from('eventos')
-    .select('id, estado')
+    .select(`id, estado, ${COLUMNAS_CENTRALIZADORES_AVISO}`)
     .eq('id', id)
     .single()
 
@@ -120,6 +122,15 @@ export async function POST(
   )
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
+
+  // Si el EqT cambió un centralizador al publicar, se le avisa al que entra
+  // (card #21). Al devolver, se avisa cuando se reenvíen los Datos para Noticias.
+  if (body.accion === 'publicar') {
+    await avisarCentralizadores(
+      supabase, id, getPublicOrigin(request),
+      centralizadoresNuevos(evento as Record<string, unknown>, updates),
+    )
+  }
 
   // La devolución queda en el historial del evento, que es donde la ve quien
   // tiene que corregir. Si falla, no se revierte el cambio de estado: es una

@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
 import { canGestionarAsignaciones } from '@/lib/eventos/equipo'
+import {
+  avisarCentralizadores,
+  centralizadoresNuevos,
+  COLUMNAS_CENTRALIZADORES_AVISO,
+  ESTADOS_CENTRALIZADORES_AVISADOS,
+} from '@/lib/eventos/avisos-equipo'
+import { getPublicOrigin } from '@/lib/http'
 
 /**
  * Asignaciones de personas que viven como columnas de `eventos`: coordinador y
@@ -32,7 +39,7 @@ export async function PATCH(
   const { data: evento } = await supabase
     .from('eventos')
     .select(
-      'id, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id'
+      `id, estado, organizacion_id, fraternidad_id, ${COLUMNAS_CENTRALIZADORES_AVISO}`
     )
     .eq('id', id)
     .single()
@@ -77,6 +84,15 @@ export async function PATCH(
   const { error: updateError } = await supabase.from('eventos').update(updates).eq('id', id)
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
+
+  // Aviso por mail (card #21) solo al centralizador que entra nuevo, y solo si
+  // ya se enviaron los Datos para Noticias (antes de eso se avisa al enviarlos).
+  if (ESTADOS_CENTRALIZADORES_AVISADOS.includes(evento.estado)) {
+    await avisarCentralizadores(
+      supabase, id, getPublicOrigin(request),
+      centralizadoresNuevos(evento as Record<string, unknown>, updates),
+    )
+  }
 
   return NextResponse.json({ ok: true })
 }
