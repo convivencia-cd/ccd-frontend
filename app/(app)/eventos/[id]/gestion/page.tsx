@@ -147,6 +147,36 @@ export default async function EventoGestionPage({
     p => (ROLES_SERVIDORES as readonly string[]).includes(p.rol_en_evento) && p.estado_participacion !== 'cancelado'
   )
 
+  // Card #96: coordinador, asesor y centralizadores de "Asignaciones del Retiro"
+  // (columnas de `eventos`) también son equipo, aunque no estén en evento_participantes.
+  const ev = evento as Record<string, unknown>
+  const asignacionesColumnas: { rol: string; personaId: string | null; nombre: string | null }[] = [
+    { rol: 'coordinador', personaId: ev.coordinador_asignado_id as string | null, nombre: null },
+    { rol: 'asesor', personaId: ev.asesor_asignado_id as string | null, nombre: null },
+    ...([1, 2, 3] as const).map(n => ({
+      rol: 'centralizador',
+      personaId: ev[`centralizador_${n}_persona_id`] as string | null,
+      nombre: ev[`centralizador_${n}_nombre`] as string | null,
+    })),
+  ].filter(
+    a =>
+      (a.personaId || a.nombre) &&
+      !equipos.some(p => a.personaId && p.persona_id === a.personaId && p.rol_en_evento === a.rol)
+  )
+  const idsAsignados = asignacionesColumnas.map(a => a.personaId).filter((x): x is string => !!x)
+  const nombresAsignados = new Map<string, string>()
+  if (idsAsignados.length > 0) {
+    const { data } = await supabase.from('personas').select('id, nombre, apellido').in('id', idsAsignados)
+    for (const p of (data ?? []) as { id: string; nombre: string; apellido: string }[]) {
+      nombresAsignados.set(p.id, `${p.nombre} ${p.apellido}`)
+    }
+  }
+  const equipoDesdeAsignaciones = asignacionesColumnas.map((a, i) => ({
+    key: `asig-${i}`,
+    rol: a.rol,
+    nombre: (a.personaId ? nombresAsignados.get(a.personaId) : null) ?? a.nombre ?? '—',
+  }))
+
   const conteoInscriptos = {
     preinscripto: inscriptos.filter(p => p.preinscripto).length,
     inscripto: inscriptos.filter(p => p.estado_participacion === 'inscripto').length,
@@ -360,15 +390,22 @@ export default async function EventoGestionPage({
               <ClipboardList className="h-5 w-5 text-primary" />
               Equipos Asignados
             </CardTitle>
-            <CardDescription>{equipos.length} servidores registrados en el retiro.</CardDescription>
+            <CardDescription>
+              {equipos.length + equipoDesdeAsignaciones.length} integrantes del equipo del retiro.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {equipos.length === 0 ? (
+            {equipos.length + equipoDesdeAsignaciones.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay equipo asignado.</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {ROLES_SERVIDORES.map(rol => {
-                  const lista = equipos.filter(p => p.rol_en_evento === rol)
+                  const lista = [
+                    ...equipoDesdeAsignaciones.filter(a => a.rol === rol),
+                    ...equipos
+                      .filter(p => p.rol_en_evento === rol)
+                      .map(p => ({ key: p.id, nombre: p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—' })),
+                  ]
                   if (lista.length === 0) return null
                   return (
                     <div key={rol} className="rounded-lg border border-border p-4 space-y-1.5">
@@ -376,8 +413,8 @@ export default async function EventoGestionPage({
                         {ROLES_EVENTO_LABEL[rol] ?? rol}
                       </p>
                       {lista.map(p => (
-                        <p key={p.id} className="text-sm text-foreground">
-                          {p.persona ? `${p.persona.nombre} ${p.persona.apellido}` : '—'}
+                        <p key={p.key} className="text-sm text-foreground">
+                          {p.nombre}
                         </p>
                       ))}
                     </div>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { fetchPersonas, type PersonaOption } from '@/components/persona-combobox'
 import { ROLES_SERVIDOR_OPCIONES } from '@/lib/eventos/equipo'
 import AsignacionesEventoCard, { type AsignacionesEvento } from './asignaciones-evento-card'
-import ParticipantesEventoCard, { type ParticipanteEquipo } from './participantes-evento-card'
+import ParticipantesEventoCard, { type AsignadoEquipo, type ParticipanteEquipo } from './participantes-evento-card'
 import GruposEventoCard, { type GrupoEvento } from './grupos-evento-card'
 
 export type { AsignacionesEvento, ParticipanteEquipo, GrupoEvento }
@@ -65,6 +65,32 @@ export default function EquipoEventoPanel({
   const refrescar = () => router.refresh()
 
   const equipo = participantes.filter(p => ROLES_SERVIDOR.includes(p.rol_en_evento))
+
+  // Card #96: coordinador, asesor y centralizadores viven en columnas del evento
+  // ("Asignaciones del Retiro"), no en evento_participantes. Se suman a la lista
+  // del equipo, salvo que ya estén cargados ahí con ese mismo rol.
+  const yaEnEquipo = (personaId: string | null, rol: string) =>
+    !!personaId &&
+    equipo.some(p => p.persona_id === personaId && p.rol_en_evento === rol && p.estado_participacion !== 'cancelado')
+  const nombrePersona = (personaId: string | null, nombreGuardado: string | null = null) => {
+    const p = personaId ? personas.find(x => x.id === personaId) : undefined
+    if (p) return `${p.apellido}, ${p.nombre}`
+    return nombreGuardado ?? (cargandoPersonas ? 'Cargando...' : '—')
+  }
+  const asignados: AsignadoEquipo[] = []
+  if (asignaciones.coordinador_asignado_id && !yaEnEquipo(asignaciones.coordinador_asignado_id, 'coordinador')) {
+    asignados.push({ key: 'coordinador', rolLabel: 'Coordinador', nombre: nombrePersona(asignaciones.coordinador_asignado_id) })
+  }
+  if (asignaciones.asesor_asignado_id && !yaEnEquipo(asignaciones.asesor_asignado_id, 'asesor')) {
+    asignados.push({ key: 'asesor', rolLabel: 'Asesor', nombre: nombrePersona(asignaciones.asesor_asignado_id) })
+  }
+  for (const n of [1, 2, 3] as const) {
+    const personaId = asignaciones[`centralizador_${n}_persona_id`]
+    const nombreGuardado = asignaciones[`centralizador_${n}_nombre`]
+    if (!personaId && !nombreGuardado) continue
+    if (yaEnEquipo(personaId, 'centralizador')) continue
+    asignados.push({ key: `centralizador_${n}`, rolLabel: 'Centralizador', nombre: nombrePersona(personaId, nombreGuardado) })
+  }
   // Los interesados sin planilla se siguen desde el detalle del evento
   // (seguimiento de contacto): acá van los preinscriptos (planilla guardada,
   // sin pago) y quienes ya se inscribieron o dieron el presente.
@@ -111,6 +137,7 @@ export default function EquipoEventoPanel({
             eventoId={eventoId}
             modo="equipo"
             filas={equipo}
+            asignados={asignados}
             personas={personas}
             cargandoPersonas={cargandoPersonas}
             onChanged={refrescar}

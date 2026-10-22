@@ -41,6 +41,9 @@ export type ParticipanteEquipo = {
   persona: { id: string; nombre: string; apellido: string; email: string | null; telefono: string | null } | null
 }
 
+/** Coordinador, asesor o centralizador cargado en "Asignaciones del Retiro" (columnas de `eventos`). */
+export type AsignadoEquipo = { key: string; rolLabel: string; nombre: string }
+
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
 const selectClass = 'rounded border border-border bg-background px-2 py-1 text-sm text-foreground'
 
@@ -71,6 +74,7 @@ export default function ParticipantesEventoCard({
   personas,
   cargandoPersonas,
   grupos = [],
+  asignados = [],
   onChanged,
 }: {
   eventoId: string
@@ -80,9 +84,12 @@ export default function ParticipantesEventoCard({
   cargandoPersonas: boolean
   /** Grupos del evento — solo se usan en modo `inscriptos`, para asignar cada convivente. */
   grupos?: { id: string; nombre: string }[]
+  /** Solo modo `equipo`: quienes vienen de "Asignaciones del Retiro" (card #96). Se muestran sin editar. */
+  asignados?: AsignadoEquipo[]
   onChanged: () => void
 }) {
   const esEquipo = modo === 'equipo'
+  const filasAsignados = esEquipo ? asignados : []
 
   const [nuevaPersona, setNuevaPersona] = useState('')
   const [nuevoRol, setNuevoRol] = useState('equipo_auxiliar')
@@ -181,12 +188,12 @@ export default function ParticipantesEventoCard({
         </CardTitle>
         <CardDescription>
           {esEquipo
-            ? `${activos.length} integrantes. Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota. Los centralizadores con acceso al retiro son los de "Asignaciones del Retiro".`
+            ? `${activos.length + filasAsignados.length} integrantes. Coordinador, asesor y centralizadores se cambian desde "Asignaciones del Retiro". Las funciones sin rol propio van como Equipo Auxiliar y se detallan en la nota.`
             : `${conteo.preinscripto} preinscriptos (completaron sus datos, sin pago) · ${conteo.inscripto} inscriptos · ${conteo.en_curso} conviventes (con el presente dado). Los interesados que todavía no completaron sus datos se siguen desde el detalle del retiro.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {activos.length === 0 ? (
+        {activos.length + filasAsignados.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             {esEquipo ? 'Todavía no hay equipo cargado.' : 'Todavía no hay participantes.'}
           </p>
@@ -211,6 +218,16 @@ export default function ParticipantesEventoCard({
                 </tr>
               </thead>
               <tbody>
+                {filasAsignados.map(a => (
+                  <tr key={a.key} className="border-b border-border/60 bg-muted/20">
+                    <td className="px-3 py-2 font-medium text-foreground">{a.nombre}</td>
+                    <td className="px-3 py-2 text-foreground">{a.rolLabel}</td>
+                    <td className="px-3 py-2 text-muted-foreground">—</td>
+                    <td className="px-3 py-2 text-right text-xs text-muted-foreground whitespace-nowrap">
+                      Desde Asignaciones
+                    </td>
+                  </tr>
+                ))}
                 {activos.map(p => (
                   <tr key={p.id} className="border-b border-border/60 hover:bg-muted/40">
                     <td className="px-3 py-2 font-medium text-foreground">{nombreDe(p)}</td>
