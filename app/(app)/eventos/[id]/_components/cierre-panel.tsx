@@ -9,7 +9,8 @@ import { Copy, Download, Users, FileText, Sparkles, Package, DollarSign, Camera,
 import type { PreguntaInforme } from '@/lib/eventos/cierre'
 import type { FotoCierre } from '@/lib/eventos/fotos-cierre'
 import { FotosCierre } from './fotos-cierre'
-import { exportConviventesPDF, exportInformeCcdPDF, exportInformeCarismasPDF, ROMANOS, type EventoInfo } from '@/lib/eventos/cierre-pdf'
+import { cargarListadoConviventes, exportListadoConviventesPDF, exportListadoConviventesXLSX } from '@/lib/eventos/listado-conviventes'
+import { exportInformeCcdPDF, exportInformeCarismasPDF, ROMANOS, type EventoInfo } from '@/lib/eventos/cierre-pdf'
 import { CerrarConvivenciaButton } from './cerrar-convivencia-button'
 
 const inputClass = 'w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground'
@@ -164,6 +165,19 @@ export default function CierrePanel(props: Props) {
   const [error, setError] = useState('')
   const [okMsg, setOkMsg] = useState('')
 
+  async function exportarListado(formato: 'pdf' | 'xlsx') {
+    setSaving(`listado-${formato}`)
+    setError('')
+    try {
+      const listado = await cargarListadoConviventes(eventoId)
+      await (formato === 'pdf' ? exportListadoConviventesPDF(listado) : exportListadoConviventesXLSX(listado))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo exportar el listado')
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function patchCierre(payload: Record<string, unknown>, tag: string, okText: string) {
     setSaving(tag)
     setError('')
@@ -238,10 +252,16 @@ export default function CierrePanel(props: Props) {
             </div>
           ))}
         </div>
-        <Button size="sm" variant="outline" className="gap-1 bg-transparent"
-          onClick={() => exportConviventesPDF(eventoInfo, conviventes)}>
-          <Download className="h-4 w-4" /> Exportar PDF
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="gap-1 bg-transparent"
+            disabled={saving === 'listado-pdf'} onClick={() => exportarListado('pdf')}>
+            <Download className="h-4 w-4" /> {saving === 'listado-pdf' ? 'Generando…' : 'Exportar PDF'}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1 bg-transparent"
+            disabled={saving === 'listado-xlsx'} onClick={() => exportarListado('xlsx')}>
+            <Download className="h-4 w-4" /> {saving === 'listado-xlsx' ? 'Generando…' : 'Exportar Excel'}
+          </Button>
+        </div>
       </Section>
 
       {/* 2. Informe económico */}

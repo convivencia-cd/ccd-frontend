@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   DollarSign,
   ScrollText,
+  ClipboardList,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -47,6 +48,7 @@ export interface SidebarPermissions {
   canViewCasasRetiro: boolean
   canCreateCasaRetiro: boolean
   canViewInteresados: boolean
+  canViewInscriptos: boolean
   isAdmin: boolean
   esInterno: boolean
 }
@@ -222,6 +224,15 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
                 icon: <UserCheck className="h-4 w-4" />,
                 label: "Interesados",
                 href: "/interesados",
+              },
+            ]
+          : []),
+        ...(p.canViewInscriptos
+          ? [
+              {
+                icon: <ClipboardList className="h-4 w-4" />,
+                label: "Inscriptos",
+                href: "/inscriptos",
               },
             ]
           : []),

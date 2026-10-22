@@ -3,14 +3,14 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getUserContext, canPerform } from '@/lib/auth/context'
+import { getUserContext } from '@/lib/auth/context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Calendar, MapPin, Users, Wallet, ClipboardList, ExternalLink } from 'lucide-react'
 import { formatDateAR } from '@/lib/utils'
-import { esCentralizadorDeEvento, ROLES_SERVIDORES, formatMonto } from '@/lib/eventos/cierre'
+import { ROLES_SERVIDORES, formatMonto } from '@/lib/eventos/cierre'
 import { canGestionarPension } from '@/lib/eventos/pension'
-import { canGestionarAsignaciones, canGestionarParticipantes, ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
+import { canGestionarAsignaciones, canGestionarEvento, canGestionarParticipantes, ROLES_EVENTO_LABEL } from '@/lib/eventos/equipo'
 import { cargarGruposDelEvento } from '@/lib/eventos/grupos'
 import { marcarPreinscriptos } from '@/lib/eventos/inscripcion-datos-server'
 import PensionBecasPanel from '../_components/pension-becas-panel'
@@ -100,12 +100,7 @@ export default async function EventoGestionPage({
     centralizador_3_persona_id: (evento as Record<string, unknown>).centralizador_3_persona_id as string | null,
   }
 
-  const canManage =
-    canPerform(ctx, 'event.update', evento.organizacion_id ?? null) ||
-    (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false) ||
-    esCentralizadorDeEvento(ctx, cierreEvento)
-
-  if (!canManage) notFound()
+  if (!canGestionarEvento(ctx, cierreEvento)) notFound()
 
   const confraternidad = evento.confraternidad as { id: string; nombre: string } | null
   const fraternidad = evento.fraternidad as { id: string; nombre: string } | null

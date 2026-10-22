@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import { getUserContext, canPerform } from '@/lib/auth/context'
-import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
+import { getUserContext } from '@/lib/auth/context'
+import { canTomarAsistencia } from '@/lib/eventos/equipo'
 import { getPublicOrigin } from '@/lib/http'
 import {
   crearAccesoParticipante,
@@ -36,7 +36,7 @@ export async function POST(
   // The event must be publishable/running to take attendance
   const { data: evento, error: eventoError } = await supabase
     .from('eventos')
-    .select('id, nombre, estado, organizacion_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
+    .select('id, nombre, estado, organizacion_id, fraternidad_id, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
     .eq('id', id)
     .single()
 
@@ -47,10 +47,7 @@ export async function POST(
   // Esta ruta solo validaba que hubiera sesión: cualquier usuario logueado
   // podía marcar la asistencia de un participante de cualquier evento. El
   // control replica el de la página /eventos/[id]/asistencia.
-  if (
-    !canPerform(ctx, 'event.update', evento.organizacion_id ?? null) &&
-    !esCentralizadorDeEvento(ctx, evento)
-  ) {
+  if (!canTomarAsistencia(ctx, evento)) {
     return NextResponse.json(
       { error: 'No tenés permiso para tomar asistencia en este retiro' },
       { status: 403 }

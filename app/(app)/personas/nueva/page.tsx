@@ -21,6 +21,8 @@ import { LocationFields } from "@/components/location-fields"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { PersonaCombobox } from "@/components/persona-combobox"
 import { cn } from "@/lib/utils"
+import { correspondeAsesorAutomatico } from "@/lib/personas/modos"
+import { ESTADOS_ECLESIALES, ESTADO_ECLESIAL_RANGOS } from "@/lib/eventos/inscripcion-datos"
 
 interface Organizacion {
   id: string
@@ -100,6 +102,7 @@ export default function NewPersonaPage() {
     fraternidad_id: "",
     modo_inicial: "",
     estado_eclesial: "laico",
+    estado_eclesial_rango: "",
     estado_vida: "",
     diocesis: "",
     tipo_persona: "",
@@ -495,17 +498,36 @@ export default function NewPersonaPage() {
                   id="estado_eclesial"
                   name="estado_eclesial"
                   value={formData.estado_eclesial}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, estado_eclesial: e.target.value, estado_eclesial_rango: "" }))}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
                 >
-                  <option value="laico">Laico</option>
-                  <option value="religioso">Religioso/a</option>
-                  <option value="diacono">Diácono</option>
-                  <option value="sacerdote">Sacerdote</option>
-                  <option value="obispo">Obispo</option>
-                  <option value="cardenal">Cardenal</option>
+                  {ESTADOS_ECLESIALES.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </div>
+              {formData.estado_eclesial === "clerigo" && (
+                <div className="space-y-2">
+                  <Label htmlFor="estado_eclesial_rango">Rango</Label>
+                  <select
+                    id="estado_eclesial_rango"
+                    name="estado_eclesial_rango"
+                    value={formData.estado_eclesial_rango}
+                    onChange={handleChange}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground text-sm"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {ESTADO_ECLESIAL_RANGOS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                  {correspondeAsesorAutomatico(formData) && (
+                    <p className="text-sm text-muted-foreground">
+                      Se agrega Asesor automáticamente, además del modo de participación elegido.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="parroquia">Parroquia</Label>
                 <Input

@@ -27,7 +27,9 @@ export type Permission =
   | 'event.publish'       // publicar eventos aprobados (aprobado → publicado)
   | 'event.suspend'       // suspender eventos en cualquier instancia — solo Equipo Timón
   | 'event.request_suspend' // solicitar la suspensión de un evento (enlaces/responsables/delegados) — asignable
-  | 'event.update'
+  | 'event.update'        // botón "Editar": modificar los datos del evento
+  | 'event.manage'        // botón "Gestionar retiro": pantalla de Gestión (equipo, becas en pensión, exportaciones) — scopeado
+  | 'event.attendance'    // botón "Tomar asistencia" — scopeado (el centralizador del evento no lo necesita)
   | 'event.manage_participants'
   | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
   | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
@@ -59,6 +61,7 @@ export type Permission =
   | 'event.view_aprobados'     // ver los eventos aprobados (aprobado ≠ publicado: todavía no son públicos)
   | 'event.view_all_estados'   // ver el listado de eventos en cualquier estado (no solo publicado/en_curso/finalizado)
   | 'view.interesados'         // ver la sección Interesados dentro de Eventos, scopeado a la propia organización
+  | 'view.inscriptos'          // ver la sección Inscriptos dentro de Eventos, scopeado a la propia organización
 
 // ─── Mapa de permisos por rol ─────────────────────────────────────────────────
 //
@@ -84,6 +87,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.suspend',
     'event.request_suspend',
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'inscripcion.view_datos_sensibles',
     'payment.verify',
@@ -111,6 +116,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.view_aprobados',
     'event.view_all_estados',
     'view.interesados',
+    'view.inscriptos',
   ],
 
   tecnico_confraternidad: [
@@ -119,6 +125,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.create',
     'event.approve_confra',
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'payment.verify',
     'organization.update',
@@ -138,6 +146,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.create',
     'event.approve_confra',
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'payment.verify',
     'roles.view',
@@ -152,6 +162,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'person.update',
     'event.create',    // estado forzado a 'borrador' en el servidor
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'view.all',
     'view.personas',

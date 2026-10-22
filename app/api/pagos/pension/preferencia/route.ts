@@ -63,8 +63,8 @@ export async function POST(request: Request) {
   }
 
   const autorizado =
-    canPerform(ctx, 'event.update', evento.organizacion_id) ||
-    (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false) ||
+    canPerform(ctx, 'event.manage', evento.organizacion_id) ||
+    (evento.fraternidad_id ? canPerform(ctx, 'event.manage', evento.fraternidad_id) : false) ||
     esCentralizadorDeEvento(ctx, evento)
 
   if (!autorizado) {

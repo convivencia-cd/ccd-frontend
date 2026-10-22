@@ -59,7 +59,11 @@ export async function PATCH(
   if (body.provincia !== undefined) updateData.provincia = body.provincia || null
   if (body.pais !== undefined) updateData.pais = body.pais || null
   if (body.notas !== undefined) updateData.notas = body.notas || null
-  if (body.estado_eclesial !== undefined) updateData.estado_eclesial = body.estado_eclesial || 'laico'
+  if (body.estado_eclesial !== undefined) {
+    updateData.estado_eclesial = body.estado_eclesial || 'laico'
+    // El rango solo aplica a clérigos (050); al cambiar de estado se limpia.
+    updateData.estado_eclesial_rango = body.estado_eclesial === 'clerigo' ? (body.estado_eclesial_rango || null) : null
+  }
   if (body.diocesis !== undefined) updateData.diocesis = body.diocesis || null
   if (body.tipo_persona !== undefined) updateData.tipo_persona = body.tipo_persona || null
   if (body.parroquia !== undefined) updateData.parroquia = body.parroquia || null

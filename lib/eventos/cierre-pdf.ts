@@ -44,22 +44,6 @@ function writeWrapped(c: Cursor, text: string, opts?: { size?: number; bold?: bo
   if (opts?.gap) c.y += opts.gap
 }
 
-function encabezado(c: Cursor, titulo: string, evento: EventoInfo) {
-  writeWrapped(c, titulo, { size: 16, bold: true })
-  c.y += 1
-  const sub = [
-    evento.nombre,
-    evento.fecha_inicio ? formatDateAR(evento.fecha_inicio.split('T')[0]) : null,
-    evento.confraternidad_nombre,
-  ].filter(Boolean).join('  ·  ')
-  writeWrapped(c, sub, { size: 10 })
-  c.y += 2
-  const pageW = c.doc.internal.pageSize.getWidth()
-  c.doc.setDrawColor(180)
-  c.doc.line(MARGIN, c.y, pageW - MARGIN, c.y)
-  c.y += 6
-}
-
 async function nuevoDoc(): Promise<jsPDF> {
   const { default: JsPDF } = await import('jspdf')
   return new JsPDF({ unit: 'mm', format: 'a4' })
@@ -78,23 +62,7 @@ export type EventoInfo = {
   lugar?: string | null
 }
 
-// ─── Listado de conviventes ───────────────────────────────────────────────────
-
-export async function exportConviventesPDF(
-  evento: EventoInfo,
-  conviventes: { nombre: string; apellido: string; email?: string | null; telefono?: string | null; rol: string }[],
-) {
-  const doc = await nuevoDoc()
-  const c: Cursor = { doc, y: MARGIN }
-  encabezado(c, 'Listado de Conviventes', evento)
-  writeWrapped(c, `Total: ${conviventes.length}`, { size: 10, gap: 2 })
-  conviventes.forEach((p, i) => {
-    const contacto = [p.email, p.telefono].filter(Boolean).join(' · ')
-    const linea = `${i + 1}. ${p.apellido}, ${p.nombre}${p.rol ? `  (${p.rol})` : ''}${contacto ? `  —  ${contacto}` : ''}`
-    writeWrapped(c, linea, { size: 10 })
-  })
-  doc.save(nombreArchivo(evento, 'conviventes'))
-}
+// El listado de conviventes vive en ./listado-conviventes.ts (formato propio, A4 apaisado).
 
 // ─── Informes confidenciales: mismo formato que los Word de la Comunidad ──────
 

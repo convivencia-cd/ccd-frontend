@@ -59,6 +59,14 @@ function tamanioNombre(texto: string) {
   return 32
 }
 
+/** Igual que el apodo (card #72), pero en minúsculas entran más letras por línea. */
+function tamanioLocalidad(texto: string) {
+  if (texto.length <= 10) return 64
+  if (texto.length <= 13) return 52
+  if (texto.length <= 17) return 40
+  return 32
+}
+
 export async function exportCartelitosDOCX(evento: string, filas: FilaExportacion[]) {
   const {
     AlignmentType,
@@ -97,7 +105,7 @@ export async function exportCartelitosDOCX(evento: string, filas: FilaExportacio
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 120 },
-          children: [new TextRun({ text: localidad, bold: true, size: 32, font: 'Arial', color: 'C00000' })],
+          children: [new TextRun({ text: localidad, bold: true, size: tamanioLocalidad(localidad), font: 'Arial', color: 'C00000' })],
         }),
       ],
     })

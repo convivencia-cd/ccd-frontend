@@ -17,14 +17,14 @@ export const ESTADOS_PENSION_VISIBLE = ['publicado', 'en_curso', 'finalizado'] a
 /**
  * Ver y editar becas de pensión: mismos roles que gestionan el pago de pensión
  * (Centralizador del evento, Responsable de Confraternidad, Enlace de Fraternidad,
- * Delegado del Equipo Timón vía is_admin). Sin permiso nuevo — se reutiliza
- * exactamente el mismo criterio de event.update scopeado + esCentralizadorDeEvento.
+ * Delegado del Equipo Timón vía is_admin). Mismo criterio que "Gestionar retiro"
+ * (Becas vive en esa pantalla): event.manage scopeado + esCentralizadorDeEvento.
  */
 export function canGestionarPension(ctx: UserContext | null, evento: PensionEvento): boolean {
   if (!ctx || !(ESTADOS_PENSION_VISIBLE as readonly string[]).includes(evento.estado)) return false
   return (
-    canPerform(ctx, 'event.update', evento.organizacion_id) ||
-    (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false) ||
+    canPerform(ctx, 'event.manage', evento.organizacion_id) ||
+    (evento.fraternidad_id ? canPerform(ctx, 'event.manage', evento.fraternidad_id) : false) ||
     esCentralizadorDeEvento(ctx, evento)
   )
 }
