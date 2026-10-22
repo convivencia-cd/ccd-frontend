@@ -41,6 +41,28 @@ export async function cargarInscripcionDatos(participanteId: string): Promise<In
   }
 }
 
+/** Datos de la inscripción de varios participantes a la vez. Quien no los completó no aparece en el mapa. */
+export async function cargarInscripcionDatosDeParticipantes(
+  participanteIds: string[],
+): Promise<Map<string, InscripcionDatos>> {
+  const datos = new Map<string, InscripcionDatos>()
+  if (participanteIds.length === 0) return datos
+  const { data, error } = await adminClient()
+    .from('evento_inscripcion_datos')
+    .select(`evento_participante_id, ${COLUMNAS}`)
+    .in('evento_participante_id', participanteIds)
+  if (error) throw error
+  for (const fila of (data ?? []) as unknown as (Partial<InscripcionDatos> & { evento_participante_id: string })[]) {
+    const { evento_participante_id, ...resto } = fila
+    datos.set(evento_participante_id, {
+      ...INSCRIPCION_DATOS_VACIA,
+      ...resto,
+      restricciones_alimentarias: Array.isArray(resto.restricciones_alimentarias) ? resto.restricciones_alimentarias : [],
+    })
+  }
+  return datos
+}
+
 /**
  * De estos participantes, cuáles ya guardaron la planilla de inscripción.
  * Solo devuelve ids, nada de lo que cargaron: sirve para mostrar a los

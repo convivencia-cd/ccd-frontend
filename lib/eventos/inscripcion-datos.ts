@@ -334,3 +334,18 @@ export function canVerDatosSensiblesInscripcion(ctx: UserContext | null, evento:
     (evento.fraternidad_id ? canPerform(ctx, 'inscripcion.view_datos_sensibles', evento.fraternidad_id) : false)
   )
 }
+
+/**
+ * Puede descargar las fichas de inscripción de todos los participantes (card
+ * #97): el coordinador y los centralizadores del evento, y quien tenga
+ * `inscripcion.export_fichas` scopeado (asignable desde el catálogo).
+ */
+export function canExportarFichasInscripcion(ctx: UserContext | null, evento: EventoInscripcionScope): boolean {
+  if (!ctx) return false
+  return (
+    (!!ctx.persona_id && ctx.persona_id === evento.coordinador_asignado_id) ||
+    esCentralizadorDeEvento(ctx, evento) ||
+    canPerform(ctx, 'inscripcion.export_fichas', evento.organizacion_id) ||
+    (evento.fraternidad_id ? canPerform(ctx, 'inscripcion.export_fichas', evento.fraternidad_id) : false)
+  )
+}

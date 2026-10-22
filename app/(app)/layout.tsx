@@ -40,6 +40,7 @@ export default async function AppLayout({
     canCreateCasaRetiro:   canPerform(ctx, 'casas_retiro.create'),
     canViewInteresados:    canViewInteresados || esCoordinadorOCentralizador,
     canViewInscriptos:     canViewInscriptos || esCoordinadorOCentralizador,
+    canViewMiPerfil:       canPerform(ctx, 'perfil.view_propio') && !!ctx.persona_id,
     isAdmin:               ctx.is_admin,
     esInterno:             ctx.es_interno,
   }

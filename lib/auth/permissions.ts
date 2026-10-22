@@ -32,6 +32,7 @@ export type Permission =
   | 'event.attendance'    // botón "Tomar asistencia" — scopeado (el centralizador del evento no lo necesita)
   | 'event.manage_participants'
   | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
+  | 'inscripcion.export_fichas'        // descargar las fichas de inscripción de los participantes (PDF/Excel) — scopeado a la org del evento
   | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
   | 'informe_economico.edit' // cargar movimientos del Informe Económico del evento (Tesoreros) — scopeado a la org del evento
   | 'informe_economico.view' // ver (solo lectura) el Informe Económico del evento — scopeado a la org del evento
@@ -62,6 +63,7 @@ export type Permission =
   | 'event.view_all_estados'   // ver el listado de eventos en cualquier estado (no solo publicado/en_curso/finalizado)
   | 'view.interesados'         // ver la sección Interesados dentro de Eventos, scopeado a la propia organización
   | 'view.inscriptos'          // ver la sección Inscriptos dentro de Eventos, scopeado a la propia organización
+  | 'perfil.view_propio'       // ver "Mi perfil" (solo lectura) — pensado para la cuenta de Participante
 
 // ─── Mapa de permisos por rol ─────────────────────────────────────────────────
 //
@@ -91,6 +93,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.attendance',
     'event.manage_participants',
     'inscripcion.view_datos_sensibles',
+    'inscripcion.export_fichas',
     'payment.verify',
     'informe_economico.edit',
     'informe_economico.view',
@@ -117,6 +120,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.view_all_estados',
     'view.interesados',
     'view.inscriptos',
+    'perfil.view_propio',
   ],
 
   tecnico_confraternidad: [

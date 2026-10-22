@@ -29,6 +29,7 @@ import {
   DollarSign,
   ScrollText,
   ClipboardList,
+  User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -49,6 +50,7 @@ export interface SidebarPermissions {
   canCreateCasaRetiro: boolean
   canViewInteresados: boolean
   canViewInscriptos: boolean
+  canViewMiPerfil: boolean
   isAdmin: boolean
   esInterno: boolean
 }
@@ -63,15 +65,26 @@ interface NavItem {
 function buildNavItems(p: SidebarPermissions): NavItem[] {
   // Cuenta de Participante (convivente no cecista): no ve pantallas internas.
   if (!p.esInterno) {
-    return p.canViewPublicados
-      ? [
-          {
-            icon: <Globe className="h-5 w-5" />,
-            label: "Retiros Publicados",
-            href: "/eventos/publicados",
-          },
-        ]
-      : []
+    return [
+      ...(p.canViewPublicados
+        ? [
+            {
+              icon: <Globe className="h-5 w-5" />,
+              label: "Retiros Publicados",
+              href: "/eventos/publicados",
+            },
+          ]
+        : []),
+      ...(p.canViewMiPerfil
+        ? [
+            {
+              icon: <User className="h-5 w-5" />,
+              label: "Mi perfil",
+              href: "/mi-perfil",
+            },
+          ]
+        : []),
+    ]
   }
 
   return [

@@ -34,6 +34,8 @@ import {
 } from '@/lib/eventos/cierre'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
 import { canGestionarEvento, canTomarAsistencia } from '@/lib/eventos/equipo'
+import { canExportarFichasInscripcion } from '@/lib/eventos/inscripcion-datos'
+import { ExportarFichasButton } from './_components/exportar-fichas-button'
 import { cargarCarismas, cargarInformeCcd } from '@/lib/eventos/informes-cierre'
 import { cargarFotosCierre } from '@/lib/eventos/fotos-cierre'
 import { formatDateAR } from '@/lib/utils'
@@ -548,6 +550,11 @@ export default async function EventoDetailPage({
     (evento.estado === 'publicado' || evento.estado === 'en_curso' || evento.estado === 'finalizado') &&
     canGestionarEvento(ctx, cierreEvento)
 
+  // Fichas de inscripción (card #97): desde que se publica, que es cuando hay inscriptos.
+  const canExportarFichas =
+    ['publicado', 'en_curso', 'finalizado', 'cerrado'].includes(evento.estado) &&
+    canExportarFichasInscripcion(ctx, cierreEvento)
+
   // Datos noticias panel: visible when pendiente_datos_noticias and user has permission
   const esSolicitante = ctx?.persona_id && ctx.persona_id === (evento as Record<string, unknown>).solicitado_por
   const canDatosNoticias = ctx && evento.estado === 'pendiente_datos_noticias' && (
@@ -703,6 +710,7 @@ export default async function EventoDetailPage({
               </Button>
             </Link>
           )}
+          {canExportarFichas && <ExportarFichasButton eventoId={id} />}
           {showIE && (
             <Link href={`/eventos/${id}/informe-economico`}>
               <Button variant="outline" size="sm" className="gap-2 bg-transparent">

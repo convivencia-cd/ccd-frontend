@@ -2,7 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /** Pantallas de la app a las que llega una cuenta de Participante. La primera es su inicio. */
-const RUTAS_PARTICIPANTE = ['/eventos/publicados', '/settings']
+// /mi-perfil además exige el permiso perfil.view_propio (lo chequea la página).
+const RUTAS_PARTICIPANTE = ['/eventos/publicados', '/settings', '/mi-perfil']
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
