@@ -91,6 +91,24 @@ se pueden previsualizar sin enviar con `buildTemplateEmail(...)`.
 
 ## Diagnóstico
 
+### Cambios de estado de retiros
+
+Las transiciones del flujo y los cambios manuales del administrador pasan por
+`lib/eventos/actualizar-estado.ts`. Solo se notifica después de guardar un cambio
+real; una actualización rechazada o concurrente no dispara un correo.
+
+`lib/eventos/notificar-estado.ts` resuelve los ministerios vigentes EFRATER,
+RCONFRA y DEQT de la organización/fraternidad y sus padres, TIMON a nivel
+comunitario y el coordinador asignado. Descarta personas inactivas, correos
+internos y direcciones duplicadas. Cada destinatario recibe un correo individual
+con el nombre guardado del retiro y el enlace interno `/eventos/:id`.
+
+El envío usa la configuración de Resend existente. Los fallos se registran con
+el prefijo `[evento-estado]` sin revertir el cambio; no hay reintento automático.
+Pruebas sin envíos reales: `node --test tests/evento-estado.test.cjs`.
+
+### Configuración de envío
+
 Con sesión de admin:
 
 - `GET /api/email/test` — muestra la configuración detectada (sin enviar).

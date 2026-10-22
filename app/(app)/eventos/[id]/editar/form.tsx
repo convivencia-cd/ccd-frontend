@@ -48,10 +48,8 @@ const ESTADOS_DESTRUCTIVOS = ["suspendido", "rechazado", "cancelado"]
 
 export default function EditarEventoForm({
   isAdmin = false,
-  personaId = null,
 }: {
   isAdmin?: boolean
-  personaId?: string | null
 }) {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -66,12 +64,6 @@ export default function EditarEventoForm({
   // Estado persistido (no el del select), para decidir si se muestran los flyers.
   const [estadoGuardado, setEstadoGuardado] = useState<string | null>(null)
   const [confirmandoEstado, setConfirmandoEstado] = useState(false)
-  // Sellos que ponen los botones del flujo (Publicar / Iniciar). Si el estado se
-  // cambia a mano desde acá y todavía están vacíos, se completan igual.
-  const [sellos, setSellos] = useState<{ fecha_publicacion: string | null; fecha_inicio_real: string | null }>({
-    fecha_publicacion: null,
-    fecha_inicio_real: null,
-  })
   const [formData, setFormData] = useState({
     nombre: "",
     tipo: "convivencia",
@@ -102,7 +94,7 @@ export default function EditarEventoForm({
       supabase
         .from("eventos")
         .select(
-          "id, nombre, tipo, fecha_solicitud, fecha_inicio, fecha_fin, organizacion_id, casa_retiro_id, cupo_maximo, precio, pension, audiencia, modalidad, estado, descripcion, link_pago_mercadopago, ciudad, codigo_postal, diocesis, provincia_evento, pais_evento, flyer_horizontal_url, flyer_cuadrado_url, fecha_publicacion, fecha_inicio_real",
+          "id, nombre, tipo, fecha_solicitud, fecha_inicio, fecha_fin, organizacion_id, casa_retiro_id, cupo_maximo, precio, pension, audiencia, modalidad, estado, descripcion, link_pago_mercadopago, ciudad, codigo_postal, diocesis, provincia_evento, pais_evento, flyer_horizontal_url, flyer_cuadrado_url",
         )
         .eq("id", id)
         .single(),
@@ -158,10 +150,6 @@ export default function EditarEventoForm({
           pais_evento: evento.pais_evento ?? "Argentina",
         })
         setEstadoGuardado(evento.estado ?? null)
-        setSellos({
-          fecha_publicacion: (evento as Record<string, unknown>).fecha_publicacion as string | null ?? null,
-          fecha_inicio_real: (evento as Record<string, unknown>).fecha_inicio_real as string | null ?? null,
-        })
         setFlyerUrls({
           horizontal: (evento as Record<string, unknown>).flyer_horizontal_url as string | null ?? null,
           cuadrado: (evento as Record<string, unknown>).flyer_cuadrado_url as string | null ?? null,
@@ -255,36 +243,28 @@ export default function EditarEventoForm({
         pais_evento: formData.pais_evento || "Argentina",
       }
 
-      // El estado solo viaja si se cambió a propósito. Antes se reenviaba siempre el
-      // que se había cargado al abrir el formulario, y guardar cualquier otro dato
-      // pisaba un estado que el flujo había movido mientras tanto.
+      // Los cambios de estado pasan por el servidor para notificar a los responsables.
       if (cambiaEstado) {
-        updateData.estado = formData.estado
-        if (formData.estado === "publicado" && !sellos.fecha_publicacion) {
-          updateData.fecha_publicacion = new Date().toISOString().split("T")[0]
-          updateData.publicado_por = personaId
+        const response = await fetch(`/api/eventos/${id}/estado`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...updateData,
+            estado: formData.estado,
+            estadoAnterior: estadoGuardado,
+          }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error ?? "No se pudo cambiar el estado")
+        setEstadoGuardado(formData.estado)
+      } else {
+        const { data: actualizado, error: updateError } = await supabase
+          .from("eventos").update(updateData).eq("id", id).select("id")
+        if (updateError) throw updateError
+        if (!actualizado?.length) {
+          setError("No se guardaron los cambios: no tenés permiso para modificar este retiro.")
+          return
         }
-        if (formData.estado === "en_curso" && !sellos.fecha_inicio_real) {
-          updateData.fecha_inicio_real = new Date().toISOString()
-        }
-      }
-
-      let update = supabase.from("eventos").update(updateData).eq("id", id)
-      // Si otro lo movió mientras se editaba, no pisar ese cambio.
-      if (cambiaEstado) update = update.eq("estado", estadoGuardado)
-
-      // .select() para detectar el caso en que no se actualiza ninguna fila:
-      // Supabase no lo informa como error.
-      const { data: actualizado, error: updateError } = await update.select("id")
-
-      if (updateError) throw updateError
-      if (!actualizado || actualizado.length === 0) {
-        setError(
-          cambiaEstado
-            ? "No se guardó: el retiro cambió de estado mientras lo editabas, o no tenés permiso para modificarlo. Recargá la página y volvé a intentar."
-            : "No se guardaron los cambios: no tenés permiso para modificar este retiro.",
-        )
-        return
       }
 
       // Sync evento_fechas

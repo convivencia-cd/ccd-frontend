@@ -299,13 +299,13 @@ function bloquesQrIngreso(cid: string): EmailBlock[] {
 }
 
 export const pagoConfirmado = defineTemplate<PagoProps>({
-  subject: p => `Pago confirmado — ${p.evento}`,
+  subject: () => 'Pago de Inscripción confirmado.',
   preheader: p => `${p.moneda ?? '$'} ${formatMonto(p.monto)}`,
   tags: () => ({ categoria: 'pago', estado: 'confirmado' }),
   blocks: p => {
     const blocks: EmailBlock[] = [
       block.heading('Confirmamos tu pago'),
-      block.paragraph(`¡Hola, ${p.nombre}! Registramos tu pago para ${p.evento}.`),
+      block.paragraph(`¡Hola, ${p.nombre}! Registramos el pago de la inscripción para ${p.evento}.`),
       block.facts([
         { label: 'Monto', value: `${p.moneda ?? '$'} ${formatMonto(p.monto)}` },
         ...(p.medioPago ? [{ label: 'Medio de pago', value: p.medioPago }] : []),
@@ -338,6 +338,19 @@ export const pagoRechazado = defineTemplate<PagoProps>({
 })
 
 // ─── Eventos ──────────────────────────────────────────────────────────────────
+
+export const eventoCambioEstado = defineTemplate<{ evento: string; detalleUrl: string }>({
+  subject: p => `Novedad sobre Retiro ${p.evento}`,
+  tags: () => ({ categoria: 'evento', notificacion: 'cambio_estado' }),
+  blocks: p => [
+    block.paragraph(`Novedades en el retiro ${p.evento}.`),
+    block.raw(
+      `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Puede acceder a las mismas, haciendo clic en <a href="${escapeHtml(p.detalleUrl)}">${escapeHtml(p.detalleUrl)}</a>.</p>`,
+      `Puede acceder a las mismas, haciendo clic en ${p.detalleUrl}`,
+    ),
+    block.paragraph('Bendiciones!'),
+  ],
+})
 
 export type EventoEstadoProps = {
   evento: string
@@ -399,6 +412,7 @@ export const templates = {
   pagoConfirmado,
   pagoRechazado,
   eventoAprobado,
+  eventoCambioEstado,
   eventoSuspendido,
 } as const
 

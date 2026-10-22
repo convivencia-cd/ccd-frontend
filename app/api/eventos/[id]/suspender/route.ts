@@ -1,3 +1,4 @@
+import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
@@ -42,9 +43,8 @@ export async function POST(
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { error: updateError } = await supabase
-    .from('eventos')
-    .update({
+  const { error: updateError } = await actualizarEstadoEvento(
+    supabase, request, id, evento.estado, {
       estado: 'suspendido',
       suspendido_por: ctx.persona_id,
       fecha_suspension: today,
@@ -53,8 +53,8 @@ export async function POST(
       solicitud_suspension_notas: null,
       solicitud_suspension_por: null,
       solicitud_suspension_fecha: null,
-    })
-    .eq('id', id)
+    },
+  )
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
 

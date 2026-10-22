@@ -62,7 +62,7 @@ export default async function EditarEventoPage({
 
   return (
     <div className="space-y-6">
-      <EditarEventoForm isAdmin={ctx.is_admin} personaId={ctx.persona_id} />
+      <EditarEventoForm isAdmin={ctx.is_admin} />
       <div className="max-w-2xl">
         <EquipoEventoPanel
           eventoId={id}

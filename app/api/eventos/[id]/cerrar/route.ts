@@ -1,3 +1,4 @@
+import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
@@ -6,7 +7,7 @@ import { contarFotosCierre } from '@/lib/eventos/fotos-cierre'
 
 // Cierra la convivencia: finalizado → cerrado. Solo Equipo Timón.
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
@@ -53,14 +54,13 @@ export async function POST(
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
-  const { error: updateError } = await supabase
-    .from('eventos')
-    .update({
+  const { error: updateError } = await actualizarEstadoEvento(
+    supabase, request, id, evento.estado, {
       estado: 'cerrado',
       fecha_cierre: new Date().toISOString(),
       cerrado_por: ctx.persona_id,
-    })
-    .eq('id', id)
+    },
+  )
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
 
