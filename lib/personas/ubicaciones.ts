@@ -11,6 +11,23 @@ export type UbicacionesCargadas = {
   /** Normalizado → valores tal cual están guardados (variantes de tildes/mayúsculas/espacios). */
   variantesProvincia: Record<string, string[]>
   variantesLocalidad: Record<string, string[]>
+  variantesPais: Record<string, string[]>
+}
+
+/** País que se asume cuando la persona no lo tiene cargado (igual que el filtro de provincias). */
+export const PAIS_POR_DEFECTO = 'Argentina'
+
+/**
+ * Condición `or` de PostgREST para el filtro de país (card #91): las variantes
+ * guardadas del país elegido y, si es Argentina, también quienes no tienen país
+ * cargado. `null` si nadie lo tiene cargado y no es Argentina (cero resultados).
+ */
+export function filtroPais(pais: string, variantesPais: Record<string, string[]>): string | null {
+  const variantes = variantesDe(pais, variantesPais).map(v => `"${v.replace(/"/g, '')}"`)
+  const partes: string[] = []
+  if (variantes.length) partes.push(`pais.in.(${variantes.join(',')})`)
+  if (normalizarUbicacion(pais) === normalizarUbicacion(PAIS_POR_DEFECTO)) partes.push('pais.is.null', 'pais.eq.')
+  return partes.length ? partes.join(',') : null
 }
 
 /** Normaliza a minúsculas sin tildes, para deduplicar variantes de la misma provincia/localidad. */
@@ -33,6 +50,7 @@ export async function fetchUbicaciones(supabase: SupabaseServerClient): Promise<
   const ubicaciones: Ubicacion[] = []
   const variantesProvincia: Record<string, string[]> = {}
   const variantesLocalidad: Record<string, string[]> = {}
+  const variantesPais: Record<string, string[]> = {}
 
   const registrarVariante = (destino: Record<string, string[]>, valor: string | null) => {
     if (valor === null || valor === '') return
@@ -56,6 +74,7 @@ export async function fetchUbicaciones(supabase: SupabaseServerClient): Promise<
       // Las variantes se guardan sin recortar: son el valor exacto contra el que se consulta.
       registrarVariante(variantesProvincia, row.provincia)
       registrarVariante(variantesLocalidad, row.localidad)
+      registrarVariante(variantesPais, row.pais)
 
       const pais = (row.pais ?? '').trim()
       const prov = (row.provincia ?? '').trim()
@@ -69,7 +88,7 @@ export async function fetchUbicaciones(supabase: SupabaseServerClient): Promise<
     if (data.length < CHUNK) break
   }
 
-  return { ubicaciones, variantesProvincia, variantesLocalidad }
+  return { ubicaciones, variantesProvincia, variantesLocalidad, variantesPais }
 }
 
 /**

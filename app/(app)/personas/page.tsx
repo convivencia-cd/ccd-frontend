@@ -9,7 +9,7 @@ import { getUserContext, canPerform } from '@/lib/auth/context'
 import PersonasTable from './_components/personas-table'
 import PersonasFilters from './_components/personas-filters'
 import DataPagination from '@/components/data-pagination'
-import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
+import { fetchUbicaciones, filtroPais, variantesDe } from '@/lib/personas/ubicaciones'
 import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
 import { agruparModosPorPersona } from '@/lib/personas/modos'
 import { filtroBusquedaPersonas } from '@/lib/personas/busqueda'
@@ -21,6 +21,7 @@ export default async function PersonasPage({
     q?: string
     estado?: string
     estado_eclesial?: string
+    pais?: string
     provincia?: string
     localidad?: string
     modo?: string
@@ -38,6 +39,7 @@ export default async function PersonasPage({
   const q = params.q ?? ''
   const estado = params.estado ?? ''
   const estado_eclesial = params.estado_eclesial ?? ''
+  const pais = params.pais ?? ''
   const provincia = params.provincia ?? ''
   const localidad = params.localidad ?? ''
   const filtrosPadron = leerFiltrosPadron(params)
@@ -62,7 +64,7 @@ export default async function PersonasPage({
   const [
     { data: ministerios },
     { data: organizaciones },
-    { ubicaciones, variantesProvincia, variantesLocalidad },
+    { ubicaciones, variantesProvincia, variantesLocalidad, variantesPais },
     modoResult,
     ministerioResult,
     orgResult,
@@ -138,6 +140,10 @@ export default async function PersonasPage({
     if (canManage && estado_eclesial) query = query.eq('estado_eclesial', estado_eclesial)
     // Se filtra por las variantes guardadas ("Cordoba" además de "Córdoba"); si la
     // provincia/ciudad elegida del catálogo no la tiene nadie, el ilike da cero resultados.
+    if (pais) {
+      const condicion = filtroPais(pais, variantesPais)
+      query = condicion ? query.or(condicion) : query.ilike('pais', pais)
+    }
     if (provincia) {
       const variantes = variantesDe(provincia, variantesProvincia)
       query = variantes.length ? query.in('provincia', variantes) : query.ilike('provincia', provincia)
@@ -223,7 +229,7 @@ export default async function PersonasPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   const hasFilters = !!(
-    q || provincia || localidad || modo || categoria || convivente || organizacion_id ||
+    q || pais || provincia || localidad || modo || categoria || convivente || organizacion_id ||
     (canManage && (estado || estado_eclesial || ministerio_id))
   )
 
@@ -232,6 +238,7 @@ export default async function PersonasPage({
   if (q) exportParams.set('q', q)
   if (canManage && estado) exportParams.set('estado', estado)
   if (canManage && estado_eclesial) exportParams.set('estado_eclesial', estado_eclesial)
+  if (pais) exportParams.set('pais', pais)
   if (provincia) exportParams.set('provincia', provincia)
   if (localidad) exportParams.set('localidad', localidad)
   if (modo) exportParams.set('modo', modo)
@@ -280,6 +287,7 @@ export default async function PersonasPage({
             defaults={{
               q,
               estado: canManage ? estado : '',
+              pais,
               provincia,
               localidad,
               modo,

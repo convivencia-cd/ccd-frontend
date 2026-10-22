@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
-import { fetchUbicaciones, variantesDe } from '@/lib/personas/ubicaciones'
+import { fetchUbicaciones, filtroPais, variantesDe } from '@/lib/personas/ubicaciones'
 import { aplicarFiltrosPadron, leerFiltrosPadron } from '@/lib/personas/padron'
 import { agruparModosPorPersona, ordenarModos } from '@/lib/personas/modos'
 import { filtroBusquedaPersonas } from '@/lib/personas/busqueda'
@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q') ?? ''
   const estado = searchParams.get('estado') ?? ''
   const estado_eclesial = searchParams.get('estado_eclesial') ?? ''
+  const pais = searchParams.get('pais') ?? ''
   const provincia = searchParams.get('provincia') ?? ''
   const localidad = searchParams.get('localidad') ?? ''
   const filtrosPadron = leerFiltrosPadron({
@@ -77,8 +78,9 @@ export async function GET(req: NextRequest) {
 
   let variantesProvincia: Record<string, string[]> | undefined
   let variantesLocalidad: Record<string, string[]> | undefined
-  if (provincia || localidad) {
-    ;({ variantesProvincia, variantesLocalidad } = await fetchUbicaciones(supabase))
+  let variantesPais: Record<string, string[]> | undefined
+  if (pais || provincia || localidad) {
+    ;({ variantesProvincia, variantesLocalidad, variantesPais } = await fetchUbicaciones(supabase))
   }
 
   // Builds a fresh, fully-filtered query each time it's called (Supabase query
@@ -104,6 +106,10 @@ export async function GET(req: NextRequest) {
     if (estado) q_ = q_.eq('estado', estado)
     if (estado_eclesial) q_ = q_.eq('estado_eclesial', estado_eclesial)
     // Mismo criterio que el listado: se buscan las variantes tal cual están guardadas.
+    if (pais && variantesPais) {
+      const condicion = filtroPais(pais, variantesPais)
+      q_ = condicion ? q_.or(condicion) : q_.ilike('pais', pais)
+    }
     if (provincia && variantesProvincia) {
       const variantes = variantesDe(provincia, variantesProvincia)
       q_ = variantes.length ? q_.in('provincia', variantes) : q_.ilike('provincia', provincia)

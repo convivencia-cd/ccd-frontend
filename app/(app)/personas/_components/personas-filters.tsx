@@ -44,6 +44,7 @@ type Props = {
   defaults: {
     q: string
     estado: string
+    pais: string
     provincia: string
     localidad: string
     modo: string
@@ -60,6 +61,7 @@ const comboboxClass = "h-[38px] border-border px-3 text-sm shadow-none"
 export default function PersonasFilters({ ministerios, organizaciones, ubicaciones, canManage, defaults }: Props) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const [pais, setPais] = useState(defaults.pais)
   const [provincia, setProvincia] = useState(defaults.provincia)
   const [localidad, setLocalidad] = useState(defaults.localidad)
   const [organizacionId, setOrganizacionId] = useState(defaults.organizacion_id)
@@ -85,24 +87,45 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
     return [...paises]
   }, [ubicaciones])
 
+  // País de cada ubicación cargada (sin dato = Argentina), ya normalizado.
+  const paisDe = (u: Ubicacion) => normalizar((u.pais ?? "").trim() || "Argentina")
+
+  // Card #91: solo los países que tienen personas cargadas (más el de la URL).
+  const paisOptions = useMemo<ComboboxOption[]>(() => {
+    const vistas = new Map<string, string>()
+    for (const p of [...paisesPresentes, defaults.pais]) {
+      const key = normalizar(p)
+      if (key && !vistas.has(key)) vistas.set(key, p.trim())
+    }
+    return ordenarPorRelevancia([...vistas.values()], "").map((n) => ({ label: n, value: n }))
+  }, [paisesPresentes, defaults.pais])
+
   // Se ofrece el catálogo completo de provincias, no solo las que tienen personas cargadas:
   // elegir una sin resultados es válido y el listado responde "No se encontraron personas".
+  // Con un país elegido, solo las de ese país.
   const provinciaOptions = useMemo<ComboboxOption[]>(() => {
     const vistas = new Map<string, string>()
     const agregar = (nombre: string) => {
       const key = normalizar(nombre)
       if (key && !vistas.has(key)) vistas.set(key, nombre)
     }
-    for (const pais of paisesPresentes) {
-      for (const nombre of getSubdivisiones(pais) ?? []) agregar(nombre)
+    const paisKey = normalizar(pais)
+    for (const p of paisKey ? [pais] : paisesPresentes) {
+      for (const nombre of getSubdivisiones(p) ?? []) agregar(nombre)
     }
     // Valores realmente cargados que no figuran en el catálogo (variantes, países sin listado):
     // sin ellos esas personas quedarían fuera de alcance del filtro.
-    for (const u of ubicaciones) agregar(u.provincia)
+    for (const u of ubicaciones) {
+      if (!paisKey || paisDe(u) === paisKey) agregar(u.provincia)
+    }
     // Conserva un valor que venga de la URL aunque ya no exista entre las personas visibles.
     if (defaults.provincia) agregar(defaults.provincia)
     return ordenarPorRelevancia([...vistas.values()], "").map((n) => ({ label: n, value: n }))
-  }, [paisesPresentes, ubicaciones, defaults.provincia])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pais, paisesPresentes, ubicaciones, defaults.provincia])
+
+  /** Georef solo cubre Argentina: con otro país elegido no se consulta. */
+  const paisEsArgentina = !pais || normalizar(pais) === "argentina"
 
   // Ciudades: no hay catálogo estático, se consulta Georef igual que en los formularios de carga.
   const [localidadQuery, setLocalidadQuery] = useState("")
@@ -121,7 +144,7 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
   // devuelve nada con menos de 4 letras. Sin provincia argentina elegida son
   // ~4000 localidades, así que recién se piden cuando se empieza a escribir.
   const buscaLocalidad = localidadQuery.trim() !== ""
-  const cargarPais = !provinciaArgentina && buscaLocalidad
+  const cargarPais = !provinciaArgentina && buscaLocalidad && paisEsArgentina
 
   useEffect(() => {
     if (!provinciaArgentina && !cargarPais) {
@@ -157,6 +180,7 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
     // El Combobox delega la búsqueda (onSearch), así que el filtrado por texto se hace acá.
     const q = normalizar(localidadQuery)
     const provKey = normalizar(provincia)
+    const paisKey = normalizar(pais)
     const vistas = new Map<string, string>()
     const agregar = (nombre: string) => {
       const key = normalizar(nombre)
@@ -169,14 +193,32 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
     for (const u of ubicaciones) {
       if (!u.localidad) continue
       if (provKey && normalizar(u.provincia) !== provKey) continue
+      if (paisKey && paisDe(u) !== paisKey) continue
       agregar(u.localidad)
     }
-    for (const nombre of georefLocalidades) agregar(nombre)
+    if (paisEsArgentina) for (const nombre of georefLocalidades) agregar(nombre)
     if (defaults.localidad) agregar(defaults.localidad)
     return ordenarPorRelevancia([...vistas.values()], localidadQuery)
       .slice(0, MAX_LOCALIDADES)
       .map((n) => ({ label: n, value: n }))
-  }, [ubicaciones, provincia, georefLocalidades, localidadQuery, defaults.localidad])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ubicaciones, pais, provincia, georefLocalidades, localidadQuery, defaults.localidad])
+
+  function handlePaisChange(val: string) {
+    setPais(val)
+    setLocalidadQuery("")
+    if (!val) return
+    // La provincia elegida se descarta si no pertenece al país nuevo (ni por catálogo ni por datos cargados).
+    if (provincia) {
+      const key = normalizar(provincia)
+      const enCatalogo = (getSubdivisiones(val) ?? []).some((p) => normalizar(p) === key)
+      const enDatos = ubicaciones.some((u) => paisDe(u) === normalizar(val) && normalizar(u.provincia) === key)
+      if (!enCatalogo && !enDatos) {
+        setProvincia("")
+        setLocalidad("")
+      }
+    }
+  }
 
   function handleProvinciaChange(val: string) {
     setProvincia(val)
@@ -192,6 +234,7 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
   }
 
   function handleClear() {
+    setPais("")
     setProvincia("")
     setLocalidad("")
     setLocalidadQuery("")
@@ -202,6 +245,7 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
 
   const hasActiveFilters =
     Object.values(defaults).some((v) => v !== "") ||
+    pais !== "" ||
     provincia !== "" ||
     localidad !== "" ||
     organizacionId !== "" ||
@@ -254,6 +298,19 @@ export default function PersonasFilters({ ministerios, organizaciones, ubicacion
           <option value="orante">Orante</option>
           <option value="intercesor">Intercesor</option>
         </select>
+
+        <div>
+          <input type="hidden" name="pais" value={pais} />
+          <Combobox
+            value={pais}
+            onSelect={handlePaisChange}
+            options={paisOptions}
+            placeholder="País"
+            searchPlaceholder="Buscar país..."
+            emptyText="Sin resultados."
+            className={comboboxClass}
+          />
+        </div>
 
         <div>
           <input type="hidden" name="provincia" value={provincia} />
