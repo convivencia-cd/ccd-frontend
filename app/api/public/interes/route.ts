@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getPublicOrigin } from '@/lib/http'
+import { notificarAltaInteresado } from '@/lib/interesados/notificar-alta'
 
 export async function POST(request: Request) {
   const body = await request.json()
@@ -161,6 +163,8 @@ export async function POST(request: Request) {
   if (partError || !participante) {
     return NextResponse.json({ error: 'Error al registrar el interés. Intentá de nuevo.' }, { status: 400 })
   }
+
+  await notificarAltaInteresado(participante.id, getPublicOrigin(request))
 
   return NextResponse.json({
     ok: true,

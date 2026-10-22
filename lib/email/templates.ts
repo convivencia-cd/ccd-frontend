@@ -194,6 +194,29 @@ export type InteresConfirmadoProps = {
   pagoUrl?: string
 }
 
+/** Aviso a los centralizadores después del alta de un interesado en su retiro. */
+export const nuevoInteresado = defineTemplate<{
+  nombre: string
+  evento: string
+  email?: string | null
+  telefono?: string | null
+  seguimientoUrl: string
+}>({
+  subject: p => `Nuevo interesado — ${p.evento}`,
+  tags: () => ({ categoria: 'interes', notificacion: 'nuevo_interesado' }),
+  blocks: p => [
+    block.heading('Nuevo interesado en el retiro'),
+    block.paragraph(`${p.nombre} se registró como interesado en ${p.evento}.`),
+    block.facts([
+      { label: 'Nombre', value: p.nombre },
+      ...(p.email ? [{ label: 'Email', value: p.email }] : []),
+      ...(p.telefono ? [{ label: 'Teléfono', value: p.telefono }] : []),
+    ]),
+    block.button('Ver interesados del retiro', p.seguimientoUrl),
+    block.paragraph('Bendiciones!'),
+  ],
+})
+
 /**
  * Lo manda un centralizador desde /interesados al pasar el interesado a
  * "Confirmado": es la invitación a completar la inscripción y pagarla.
@@ -408,6 +431,7 @@ export const templates = {
   recuperarPassword,
   inscripcionRegistrada,
   interesConfirmado,
+  nuevoInteresado,
   recordatorioEvento,
   pagoConfirmado,
   pagoRechazado,

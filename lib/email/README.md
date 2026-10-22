@@ -107,6 +107,23 @@ El envío usa la configuración de Resend existente. Los fallos se registran con
 el prefijo `[evento-estado]` sin revertir el cambio; no hay reintento automático.
 Pruebas sin envíos reales: `node --test tests/evento-estado.test.cjs`.
 
+### Alta de interesados
+
+`lib/interesados/notificar-alta.ts` avisa a los hasta tres centralizadores
+asignados al retiro después de insertar un nuevo convivente con estado
+`interesado`. Lo llaman el formulario público, la gestión/carga interna y la
+inscripción propia de usuarios registrados. Un registro duplicado, una edición
+de seguimiento o un alta fallida no dispara el aviso.
+
+Se usa el email de contacto del centralizador en el retiro, con el correo de su
+persona vinculada como alternativa. Se deduplican personas y direcciones y se
+descartan correos internos. Cada correo incluye nombre y contacto del interesado,
+nombre del retiro y un enlace a `/interesados?evento_id=...`.
+
+Los errores se registran como `[interesado-alta]` sin revertir el registro; no hay
+reintento automático. Pruebas sin envíos reales:
+`node --test tests/interesado-alta.test.cjs`.
+
 ### Configuración de envío
 
 Con sesión de admin:
