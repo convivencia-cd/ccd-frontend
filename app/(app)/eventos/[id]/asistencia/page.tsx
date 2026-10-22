@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { getUserContext, canPerform } from '@/lib/auth/context'
-import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
+import { getUserContext } from '@/lib/auth/context'
+import { canTomarAsistencia } from '@/lib/eventos/equipo'
 import { formatDateAR } from '@/lib/utils'
 import { AsistenciaCheckin } from './asistencia-checkin'
 
@@ -21,19 +21,14 @@ export default async function AsistenciaPage({
 
   const { data: evento } = await supabase
     .from('eventos')
-    .select('id, nombre, estado, organizacion_id, fecha_inicio, fecha_fin, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
+    .select('id, nombre, estado, organizacion_id, fraternidad_id, fecha_inicio, fecha_fin, centralizador_1_persona_id, centralizador_2_persona_id, centralizador_3_persona_id')
     .eq('id', id)
     .single()
 
   if (!evento) notFound()
 
-  // Tomar asistencia es tarea del Centralizador, que no tiene event.update.
-  if (
-    !canPerform(ctx, 'event.update', evento.organizacion_id ?? null) &&
-    !esCentralizadorDeEvento(ctx, evento)
-  ) {
-    notFound()
-  }
+  // Permiso propio event.attendance (card #88); el centralizador entra siempre.
+  if (!canTomarAsistencia(ctx, evento)) notFound()
 
   const puedeTomar = evento.estado === 'publicado' || evento.estado === 'en_curso'
 

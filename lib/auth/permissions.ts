@@ -27,7 +27,9 @@ export type Permission =
   | 'event.publish'       // publicar eventos aprobados (aprobado → publicado)
   | 'event.suspend'       // suspender eventos en cualquier instancia — solo Equipo Timón
   | 'event.request_suspend' // solicitar la suspensión de un evento (enlaces/responsables/delegados) — asignable
-  | 'event.update'
+  | 'event.update'        // botón "Editar": modificar los datos del evento
+  | 'event.manage'        // botón "Gestionar retiro": pantalla de Gestión (equipo, becas en pensión, exportaciones) — scopeado
+  | 'event.attendance'    // botón "Tomar asistencia" — scopeado (el centralizador del evento no lo necesita)
   | 'event.manage_participants'
   | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
   | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
@@ -84,6 +86,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.suspend',
     'event.request_suspend',
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'inscripcion.view_datos_sensibles',
     'payment.verify',
@@ -119,6 +123,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.create',
     'event.approve_confra',
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'payment.verify',
     'organization.update',
@@ -138,6 +144,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'event.create',
     'event.approve_confra',
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'payment.verify',
     'roles.view',
@@ -152,6 +160,8 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'person.update',
     'event.create',    // estado forzado a 'borrador' en el servidor
     'event.update',
+    'event.manage',
+    'event.attendance',
     'event.manage_participants',
     'view.all',
     'view.personas',

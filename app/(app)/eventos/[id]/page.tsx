@@ -33,6 +33,7 @@ import {
   type PreguntaInforme,
 } from '@/lib/eventos/cierre'
 import { canVerInformeEconomico } from '@/lib/eventos/informe-economico'
+import { canGestionarEvento, canTomarAsistencia } from '@/lib/eventos/equipo'
 import { cargarCarismas, cargarInformeCcd } from '@/lib/eventos/informes-cierre'
 import { cargarFotosCierre } from '@/lib/eventos/fotos-cierre'
 import { formatDateAR } from '@/lib/utils'
@@ -536,21 +537,16 @@ export default async function EventoDetailPage({
     (canPerform(ctx, 'event.publish', evento.organizacion_id ?? null) || esCentralizador)
   const canFinalizar = ctx && evento.estado === 'en_curso' &&
     (canPerform(ctx, 'event.publish', evento.organizacion_id ?? null) || esCentralizador)
-  // Attendance check-in available to event managers while the event is publicado/en_curso
-  const canAsistencia = ctx &&
+  // Cada botón tiene su propio permiso (card #88): Editar = event.update,
+  // Gestionar = event.manage, Tomar asistencia = event.attendance.
+  const canAsistencia =
     (evento.estado === 'publicado' || evento.estado === 'en_curso') &&
-    (canPerform(ctx, 'event.update', evento.organizacion_id ?? null) || esCentralizador)
+    canTomarAsistencia(ctx, cierreEvento)
 
-  // Gestión del Evento: administrador, timonel, responsable, enlace o centralizador,
-  // solo mientras el evento está publicado o en curso.
-  const canGestion = ctx &&
-    // finalizado incluido: Becas en Pensión vive en Gestión y sigue editable hasta el cierre.
+  // finalizado incluido: Becas en Pensión vive en Gestión y sigue editable hasta el cierre.
+  const canGestion =
     (evento.estado === 'publicado' || evento.estado === 'en_curso' || evento.estado === 'finalizado') &&
-    (
-      canPerform(ctx, 'event.update', evento.organizacion_id ?? null) ||
-      (evento.fraternidad_id ? canPerform(ctx, 'event.update', evento.fraternidad_id) : false) ||
-      esCentralizador
-    )
+    canGestionarEvento(ctx, cierreEvento)
 
   // Datos noticias panel: visible when pendiente_datos_noticias and user has permission
   const esSolicitante = ctx?.persona_id && ctx.persona_id === (evento as Record<string, unknown>).solicitado_por

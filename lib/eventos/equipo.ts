@@ -79,6 +79,37 @@ export function canGestionarAsignaciones(ctx: UserContext | null, evento: Evento
   )
 }
 
+function tienePermisoEnEvento(
+  ctx: UserContext,
+  permiso: 'event.manage' | 'event.attendance',
+  evento: EventoEquipoScope,
+): boolean {
+  return (
+    canPerform(ctx, permiso, evento.organizacion_id ?? null) ||
+    (evento.fraternidad_id ? canPerform(ctx, permiso, evento.fraternidad_id) : false)
+  )
+}
+
+/**
+ * Botón "Gestionar retiro" y pantalla /eventos/[id]/gestion (card #88).
+ * Permiso propio, separado de "Editar" (event.update), para que el EqT lo
+ * asigne por rol desde el catálogo (p. ej. al Coordinador). El centralizador
+ * del evento entra siempre: es quien lo opera en el terreno.
+ */
+export function canGestionarEvento(ctx: UserContext | null, evento: EventoEquipoScope): boolean {
+  if (!ctx) return false
+  return tienePermisoEnEvento(ctx, 'event.manage', evento) || esCentralizadorDeEvento(ctx, evento)
+}
+
+/**
+ * Botón "Tomar asistencia", su pantalla y la API de check-in (card #88).
+ * Separado de "Editar" y de "Gestionar" para poder darle a alguien solo esto.
+ */
+export function canTomarAsistencia(ctx: UserContext | null, evento: EventoEquipoScope): boolean {
+  if (!ctx) return false
+  return tienePermisoEnEvento(ctx, 'event.attendance', evento) || esCentralizadorDeEvento(ctx, evento)
+}
+
 /**
  * Puede agregar, reubicar y dar de baja participantes del evento (inscriptos y
  * equipo de servidores). Además de quien tenga event.manage_participants
