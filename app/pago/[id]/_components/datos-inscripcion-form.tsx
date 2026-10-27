@@ -19,6 +19,8 @@ import {
   RESTRICCIONES_ALIMENTARIAS,
   SEXOS,
   campoPersonaCompleto,
+  normalizarEventosRealizados,
+  normalizarInscripcionDatos,
   type EventoRealizado,
   type InscripcionDatos,
 } from '@/lib/eventos/inscripcion-datos'
@@ -151,14 +153,17 @@ function PreguntaSiNo({
         <option value="no">No</option>
       </select>
       {valor === 'si' && (
-        <Textarea
-          aria-label={pregunta}
-          value={detalle}
-          onChange={(e) => onDetalle(e.target.value)}
-          placeholder={placeholder}
-          required
-          disabled={disabled}
-        />
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-detalle`}>Detalle (obligatorio)</Label>
+          <Textarea
+            id={`${id}-detalle`}
+            value={detalle}
+            onChange={(e) => onDetalle(e.target.value)}
+            placeholder={placeholder}
+            required
+            disabled={disabled}
+          />
+        </div>
       )}
       {ayuda && <p className="text-xs text-muted-foreground">{ayuda}</p>}
     </div>
@@ -282,13 +287,33 @@ export function DatosInscripcionForm({
       if (form.estado_eclesial === 'clerigo' && !form.estado_eclesial_rango) faltan.push('Rango')
       if (!form.institucion_religiosa.trim()) faltan.push('Institución / Congregación')
     }
-    if (Object.values(realizados).some((anio) => !anio.trim())) {
-      faltan.push('el año de cada convivencia, retiro o taller que marcaste')
-    }
-    if (restricciones.length === 0) faltan.push('Restricciones alimentarias (o marcá "Ninguna")')
-    if (tieneRestriccion && !insc.dieta_detalle.trim()) faltan.push('el detalle de tu dieta')
     if (faltan.length > 0) {
       setError(`Completá: ${faltan.join(', ')}.`)
+      return
+    }
+
+    // Usar las mismas reglas que el servidor también rechaza detalles con solo
+    // espacios y años inválidos antes de intentar guardar.
+    const inscripcion = {
+      ...insc,
+      familia_hizo_convivencias:
+        insc.familia_hizo_convivencias === '' ? null : insc.familia_hizo_convivencias === 'si',
+      viene_acompanado: insc.viene_acompanado === '' ? null : insc.viene_acompanado === 'si',
+      tiene_dificultad_horario:
+        insc.tiene_dificultad_horario === '' ? null : insc.tiene_dificultad_horario === 'si',
+      tiene_salud_observaciones:
+        insc.tiene_salud_observaciones === '' ? null : insc.tiene_salud_observaciones === 'si',
+      restricciones_alimentarias: restricciones,
+    }
+    const validacionInscripcion = normalizarInscripcionDatos(inscripcion)
+    if (validacionInscripcion.error !== null) {
+      setError(validacionInscripcion.error)
+      return
+    }
+    const eventosRealizados = Object.entries(realizados).map(([tipo_evento_id, anio]) => ({ tipo_evento_id, anio }))
+    const validacionEventos = normalizarEventosRealizados(eventosRealizados)
+    if (validacionEventos.error !== null) {
+      setError(validacionEventos.error)
       return
     }
 
@@ -299,18 +324,8 @@ export function DatosInscripcionForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          inscripcion: {
-            ...insc,
-            familia_hizo_convivencias:
-              insc.familia_hizo_convivencias === '' ? null : insc.familia_hizo_convivencias === 'si',
-            viene_acompanado: insc.viene_acompanado === '' ? null : insc.viene_acompanado === 'si',
-            tiene_dificultad_horario:
-              insc.tiene_dificultad_horario === '' ? null : insc.tiene_dificultad_horario === 'si',
-            tiene_salud_observaciones:
-              insc.tiene_salud_observaciones === '' ? null : insc.tiene_salud_observaciones === 'si',
-            restricciones_alimentarias: restricciones,
-          },
-          eventos_realizados: Object.entries(realizados).map(([tipo_evento_id, anio]) => ({ tipo_evento_id, anio })),
+          inscripcion,
+          eventos_realizados: validacionEventos.eventos,
         }),
       })
       const data = await res.json()
@@ -329,8 +344,10 @@ export function DatosInscripcionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción. Los campos
-        marcados con <span className="text-destructive">*</span> son obligatorios.
+        Estos son los datos que tenemos de vos. Completá los que falten para terminar la inscripción: todos son
+        obligatorios y están marcados con <span className="text-destructive">*</span>.
+        En convivencias, retiros y talleres realizados, el año se pide solo si marcás una opción.
+        Si respondés “Sí” a una pregunta, completá el detalle.
       </p>
 
       <Seccion titulo="Datos personales">
@@ -396,6 +413,7 @@ export function DatosInscripcionForm({
               name="tipo_documento"
               value={form.tipo_documento}
               onChange={handleChange}
+              required
               disabled={loading || yaCargado(persona.documento)}
               className={selectClass}
             >
@@ -601,6 +619,7 @@ export function DatosInscripcionForm({
               name="estado_eclesial"
               value={form.estado_eclesial}
               onChange={handleChange}
+              required
               disabled={loading || estadoEclesialBloqueado}
               className={selectClass}
             >
@@ -879,21 +898,25 @@ export function DatosInscripcionForm({
               </label>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground">Elegí al menos una opción. Si elegís alguna restricción, completá el detalle.</p>
           {tieneRestriccion && (
-            <Textarea
-              name="dieta_detalle"
-              aria-label="Detalle de la dieta"
-              value={insc.dieta_detalle}
-              onChange={handleInsc}
-              placeholder="Especificá todo lo que tengamos que saber sobre tu dieta"
-              required
-              disabled={loading}
-            />
+            <div className="grid gap-1.5">
+              <Label htmlFor="dieta_detalle">Detalle de la dieta (obligatorio)</Label>
+              <Textarea
+                id="dieta_detalle"
+                name="dieta_detalle"
+                value={insc.dieta_detalle}
+                onChange={handleInsc}
+                placeholder="Especificá todo lo que tengamos que saber sobre tu dieta"
+                required
+                disabled={loading}
+              />
+            </div>
           )}
         </div>
       </Seccion>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={loading} className="w-full sm:w-auto">
         {loading ? 'Guardando...' : 'Continuar al pago'}
