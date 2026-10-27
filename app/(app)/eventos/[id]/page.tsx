@@ -217,10 +217,30 @@ export default async function EventoDetailPage({
       .sort((a, b) => a.apellido.localeCompare(b.apellido) || a.nombre.localeCompare(b.nombre))
   }
 
-  const [coordinadoresRolDisponibles, asesoresRolDisponibles] = await Promise.all([
+  // Personas con el modo de participación Asesor vigente (incluye a los cecistas
+  // sacerdotes/obispos/cardenales, que lo suman automáticamente).
+  async function personasConModoAsesorActivo(): Promise<PersonaRol[]> {
+    const { data } = await supabase
+      .from('persona_modos')
+      .select('persona:personas!persona_id(id, nombre, apellido, apodo, fecha_baja)')
+      .eq('modo', 'asesor')
+      .is('fecha_fin', null)
+    return ((data ?? []) as unknown as { persona: (PersonaRol & { fecha_baja: string | null }) | null }[])
+      .map(m => m.persona)
+      .filter((p): p is PersonaRol & { fecha_baja: string | null } => !!p && !p.fecha_baja)
+      .map(({ id, nombre, apellido, apodo }) => ({ id, nombre, apellido, apodo }))
+  }
+
+  const [coordinadoresRolDisponibles, asesoresMinisterio, asesoresModo] = await Promise.all([
     personasConMinisterioActivo('Coordinador'),
     personasConMinisterioActivo('Asesor'),
+    personasConModoAsesorActivo(),
   ])
+
+  // Asesores elegibles: ministerio Asesor o modo Asesor vigente, sin repetir.
+  const asesoresRolDisponibles = [...new Map(
+    [...asesoresMinisterio, ...asesoresModo].map(p => [p.id, p])
+  ).values()].sort((a, b) => a.apellido.localeCompare(b.apellido) || a.nombre.localeCompare(b.nombre))
 
   // Servidores y familiares activos (para el buscador que aparece al elegir "Otro").
   // Join embebido en vez de un .in('id', [...]) sobre personas: con ~900 ids activos
