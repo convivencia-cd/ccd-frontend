@@ -1068,7 +1068,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="font-semibold text-foreground text-lg leading-tight">{nombreCompletoConApodo(persona)}</p>
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {persona.tipo_persona && (
+                      {persona.tipo_persona === 'cecista' && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
                           {TIPOS_PERSONA_LABEL[persona.tipo_persona] ?? persona.tipo_persona}
                         </span>
@@ -1083,7 +1083,9 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              {/* Datos institucionales — solo lectura (gestionados por la Administración de CcD) */}
+              {/* Datos institucionales — solo lectura (gestionados por la Administración de CcD).
+                  Solo para cecistas: a un convivente no cecista no le corresponde ninguno (card #92). */}
+              {persona.tipo_persona === 'cecista' && (
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="text-foreground flex items-center gap-2">
@@ -1156,6 +1158,7 @@ export default function SettingsPage() {
                   </Button>
                 </CardContent>
               </Card>
+              )}
 
               {/* Reportar dato incorrecto — abierto desde los botones de arriba */}
               <Dialog open={correctionOpen} onOpenChange={(open) => { setCorrectionOpen(open); if (!open) { setCorrectionForm({ campo: '', descripcion: '' }); setCorrectionError(null); setCorrectionSuccess(false) } }}>
@@ -1502,7 +1505,8 @@ export default function SettingsPage() {
                 </Card>
               </form>
 
-              {/* Mi recorrido — recorrido de la persona en la comunidad */}
+              {/* Mi recorrido — recorrido de la persona en la comunidad (solo cecistas, card #92) */}
+              {persona.tipo_persona === 'cecista' && (
               <Card className="border-border bg-card">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
@@ -1679,6 +1683,7 @@ export default function SettingsPage() {
                   </CardContent>
                 )}
               </Card>
+              )}
 
               {/* Dedicación — dedicaciones + votos (solo cecistas) */}
               {persona.tipo_persona === 'cecista' && (

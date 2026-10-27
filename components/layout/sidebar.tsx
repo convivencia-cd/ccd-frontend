@@ -66,6 +66,11 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
   // Cuenta de Participante (convivente no cecista): no ve pantallas internas.
   if (!p.esInterno) {
     return [
+      {
+        icon: <LayoutDashboard className="h-5 w-5" />,
+        label: "Panel de Inicio",
+        href: "/dashboard",
+      },
       ...(p.canViewPublicados
         ? [
             {

@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 /** Pantallas de la app a las que llega una cuenta de Participante. La primera es su inicio. */
 // /mi-perfil además exige el permiso perfil.view_propio (lo chequea la página).
-const RUTAS_PARTICIPANTE = ['/eventos/publicados', '/settings', '/mi-perfil']
+// La primera es a donde se redirige si entran a otra pantalla.
+const RUTAS_PARTICIPANTE = ['/dashboard', '/eventos/publicados', '/settings', '/mi-perfil']
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({

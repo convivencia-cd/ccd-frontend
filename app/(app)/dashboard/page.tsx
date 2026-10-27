@@ -34,6 +34,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
+import { PanelParticipante } from "./_components/panel-participante"
 
 const ROLE_LABELS: Record<string, string> = {
   admin_general: "Administrador General",
@@ -94,6 +95,9 @@ const MODO_LABELS: Record<string, string> = {
 export default async function DashboardPage() {
   const ctx = await getUserContext()
   if (!ctx) redirect("/auth/login")
+
+  // Cuenta de Participante (convivente no cecista): panel propio, sin indicadores internos.
+  if (!ctx.es_interno) return <PanelParticipante ctx={ctx} />
 
   const supabase = await createClient()
 
