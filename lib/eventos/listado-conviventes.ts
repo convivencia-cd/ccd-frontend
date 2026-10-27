@@ -9,6 +9,7 @@
 // Client-only.
 import type jsPDF from 'jspdf'
 import { createClient } from '@/lib/supabase/client'
+import { dioPresente } from '@/lib/eventos/presente'
 
 type PersonaListado = {
   nombre: string
@@ -39,7 +40,10 @@ export type BloqueListado = {
 
 export type ListadoConviventes = {
   evento: {
+    /** Título del listado: solo el tipo de evento (ej. "CONVIVENCIA DIOS AMOR"). */
     nombre: string
+    /** Nombre completo del evento, para el nombre del archivo. */
+    nombreCompleto: string
     fechas: string
     lugar: string
     organizacion: string
@@ -75,6 +79,7 @@ export async function cargarListadoConviventes(eventoId: string): Promise<Listad
       .from('eventos')
       .select(`
         nombre, fecha_inicio, fecha_fin, ciudad,
+        tipo_evento:tipos_eventos!tipo_evento_id(nombre),
         coordinador_asignado_id, asesor_asignado_id,
         centralizador_1_persona_id, centralizador_1_nombre, centralizador_1_email, centralizador_1_telefono,
         centralizador_2_persona_id, centralizador_2_nombre, centralizador_2_email, centralizador_2_telefono,
@@ -87,7 +92,7 @@ export async function cargarListadoConviventes(eventoId: string): Promise<Listad
       .single(),
     supabase
       .from('evento_participantes')
-      .select(`id, persona_id, rol_en_evento, estado_participacion, grupo_id, persona:personas!persona_id(${CAMPOS_PERSONA})`)
+      .select(`id, persona_id, rol_en_evento, estado_participacion, fecha_asistencia, grupo_id, persona:personas!persona_id(${CAMPOS_PERSONA})`)
       .eq('evento_id', eventoId)
       .neq('estado_participacion', 'cancelado'),
     supabase
@@ -100,9 +105,20 @@ export async function cargarListadoConviventes(eventoId: string): Promise<Listad
     throw new Error('No se pudieron cargar los datos del listado.')
   }
 
-  type Participante = { id: string; persona_id: string; rol_en_evento: string; grupo_id: string | null; persona: PersonaListado | null }
-  const parts = (participantes ?? []) as unknown as Participante[]
+  type Participante = {
+    id: string
+    persona_id: string
+    rol_en_evento: string
+    estado_participacion: string
+    fecha_asistencia: string | null
+    grupo_id: string | null
+    persona: PersonaListado | null
+  }
+  // Conviventes: solo quienes dieron el presente (card #74). El equipo entra siempre.
+  const parts = ((participantes ?? []) as unknown as Participante[])
+    .filter(p => p.rol_en_evento !== 'convivente' || dioPresente(p))
   const ev = evento as unknown as Record<string, string | null> & {
+    tipo_evento: { nombre: string } | null
     confraternidad: { nombre: string } | null
     fraternidad: { nombre: string } | null
     casa_retiro: { nombre: string; ciudad: string | null } | null
@@ -184,7 +200,10 @@ export async function cargarListadoConviventes(eventoId: string): Promise<Listad
     : (ev.ciudad ?? '')
   return {
     evento: {
-      nombre: ev.nombre ?? '',
+      // Solo el evento solicitado (ej. "CONVIVENCIA DIOS AMOR"): la organización
+      // y las fechas ya van en las líneas de abajo (card #74).
+      nombre: ev.tipo_evento?.nombre ?? ev.nombre ?? '',
+      nombreCompleto: ev.nombre ?? '',
       fechas: rangoFechas(ev.fecha_inicio, ev.fecha_fin),
       lugar,
       organizacion: [
@@ -340,7 +359,7 @@ export async function exportListadoConviventesPDF(listado: ListadoConviventes) {
 }
 
 function nombreArchivo(listado: ListadoConviventes, extension: 'pdf' | 'xlsx') {
-  const base = (listado.evento.nombre || 'evento').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-')
+  const base = (listado.evento.nombreCompleto || listado.evento.nombre || 'evento').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-')
   return `${base}-listado-conviventes.${extension}`
 }
 

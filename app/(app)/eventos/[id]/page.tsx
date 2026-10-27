@@ -40,6 +40,7 @@ import { ExportarFichasButton } from './_components/exportar-fichas-button'
 import { cargarCarismas, cargarInformeCcd } from '@/lib/eventos/informes-cierre'
 import { cargarFotosCierre } from '@/lib/eventos/fotos-cierre'
 import { formatDateAR } from '@/lib/utils'
+import { dioPresente } from '@/lib/eventos/presente'
 
 const estadoClases: Record<string, string> = {
   borrador: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
@@ -345,13 +346,14 @@ export default async function EventoDetailPage({
     persona_id: string
     rol_en_evento: string
     estado_participacion: string
+    fecha_asistencia: string | null
     persona: { nombre: string; apellido: string; email: string | null; telefono: string | null } | null
   }
   let participantes: ParticipanteRow[] = []
   if (showCierre) {
     const { data: parts } = await supabase
       .from('evento_participantes')
-      .select('persona_id, rol_en_evento, estado_participacion, persona:personas!persona_id(nombre, apellido, email, telefono)')
+      .select('persona_id, rol_en_evento, estado_participacion, fecha_asistencia, persona:personas!persona_id(nombre, apellido, email, telefono)')
       .eq('evento_id', id)
     participantes = (parts ?? []) as unknown as ParticipanteRow[]
   }
@@ -359,8 +361,9 @@ export default async function EventoDetailPage({
   // Informe Económico: vive en su propia pantalla (/eventos/[id]/informe-economico).
   const showIE = canVerInformeEconomico(ctx, cierreEvento)
 
+  // Solo quienes dieron el presente: no interesados ni preinscriptos (card #74).
   const conviventesCierre = participantes
-    .filter(p => p.rol_en_evento === 'convivente' && p.estado_participacion !== 'cancelado')
+    .filter(p => p.rol_en_evento === 'convivente' && dioPresente(p))
     .map(p => ({
       persona_id: p.persona_id,
       nombre: p.persona?.nombre ?? '',
