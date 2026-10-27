@@ -1,27 +1,30 @@
-// Mail de aviso al centralizador cuando lo asignan a un evento (card #21).
-// Solo servidor. Coordinador y asesor no reciben mail: lo ven en su pantalla
-// de inicio (pendiente que Coti confirme si también lo quieren).
+// Mail de aviso a quien asignan al equipo de un evento (card #21): coordinador,
+// asesor y centralizadores. Solo servidor.
 //
 // Best-effort: un fallo de correo nunca corta el guardado que lo disparó
 // (sendTemplateEmail no lanza y acá no se propaga ningún error).
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendTemplateEmail, templates } from '@/lib/email'
+import type { RolEquipoAviso } from '@/lib/email/templates'
 
-export type CentralizadorAvisable = {
+export type IntegranteAvisable = {
+  rol: RolEquipoAviso
   /** Persona de la plataforma; si no hay, se usan `nombre` y `email` tal cual (cargado a mano). */
   persona_id: string | null
   nombre: string | null
   email: string | null
 }
 
-export async function avisarCentralizadores(
+export type CentralizadorAvisable = Omit<IntegranteAvisable, 'rol'>
+
+export async function avisarEquipo(
   supabase: SupabaseClient,
   eventoId: string,
   origin: string,
-  centralizadores: CentralizadorAvisable[],
+  integrantes: IntegranteAvisable[],
 ) {
   try {
-    const pendientes = centralizadores.filter(c => c.persona_id || c.email?.trim())
+    const pendientes = integrantes.filter(c => c.persona_id || c.email?.trim())
     if (pendientes.length === 0) return
 
     const ids = [...new Set(pendientes.map(c => c.persona_id).filter((id): id is string => !!id))]
@@ -38,13 +41,14 @@ export async function avisarCentralizadores(
     if (!evento) return
 
     const personaPorId = new Map((personas ?? []).map(p => [p.id, p]))
-    // Un mail por dirección, aunque aparezca en dos casilleros.
-    const porEmail = new Map<string, string>()
+    // Un mail por dirección y rol, aunque aparezca en dos casilleros.
+    const avisos = new Map<string, { email: string; nombre: string; rol: RolEquipoAviso }>()
     for (const c of pendientes) {
       const persona = c.persona_id ? personaPorId.get(c.persona_id) : undefined
       const email = (persona?.email ?? c.email ?? '').trim()
-      if (!email || porEmail.has(email.toLowerCase())) continue
-      porEmail.set(email.toLowerCase(), persona?.nombre ?? c.nombre?.trim() ?? '')
+      const clave = `${c.rol}|${email.toLowerCase()}`
+      if (!email || avisos.has(clave)) continue
+      avisos.set(clave, { email, nombre: persona?.nombre ?? c.nombre?.trim() ?? '', rol: c.rol })
     }
 
     const ev = evento as unknown as {
@@ -58,10 +62,11 @@ export async function avisarCentralizadores(
     const lugar = [ev.casa_retiro?.nombre, ev.ciudad, ev.provincia_evento].filter(Boolean).join(', ')
 
     await Promise.all(
-      [...porEmail].map(([email, nombre]) =>
+      [...avisos.values()].map(({ email, nombre, rol }) =>
         sendTemplateEmail(
-          templates.asignacionCentralizador,
+          templates.asignacionEquipo,
           {
+            rol,
             nombre: nombre.split(' ')[0] || 'hermano/a',
             evento: ev.nombre,
             fechaInicio: ev.fecha_inicio,
@@ -79,6 +84,17 @@ export async function avisarCentralizadores(
     console.error('[avisos-equipo] Error armando los avisos:', e)
   }
 }
+
+export function avisarCentralizadores(
+  supabase: SupabaseClient,
+  eventoId: string,
+  origin: string,
+  centralizadores: CentralizadorAvisable[],
+) {
+  return avisarEquipo(supabase, eventoId, origin, centralizadores.map(c => ({ ...c, rol: 'centralizador' as const })))
+}
+
+// ─── Centralizadores ──────────────────────────────────────────────────────────
 
 /** Centralizadores a partir de las columnas `centralizador_N_*` de un evento. */
 export function centralizadoresDe(fila: Record<string, unknown>): CentralizadorAvisable[] {
@@ -117,3 +133,33 @@ export const COLUMNAS_CENTRALIZADORES_AVISO =
 export const ESTADOS_CENTRALIZADORES_AVISADOS = [
   'pendiente_aprobacion_final', 'aprobado', 'publicado', 'en_curso', 'suspendido',
 ]
+
+// ─── Coordinador y asesor ─────────────────────────────────────────────────────
+
+/** Coordinador y asesor asignados por el Equipo Timón (columnas de `eventos`). */
+export function coordinadorYAsesorDe(fila: Record<string, unknown>): IntegranteAvisable[] {
+  return [
+    { rol: 'coordinador', persona_id: (fila.coordinador_asignado_id as string | null) ?? null, nombre: null, email: null },
+    { rol: 'asesor', persona_id: (fila.asesor_asignado_id as string | null) ?? null, nombre: null, email: null },
+  ]
+}
+
+/** Coordinador o asesor que entran nuevos al cambiar las columnas de un evento ya avisado. */
+export function coordinadorYAsesorNuevos(
+  anterior: Record<string, unknown>,
+  updates: Record<string, unknown>,
+): IntegranteAvisable[] {
+  const cambio = (campo: string) => campo in updates && !!updates[campo] && updates[campo] !== anterior[campo]
+  return coordinadorYAsesorDe({ ...anterior, ...updates }).filter(c =>
+    cambio(c.rol === 'coordinador' ? 'coordinador_asignado_id' : 'asesor_asignado_id')
+  )
+}
+
+/** Columnas que necesita `coordinadorYAsesorNuevos` de la fila anterior. */
+export const COLUMNAS_COORDINADOR_ASESOR_AVISO = 'coordinador_asignado_id, asesor_asignado_id'
+
+/**
+ * Estados en los que coordinador y asesor ya fueron avisados: el Equipo Timón
+ * los asigna al aprobar y el retiro pasa a Datos para Noticias.
+ */
+export const ESTADOS_COORDINADOR_ASESOR_AVISADOS = ['pendiente_datos_noticias', ...ESTADOS_CENTRALIZADORES_AVISADOS]

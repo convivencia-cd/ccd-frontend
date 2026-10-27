@@ -3,10 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
 import { canGestionarAsignaciones } from '@/lib/eventos/equipo'
 import {
-  avisarCentralizadores,
+  avisarEquipo,
   centralizadoresNuevos,
+  coordinadorYAsesorNuevos,
   COLUMNAS_CENTRALIZADORES_AVISO,
+  COLUMNAS_COORDINADOR_ASESOR_AVISO,
   ESTADOS_CENTRALIZADORES_AVISADOS,
+  ESTADOS_COORDINADOR_ASESOR_AVISADOS,
 } from '@/lib/eventos/avisos-equipo'
 import { getPublicOrigin } from '@/lib/http'
 
@@ -39,7 +42,7 @@ export async function PATCH(
   const { data: evento } = await supabase
     .from('eventos')
     .select(
-      `id, estado, organizacion_id, fraternidad_id, ${COLUMNAS_CENTRALIZADORES_AVISO}`
+      `id, estado, organizacion_id, fraternidad_id, ${COLUMNAS_CENTRALIZADORES_AVISO}, ${COLUMNAS_COORDINADOR_ASESOR_AVISO}`
     )
     .eq('id', id)
     .single()
@@ -85,14 +88,15 @@ export async function PATCH(
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
 
-  // Aviso por mail (card #21) solo al centralizador que entra nuevo, y solo si
-  // ya se enviaron los Datos para Noticias (antes de eso se avisa al enviarlos).
-  if (ESTADOS_CENTRALIZADORES_AVISADOS.includes(evento.estado)) {
-    await avisarCentralizadores(
-      supabase, id, getPublicOrigin(request),
-      centralizadoresNuevos(evento as Record<string, unknown>, updates),
-    )
-  }
+  // Aviso por mail (card #21) solo a quien entra nuevo, y solo si a ese rol ya
+  // se le avisó (antes de eso se avisa en el paso que corresponde).
+  const anterior = evento as Record<string, unknown>
+  await avisarEquipo(supabase, id, getPublicOrigin(request), [
+    ...(ESTADOS_COORDINADOR_ASESOR_AVISADOS.includes(evento.estado) ? coordinadorYAsesorNuevos(anterior, updates) : []),
+    ...(ESTADOS_CENTRALIZADORES_AVISADOS.includes(evento.estado)
+      ? centralizadoresNuevos(anterior, updates).map(c => ({ ...c, rol: 'centralizador' as const }))
+      : []),
+  ])
 
   return NextResponse.json({ ok: true })
 }

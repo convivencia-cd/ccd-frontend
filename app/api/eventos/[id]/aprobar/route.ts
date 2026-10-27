@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { camposFaltantesSolicitud, mensajeFaltantesSolicitud } from '@/lib/eventos/solicitud-requeridos'
+import { avisarEquipo, coordinadorYAsesorDe } from '@/lib/eventos/avisos-equipo'
+import { getPublicOrigin } from '@/lib/http'
 
 type ResultadoDiscernimiento =
   | 'aprobado_sin_modificaciones'
@@ -277,6 +279,15 @@ export async function POST(
     if (cambiosError) {
       console.error('[aprobar] Failed to insert evento_cambios:', cambiosError.message)
     }
+  }
+
+  // Aviso por mail (card #21): el Equipo Timón aprobó y el retiro pasa a Datos
+  // para Noticias con su coordinador y asesor asignados.
+  if (nextEstado === 'pendiente_datos_noticias') {
+    await avisarEquipo(
+      supabase, id, getPublicOrigin(request),
+      coordinadorYAsesorDe({ ...evento, ...fieldUpdates }),
+    )
   }
 
   return NextResponse.json({ estado: nextEstado })

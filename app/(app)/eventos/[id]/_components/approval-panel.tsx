@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PersonaRolSelector } from './persona-rol-selector'
+import { LocationFields } from '@/components/location-fields'
 import { formatDateAR } from '@/lib/utils'
 
 type ResultadoDiscernimiento =
@@ -542,50 +543,20 @@ function NivelDiscernimiento({
               />
             </div>
 
-            {/* Ubicación */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ciudad</p>
-                <input
-                  className={inputClass}
-                  value={currentVal('ciudad')}
-                  onChange={e => setCampo('ciudad', e.target.value)}
-                />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Provincia</p>
-                <input
-                  className={inputClass}
-                  value={currentVal('provincia_evento')}
-                  onChange={e => setCampo('provincia_evento', e.target.value)}
-                />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">País</p>
-                <input
-                  className={inputClass}
-                  value={currentVal('pais_evento')}
-                  onChange={e => setCampo('pais_evento', e.target.value)}
-                />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Código postal</p>
-                <input
-                  className={inputClass}
-                  value={currentVal('codigo_postal')}
-                  onChange={e => setCampo('codigo_postal', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Diócesis</p>
-              <input
-                className={inputClass}
-                value={currentVal('diocesis')}
-                onChange={e => setCampo('diocesis', e.target.value)}
-              />
-            </div>
+            {/* Ubicación: mismo componente que al solicitar el retiro, con el CP
+                automático al elegir la ciudad (card #77). */}
+            <LocationFields
+              pais={currentVal('pais_evento')}
+              provincia={currentVal('provincia_evento')}
+              localidad={currentVal('ciudad')}
+              codigoPostal={currentVal('codigo_postal')}
+              diocesis={currentVal('diocesis')}
+              onPaisChange={val => setCampo('pais_evento', val)}
+              onProvinciaChange={val => setCampo('provincia_evento', val)}
+              onLocalidadChange={val => setCampo('ciudad', val)}
+              onCodigoPostalChange={val => setCampo('codigo_postal', val)}
+              onDiocesisChange={val => setCampo('diocesis', val)}
+            />
 
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Notas del retiro</p>

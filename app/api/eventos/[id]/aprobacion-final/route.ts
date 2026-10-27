@@ -2,7 +2,13 @@ import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
-import { avisarCentralizadores, centralizadoresNuevos, COLUMNAS_CENTRALIZADORES_AVISO } from '@/lib/eventos/avisos-equipo'
+import {
+  avisarEquipo,
+  centralizadoresNuevos,
+  coordinadorYAsesorNuevos,
+  COLUMNAS_CENTRALIZADORES_AVISO,
+  COLUMNAS_COORDINADOR_ASESOR_AVISO,
+} from '@/lib/eventos/avisos-equipo'
 import { getPublicOrigin } from '@/lib/http'
 
 type AprobacionFinalBody = {
@@ -49,7 +55,7 @@ export async function POST(
 
   const { data: evento, error: fetchError } = await supabase
     .from('eventos')
-    .select(`id, estado, ${COLUMNAS_CENTRALIZADORES_AVISO}`)
+    .select(`id, estado, ${COLUMNAS_CENTRALIZADORES_AVISO}, ${COLUMNAS_COORDINADOR_ASESOR_AVISO}`)
     .eq('id', id)
     .single()
 
@@ -123,13 +129,15 @@ export async function POST(
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
 
-  // Si el EqT cambió un centralizador al publicar, se le avisa al que entra
-  // (card #21). Al devolver, se avisa cuando se reenvíen los Datos para Noticias.
+  // Si el EqT cambió al coordinador, al asesor o a un centralizador al publicar,
+  // se le avisa al que entra (card #21). Al devolver, los centralizadores se
+  // avisan cuando se reenvíen los Datos para Noticias.
   if (body.accion === 'publicar') {
-    await avisarCentralizadores(
-      supabase, id, getPublicOrigin(request),
-      centralizadoresNuevos(evento as Record<string, unknown>, updates),
-    )
+    const anterior = evento as Record<string, unknown>
+    await avisarEquipo(supabase, id, getPublicOrigin(request), [
+      ...coordinadorYAsesorNuevos(anterior, updates),
+      ...centralizadoresNuevos(anterior, updates).map(c => ({ ...c, rol: 'centralizador' as const })),
+    ])
   }
 
   // La devolución queda en el historial del evento, que es donde la ve quien

@@ -281,25 +281,36 @@ export const recordatorioEvento = defineTemplate<InscripcionProps & { diasRestan
 
 // ─── Equipo del evento ────────────────────────────────────────────────────────
 
-export type AsignacionCentralizadorProps = InscripcionProps & {
+export type RolEquipoAviso = 'coordinador' | 'asesor' | 'centralizador'
+
+const ROL_EQUIPO_LABEL: Record<RolEquipoAviso, string> = {
+  coordinador: 'Coordinador/a',
+  asesor: 'Asesor/a',
+  centralizador: 'Centralizador/a',
+}
+
+export type AsignacionEquipoProps = InscripcionProps & {
+  rol: RolEquipoAviso
   eventoUrl: string
 }
 
 /**
- * Aviso al centralizador cuando lo asignan (card #21): al enviarse los Datos
- * para Noticias, o si después lo cambian desde la aprobación final, Editar
- * evento o Gestión.
+ * Aviso a quien asignan al equipo de un retiro (card #21):
+ *   - Coordinador y asesor: cuando el Equipo Timón los asigna y el retiro pasa
+ *     a Datos para Noticias, o si después los cambian.
+ *   - Centralizador: al enviarse los Datos para Noticias, o si después lo
+ *     cambian desde la aprobación final, Editar evento o Gestión.
  */
-export const asignacionCentralizador = defineTemplate<AsignacionCentralizadorProps>({
-  subject: p => `Fuiste designado/a Centralizador/a de ${p.evento}`,
-  preheader: p => `Centralizador/a — ${p.evento}`,
-  tags: () => ({ categoria: 'asignacion_equipo', rol: 'centralizador' }),
+export const asignacionEquipo = defineTemplate<AsignacionEquipoProps>({
+  subject: p => `Fuiste designado/a ${ROL_EQUIPO_LABEL[p.rol]} de ${p.evento}`,
+  preheader: p => `${ROL_EQUIPO_LABEL[p.rol]} — ${p.evento}`,
+  tags: p => ({ categoria: 'asignacion_equipo', rol: p.rol }),
   blocks: p => [
     block.heading(`¡Hola, ${p.nombre}!`),
     block.paragraph(
-      `Te contamos que fuiste designado/a Centralizador/a de ${p.evento}. Desde la plataforma vas a poder ver el retiro y todo lo que necesitás para acompañarlo: también te aparece en tu pantalla de inicio.`
+      `Te contamos que fuiste designado/a ${ROL_EQUIPO_LABEL[p.rol]} de ${p.evento}. Desde la plataforma vas a poder ver el retiro y todo lo que necesitás para acompañarlo: también te aparece en tu pantalla de inicio.`
     ),
-    block.facts([{ label: 'Rol', value: 'Centralizador/a' }, ...datosEvento(p)]),
+    block.facts([{ label: 'Rol', value: ROL_EQUIPO_LABEL[p.rol] }, ...datosEvento(p)]),
     block.button('Ver el retiro', p.eventoUrl),
     block.note('Si creés que hay un error en esta designación, avisale al Equipo Timón.'),
   ],
@@ -458,7 +469,7 @@ export const templates = {
   inscripcionRegistrada,
   interesConfirmado,
   nuevoInteresado,
-  asignacionCentralizador,
+  asignacionEquipo,
   recordatorioEvento,
   pagoConfirmado,
   pagoRechazado,
