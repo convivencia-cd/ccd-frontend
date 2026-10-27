@@ -64,7 +64,15 @@ async function enviarConfirmacionConQr(
 
 function isValidSignature(request: Request, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET
-  if (!secret) return true // sin secret configurado, no se puede validar (solo para desarrollo)
+  if (!secret) {
+    // Sin secret no hay forma de saber que el aviso viene de Mercado Pago:
+    // en producción se rechaza; solo se tolera en local/preview.
+    if (process.env.VERCEL_ENV === 'production') {
+      console.error('[mp-webhook] falta MP_WEBHOOK_SECRET: se rechazan todas las notificaciones')
+      return false
+    }
+    return true
+  }
 
   const signatureHeader = request.headers.get('x-signature')
   const requestId = request.headers.get('x-request-id')
@@ -87,6 +95,26 @@ function isValidSignature(request: Request, dataId: string): boolean {
   const receivedBuf = Buffer.from(v1)
   if (expectedBuf.length !== receivedBuf.length) return false
   return timingSafeEqual(expectedBuf, receivedBuf)
+}
+
+/**
+ * Estado de Mercado Pago → pagos.estado_pago. `reembolsado` es el que usan los
+ * triggers 082/089 para anular el movimiento del informe económico.
+ */
+function mapearEstado(status: string | undefined): 'confirmado' | 'rechazado' | 'reembolsado' | 'pendiente' {
+  switch (status) {
+    case 'approved':
+      return 'confirmado'
+    case 'rejected':
+    case 'cancelled':
+      return 'rechazado'
+    case 'refunded':
+    case 'charged_back':
+      return 'reembolsado'
+    default:
+      // pending, in_process, authorized, in_mediation
+      return 'pendiente'
+  }
 }
 
 export async function POST(request: Request) {
@@ -127,7 +155,7 @@ export async function POST(request: Request) {
 
   const { data: pago } = await supabaseAdmin
     .from('pagos')
-    .select('id, mp_payment_id, mp_organizacion_id, evento_participante_id, concepto, monto, fecha_pago')
+    .select('id, estado_pago, mp_payment_id, mp_organizacion_id, evento_participante_id, concepto, monto, fecha_pago')
     .eq('id', pagoId)
     .maybeSingle()
 
@@ -150,26 +178,89 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No se pudo consultar el pago' }, { status: 502 })
   }
 
-  // Idempotencia: ya procesamos este mismo pago de Mercado Pago
-  if (pago.mp_payment_id != null && String(pago.mp_payment_id) === String(payment.id)) {
+  // El pago tiene que ser de ESTE registro: pago_id viaja en la URL y la firma
+  // de Mercado Pago no lo cubre. external_reference lo fijamos nosotros al
+  // crear la preferencia (= pagos.id).
+  if (String(payment.external_reference ?? '') !== pago.id) {
+    console.error('[mp-webhook] external_reference no coincide', {
+      pago_id: pago.id,
+      mp_payment_id: payment.id,
+      external_reference: payment.external_reference,
+    })
     return NextResponse.json({ ok: true })
   }
 
-  const estadoPago =
-    payment.status === 'approved' ? 'confirmado' : payment.status === 'rejected' || payment.status === 'cancelled' ? 'rechazado' : 'pendiente'
+  const estadoPago = mapearEstado(payment.status)
+  const mismoPagoMp = pago.mp_payment_id != null && String(pago.mp_payment_id) === String(payment.id)
 
-  await supabaseAdmin
-    .from('pagos')
-    .update({ estado_pago: estadoPago, mp_payment_id: payment.id })
-    .eq('id', pago.id)
+  // Un registro ya confirmado no lo pisa otro intento: los avisos llegan
+  // desordenados y un rechazo viejo anularía el ingreso en el informe económico.
+  // Si el otro intento también se aprobó, la persona pagó dos veces.
+  if (pago.estado_pago === 'confirmado' && !mismoPagoMp) {
+    if (estadoPago === 'confirmado') {
+      console.error('[mp-webhook] posible pago duplicado: revisar devolución', {
+        pago_id: pago.id,
+        mp_payment_id_registrado: pago.mp_payment_id,
+        mp_payment_id_nuevo: payment.id,
+      })
+    }
+    return NextResponse.json({ ok: true })
+  }
 
-  if (estadoPago === 'confirmado' && pago.concepto === 'inscripcion') {
-    await supabaseAdmin
+  // Un confirmado tampoco vuelve a pendiente (p. ej. in_mediation por un
+  // reclamo): sigue confirmado hasta que MP lo resuelva como devolución.
+  if (pago.estado_pago === 'confirmado' && estadoPago === 'pendiente') {
+    return NextResponse.json({ ok: true })
+  }
+
+  // Idempotencia por (pago de MP, estado): el mismo pago puede pasar de
+  // pendiente a aprobado (efectivo, revisión de tarjeta) y ese cambio se aplica.
+  if (mismoPagoMp && pago.estado_pago === estadoPago) {
+    return NextResponse.json({ ok: true })
+  }
+
+  if (estadoPago === 'confirmado') {
+    const montoPagado = Number(payment.transaction_amount ?? 0)
+    const montoEsperado = Number(pago.monto ?? 0)
+    if (payment.currency_id !== 'ARS' || montoPagado + 0.01 < montoEsperado) {
+      console.error('[mp-webhook] monto o moneda no coinciden: no se confirma', {
+        pago_id: pago.id,
+        mp_payment_id: payment.id,
+        esperado: montoEsperado,
+        pagado: montoPagado,
+        moneda: payment.currency_id,
+      })
+      return NextResponse.json({ ok: true })
+    }
+  }
+
+  // Primero la inscripción y después el pago: si algo falla se responde 500 y
+  // Mercado Pago reintenta; el reintento no se corta en la idempotencia porque
+  // el pago todavía no quedó guardado con su estado nuevo.
+  if (estadoPago === 'confirmado' && pago.concepto === 'inscripcion' && pago.evento_participante_id) {
+    const { error: inscripcionError } = await supabaseAdmin
       .from('evento_participantes')
       .update({ estado_participacion: 'inscripto' })
       .eq('id', pago.evento_participante_id)
       .eq('estado_participacion', 'interesado')
 
+    if (inscripcionError) {
+      console.error('[mp-webhook] no se pudo inscribir al participante:', inscripcionError)
+      return NextResponse.json({ error: 'No se pudo registrar la inscripción' }, { status: 500 })
+    }
+  }
+
+  const { error: pagoError } = await supabaseAdmin
+    .from('pagos')
+    .update({ estado_pago: estadoPago, mp_payment_id: payment.id })
+    .eq('id', pago.id)
+
+  if (pagoError) {
+    console.error('[mp-webhook] no se pudo actualizar el pago:', pagoError)
+    return NextResponse.json({ error: 'No se pudo registrar el pago' }, { status: 500 })
+  }
+
+  if (estadoPago === 'confirmado' && pago.concepto === 'inscripcion') {
     await enviarConfirmacionConQr(supabaseAdmin, pago, getPublicOrigin(request))
   }
 

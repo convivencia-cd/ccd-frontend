@@ -138,10 +138,12 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle()
 
+  // Nunca devolver el id de evento_participantes: es la credencial de /pago/[id]
+  // (datos personales + pago) y solo debe llegar por mail al titular. Este
+  // endpoint identifica por email/documento sin verificar quién consulta.
   if (yaInteresado) {
     return NextResponse.json({
       ok: true,
-      evento_participante_id: yaInteresado.id,
       persona_existente: personaExistente,
       ya_registrado: true,
     })
@@ -168,7 +170,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    evento_participante_id: participante.id,
     persona_existente: personaExistente,
   })
 }
