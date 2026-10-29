@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
 import { getPublicOrigin } from '@/lib/http'
 import { notificarAltaInteresado } from '@/lib/interesados/notificar-alta'
+import { devolverInscripcion } from '@/lib/pagos/devolucion'
+import { sendTemplateEmail, templates } from '@/lib/email'
 import {
   ESTADOS_PARTICIPACION,
   MAX_MINISTERIO_MUSICA,
@@ -205,6 +207,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const invalido = validarRolYEstado(body.rol_en_evento, body.estado_participacion)
   if (invalido) return NextResponse.json({ error: invalido }, { status: 400 })
 
+  // Cancelar solo por "Dar de baja" (DELETE), que devuelve la inscripción y avisa (card #104).
+  if (body.estado_participacion === 'cancelado') {
+    return NextResponse.json({ error: 'Para cancelar usá "Dar de baja".' }, { status: 400 })
+  }
+
   if (body.rol_en_evento === 'musica') {
     const { data: fila } = await supabase
       .from('evento_participantes')
@@ -266,13 +273,54 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ error: 'Falta el participante a dar de baja' }, { status: 400 })
   }
 
+  const { data: participante } = await supabase
+    .from('evento_participantes')
+    .select('id, estado_participacion, persona:personas!persona_id(nombre, email), evento:eventos!evento_id(nombre)')
+    .eq('id', participanteId)
+    .eq('evento_id', id)
+    .maybeSingle()
+  if (!participante) return NextResponse.json({ error: 'Participante no encontrado' }, { status: 404 })
+  if (participante.estado_participacion === 'cancelado') return NextResponse.json({ ok: true, devolucion: null })
+
+  // Card #104: la inscripción pagada por Mercado Pago se devuelve sola. Si MP
+  // la rechaza, la persona sigue inscripta para no dejarla sin la plata.
+  const resultado = await devolverInscripcion(participanteId)
+  if (!resultado.ok) return NextResponse.json({ error: resultado.error }, { status: 502 })
+
   const { error: updateError } = await supabase
     .from('evento_participantes')
     .update({ estado_participacion: 'cancelado' })
     .eq('id', participanteId)
     .eq('evento_id', id)
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
+  if (updateError) {
+    // Muy raro: la plata ya se devolvió pero la baja no quedó. Se avisa para reintentar.
+    return NextResponse.json(
+      { error: `${resultado.devolucion?.tipo === 'mercadopago' ? 'La inscripción ya se devolvió por Mercado Pago, pero ' : ''}no se pudo dar de baja: ${updateError.message}` },
+      { status: 400 }
+    )
+  }
 
-  return NextResponse.json({ ok: true })
+  // Mail a la persona, salvo a interesados que nunca se inscribieron.
+  const persona = participante.persona as unknown as { nombre: string; email: string | null } | null
+  const evento = participante.evento as unknown as { nombre: string } | null
+  if (participante.estado_participacion !== 'interesado' && persona?.email) {
+    const envio = await sendTemplateEmail(
+      templates.bajaRetiro,
+      {
+        nombre: persona.nombre?.split(' ')[0] || 'hermano/a',
+        evento: evento?.nombre ?? 'el retiro',
+        devolucion:
+          resultado.devolucion?.tipo === 'mercadopago'
+            ? { tipo: 'mercadopago', monto: resultado.devolucion.monto }
+            : resultado.devolucion?.tipo === 'manual'
+              ? { tipo: 'manual' }
+              : null,
+      },
+      { to: persona.email, idempotencyKey: `baja-retiro-${participanteId}` },
+    )
+    if (!envio.ok) console.error('[participantes] No se pudo enviar el aviso de baja:', envio.error)
+  }
+
+  return NextResponse.json({ ok: true, devolucion: resultado.devolucion })
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -168,8 +169,18 @@ export default function ParticipantesEventoCard({
       const res = await fetch(`/api/eventos/${eventoId}/participantes?participante_id=${participanteId}`, {
         method: 'DELETE',
       })
-      if (!res.ok) {
-        throw new Error(((await res.json()) as { error?: string }).error ?? 'Error al dar de baja')
+      const data = (await res.json()) as {
+        error?: string
+        devolucion?: { tipo: 'mercadopago' | 'manual'; monto: number } | null
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Error al dar de baja')
+      const monto = data.devolucion ? `$ ${data.devolucion.monto.toLocaleString('es-AR')}` : ''
+      if (data.devolucion?.tipo === 'mercadopago') {
+        toast.success(`Baja registrada. Se devolvieron ${monto} por Mercado Pago.`)
+      } else if (data.devolucion?.tipo === 'manual') {
+        toast.warning(`Baja registrada. La inscripción (${monto}) se pagó por transferencia: la devolución hay que hacerla a mano.`, { duration: 10000 })
+      } else {
+        toast.success('Baja registrada.')
       }
       onChanged()
     } catch (err: unknown) {
@@ -387,7 +398,7 @@ export default function ParticipantesEventoCard({
         titulo="Dar de baja del retiro"
         descripcion={
           aBaja
-            ? `${nombreDe(aBaja)} pasa a estado "Cancelado" en este retiro. No se borra el registro ni sus pagos.`
+            ? `${nombreDe(aBaja)} pasa a estado "Cancelado" en este retiro y se le avisa por mail. Si pagó la inscripción por Mercado Pago, se le devuelve el total automáticamente. Si pagó por transferencia, la devolución se hace a mano.`
             : undefined
         }
         confirmar="Dar de baja"

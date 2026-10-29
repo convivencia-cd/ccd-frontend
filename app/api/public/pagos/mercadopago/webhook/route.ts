@@ -62,6 +62,55 @@ async function enviarConfirmacionConQr(
   }
 }
 
+/**
+ * Pasa al participante a cancelado y le manda el mail de baja con la
+ * devolución. Si ya estaba cancelado (lo dio de baja un centralizador), solo
+ * reintenta el mail: la misma clave de idempotencia que usa "Dar de baja"
+ * evita que le llegue dos veces. Nunca corta el webhook.
+ */
+async function darDeBajaPorDevolucion(
+  supabaseAdmin: SupabaseAdmin,
+  pago: { id: string; evento_participante_id: string | null; monto: number | null }
+) {
+  if (!pago.evento_participante_id) return
+  try {
+    const { data: participante } = await supabaseAdmin
+      .from('evento_participantes')
+      .select('id, estado_participacion, persona:personas!persona_id(nombre, email), evento:eventos!evento_id(nombre)')
+      .eq('id', pago.evento_participante_id)
+      .maybeSingle()
+    if (!participante) return
+
+    if (participante.estado_participacion !== 'cancelado') {
+      const { error } = await supabaseAdmin
+        .from('evento_participantes')
+        .update({ estado_participacion: 'cancelado' })
+        .eq('id', participante.id)
+      if (error) {
+        console.error('[mp-webhook] no se pudo dar de baja por devolución:', error)
+        return
+      }
+    }
+
+    const persona = participante.persona as unknown as { nombre: string; email: string | null } | null
+    const evento = participante.evento as unknown as { nombre: string } | null
+    if (!persona?.email) return
+
+    const envio = await sendTemplateEmail(
+      templates.bajaRetiro,
+      {
+        nombre: persona.nombre?.split(' ')[0] || 'hermano/a',
+        evento: evento?.nombre ?? 'el retiro',
+        devolucion: { tipo: 'mercadopago', monto: Number(pago.monto ?? 0) },
+      },
+      { to: persona.email, idempotencyKey: `baja-retiro-${participante.id}` }
+    )
+    if (!envio.ok) console.error('[mp-webhook] no se pudo enviar el aviso de baja:', envio.error)
+  } catch (err) {
+    console.error('[mp-webhook] error al dar de baja por devolución:', err)
+  }
+}
+
 function isValidSignature(request: Request, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET
   if (!secret) {
@@ -262,6 +311,12 @@ export async function POST(request: Request) {
 
   if (estadoPago === 'confirmado' && pago.concepto === 'inscripcion') {
     await enviarConfirmacionConQr(supabaseAdmin, pago, getPublicOrigin(request))
+  }
+
+  // Inscripción devuelta (desde "Dar de baja" o a mano en Mercado Pago): la
+  // persona queda dada de baja y se le avisa (card #104).
+  if (estadoPago === 'reembolsado' && pago.concepto === 'inscripcion' && pago.evento_participante_id) {
+    await darDeBajaPorDevolucion(supabaseAdmin, pago)
   }
 
   return NextResponse.json({ ok: true })

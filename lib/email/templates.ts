@@ -397,6 +397,40 @@ export const pagoRechazado = defineTemplate<PagoProps>({
   },
 })
 
+export type BajaRetiroProps = {
+  nombre: string
+  evento: string
+  /** Cómo se devuelve la inscripción: automática por MP, a mano (transferencia) o nada que devolver. */
+  devolucion: { tipo: 'mercadopago'; monto: number } | { tipo: 'manual' } | null
+}
+
+/** Aviso a quien dan de baja de un retiro (card #104). */
+export const bajaRetiro = defineTemplate<BajaRetiroProps>({
+  subject: p => `Baja de tu inscripción — ${p.evento}`,
+  preheader: p =>
+    p.devolucion?.tipo === 'mercadopago' ? 'Te devolvimos la inscripción por Mercado Pago' : `Ya no figurás en ${p.evento}`,
+  tags: p => ({ categoria: 'inscripcion', estado: 'baja', devolucion: p.devolucion?.tipo ?? 'ninguna' }),
+  blocks: p => {
+    const blocks: EmailBlock[] = [
+      block.heading(`¡Hola, ${p.nombre}!`),
+      block.paragraph(`Te contamos que se dio de baja tu inscripción a ${p.evento}.`),
+    ]
+    if (p.devolucion?.tipo === 'mercadopago') {
+      blocks.push(
+        block.facts([
+          { label: 'Devolución', value: `$ ${formatMonto(p.devolucion.monto)}` },
+          { label: 'Medio', value: 'Mercado Pago' },
+        ]),
+        block.note('Mercado Pago acredita la devolución en el mismo medio con el que pagaste. Puede demorar unos días según tu banco o tarjeta.'),
+      )
+    } else if (p.devolucion?.tipo === 'manual') {
+      blocks.push(block.paragraph('Por la devolución de lo que abonaste por transferencia, el equipo del retiro se va a poner en contacto con vos.'))
+    }
+    blocks.push(block.note('Si creés que es un error, respondé a este correo o comunicate con el equipo del retiro.'))
+    return blocks
+  },
+})
+
 // ─── Eventos ──────────────────────────────────────────────────────────────────
 
 export const eventoCambioEstado = defineTemplate<{ evento: string; detalleUrl: string }>({
@@ -473,6 +507,7 @@ export const templates = {
   recordatorioEvento,
   pagoConfirmado,
   pagoRechazado,
+  bajaRetiro,
   eventoAprobado,
   eventoCambioEstado,
   eventoSuspendido,
