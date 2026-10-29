@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { resolverCuentaCobroCentral } from '@/lib/mercadopago/org-account'
 import { getPublicOrigin } from '@/lib/http'
+import { inicioDelRetiro, motivoInscripcionCerrada } from '@/lib/eventos/vigencia-inscripcion'
 
 export async function POST(request: Request) {
   let body: { evento_participante_id?: string }
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
 
   const { data: participante } = await supabaseAdmin
     .from('evento_participantes')
-    .select('id, evento:eventos!evento_id(id, nombre, precio)')
+    .select('id, estado_participacion, evento:eventos!evento_id(id, nombre, precio, estado, fecha_inicio)')
     .eq('id', eventoParticipanteId)
     .single()
 
@@ -37,7 +38,17 @@ export async function POST(request: Request) {
     id: string
     nombre: string
     precio: number | null
+    estado: string | null
+    fecha_inicio: string | null
   } | null
+
+  // Card #111: el link vence cuando arranca el retiro.
+  const cerrada = motivoInscripcionCerrada(evento)
+  if (cerrada) return NextResponse.json({ error: cerrada }, { status: 409 })
+  if (participante.estado_participacion === 'cancelado') {
+    return NextResponse.json({ error: 'Esta inscripción fue dada de baja. Contactate con los organizadores.' }, { status: 409 })
+  }
+
   const monto = Number(evento?.precio ?? 0)
 
   if (!evento || monto <= 0) {
@@ -111,6 +122,7 @@ export async function POST(request: Request) {
   }
 
   const origin = getPublicOrigin(request)
+  const vence = inicioDelRetiro(evento.fecha_inicio)
   const client = new MercadoPagoConfig({ accessToken: cuenta.accessToken })
   const preference = new Preference(client)
 
@@ -135,6 +147,10 @@ export async function POST(request: Request) {
         },
         notification_url: `${origin}/api/public/pagos/mercadopago/webhook?pago_id=${pago.id}`,
         auto_return: 'approved',
+        // Un checkout abierto antes no se puede pagar después de que arranca el retiro.
+        ...(vence
+          ? { expires: true, expiration_date_to: vence.toISOString(), date_of_expiration: vence.toISOString() }
+          : {}),
       },
     })
 

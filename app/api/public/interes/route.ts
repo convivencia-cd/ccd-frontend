@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { motivoInscripcionCerrada } from '@/lib/eventos/vigencia-inscripcion'
 import { getPublicOrigin } from '@/lib/http'
 import { notificarAltaInteresado } from '@/lib/interesados/notificar-alta'
 
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
   // Verify the event exists and is published
   const { data: evento } = await supabaseAdmin
     .from('eventos')
-    .select('id, nombre, estado')
+    .select('id, nombre, estado, fecha_inicio')
     .eq('id', evento_id)
     .eq('estado', 'publicado')
     .single()
@@ -41,6 +42,8 @@ export async function POST(request: Request) {
   if (!evento) {
     return NextResponse.json({ error: 'El retiro no está disponible.' }, { status: 404 })
   }
+  const cerrada = motivoInscripcionCerrada(evento)
+  if (cerrada) return NextResponse.json({ error: cerrada }, { status: 409 })
 
   const today = new Date().toISOString().split('T')[0]
   const emailNorm = email ? email.trim().toLowerCase() : null

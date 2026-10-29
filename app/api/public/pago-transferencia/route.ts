@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { motivoInscripcionCerrada } from '@/lib/eventos/vigencia-inscripcion'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -43,12 +44,21 @@ export async function POST(request: Request) {
   // Verificar que el participante existe y traer el precio del evento
   const { data: participante } = await supabaseAdmin
     .from('evento_participantes')
-    .select('id, evento:eventos!evento_id(precio)')
+    .select('id, estado_participacion, evento:eventos!evento_id(precio, estado, fecha_inicio)')
     .eq('id', eventoParticipanteId)
     .single()
 
   if (!participante) {
     return NextResponse.json({ error: 'No se encontró la inscripción.' }, { status: 404 })
+  }
+
+  // Card #111: el link vence cuando arranca el retiro.
+  const cerrada = motivoInscripcionCerrada(
+    participante.evento as unknown as { estado: string | null; fecha_inicio: string | null } | null
+  )
+  if (cerrada) return NextResponse.json({ error: cerrada }, { status: 409 })
+  if (participante.estado_participacion === 'cancelado') {
+    return NextResponse.json({ error: 'Esta inscripción fue dada de baja. Contactate con los organizadores.' }, { status: 409 })
   }
 
   // Evitar comprobantes duplicados para una inscripción ya con pago en curso
