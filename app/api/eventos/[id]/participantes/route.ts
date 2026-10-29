@@ -5,6 +5,7 @@ import { getPublicOrigin } from '@/lib/http'
 import { notificarAltaInteresado } from '@/lib/interesados/notificar-alta'
 import { devolverInscripcion } from '@/lib/pagos/devolucion'
 import { sendTemplateEmail, templates } from '@/lib/email'
+import { participantesConInscripcionDatos } from '@/lib/eventos/inscripcion-datos-server'
 import {
   ESTADOS_PARTICIPACION,
   MAX_MINISTERIO_MUSICA,
@@ -301,10 +302,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     )
   }
 
-  // Mail a la persona, salvo a interesados que nunca se inscribieron.
+  // Mail a la persona. Al preinscripto (interesado que ya completó la planilla,
+  // sin pago) también le llega (card #110); al interesado que solo dejó sus
+  // datos de contacto, no.
   const persona = participante.persona as unknown as { nombre: string; email: string | null } | null
   const evento = participante.evento as unknown as { nombre: string } | null
-  if (participante.estado_participacion !== 'interesado' && persona?.email) {
+  const avisar =
+    participante.estado_participacion !== 'interesado' ||
+    (await participantesConInscripcionDatos([participanteId]).catch(() => new Set<string>())).has(participanteId)
+  if (avisar && persona?.email) {
     const envio = await sendTemplateEmail(
       templates.bajaRetiro,
       {
