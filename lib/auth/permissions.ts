@@ -35,6 +35,7 @@ export type Permission =
   | 'inscripcion.view_datos_sensibles' // ver dieta y observaciones de salud de los inscriptos — scopeado a la org del evento
   | 'inscripcion.export_fichas'        // descargar las fichas de inscripción de los participantes (PDF/Excel) — scopeado a la org del evento
   | 'payment.verify'      // verificar/aprobar/rechazar pagos por transferencia — scopeado a la org del evento
+  | 'payment.register'    // registrar pagos a mano (formulario Nuevo Pago) — scopeado a la org del evento; los centralizadores del evento también pueden
   | 'informe_economico.edit' // cargar movimientos del Informe Económico del evento (Tesoreros) — scopeado a la org del evento
   | 'informe_economico.view' // ver (solo lectura) el Informe Económico del evento — scopeado a la org del evento
   | 'cierre.view_carismas'             // ver el Informe de Carismas del cierre — scopeado a la org del evento
@@ -97,6 +98,7 @@ export const rolePermissions: Record<SystemRole, Permission[]> = {
     'inscripcion.view_datos_sensibles',
     'inscripcion.export_fichas',
     'payment.verify',
+    'payment.register',
     'informe_economico.edit',
     'informe_economico.view',
     'cierre.view_carismas',

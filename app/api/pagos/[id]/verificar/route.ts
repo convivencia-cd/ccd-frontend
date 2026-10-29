@@ -1,3 +1,4 @@
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
@@ -65,9 +66,17 @@ export async function POST(
 
   const body = (await request.json()) as { accion?: string; notas?: string }
 
+  // Desde la migración 101 pagos no admite UPDATE con la sesión del usuario:
+  // el permiso ya se validó arriba, se escribe con service-role.
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
   if (body.accion === 'aprobar') {
     const today = new Date().toISOString().split('T')[0]
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('pagos')
       .update({ estado_pago: 'confirmado', fecha_pago: today })
       .eq('id', id)
@@ -89,7 +98,7 @@ export async function POST(
     const notas = body.notas?.trim()
       ? `${pago.notas ? pago.notas + '\n' : ''}Rechazado: ${body.notas.trim()}`
       : pago.notas
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('pagos')
       .update({ estado_pago: 'rechazado', notas })
       .eq('id', id)
