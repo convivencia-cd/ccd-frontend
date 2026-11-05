@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { validarCoordinadoresPropuestos } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { translateSupabaseError } from '@/lib/errors/supabase'
 import { puedeSolicitarTipoEvento } from '@/lib/auth/tipos-eventos-permitidos'
@@ -31,6 +32,12 @@ export async function POST(request: Request) {
       { status: 403 }
     )
   }
+
+  // Card #47: solo coordinadores habilitados para el tipo de evento.
+  const errorPropuestos = await validarCoordinadoresPropuestos(
+    supabase, body.tipo_evento_id, body.coordinadores_propuestos || null, null,
+  )
+  if (errorPropuestos) return NextResponse.json({ error: errorPropuestos }, { status: 422 })
 
   // Admins can set any state; regular users always submit as 'solicitud'
   const estado = ctx.is_admin && body.estado ? body.estado : 'solicitud'

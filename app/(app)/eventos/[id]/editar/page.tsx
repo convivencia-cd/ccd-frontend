@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { coordinadoresHabilitados } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { canGestionarAsignaciones, canGestionarParticipantes } from '@/lib/eventos/equipo'
 import { cargarGruposDelEvento } from '@/lib/eventos/grupos'
@@ -46,7 +47,7 @@ export default async function EditarEventoPage({
 
   if (!canEdit) notFound()
 
-  const [{ data: participantesRaw }, { grupos, nombresGrupos }] = await Promise.all([
+  const [{ data: participantesRaw }, { grupos, nombresGrupos }, coordinadores] = await Promise.all([
     supabase
       .from('evento_participantes')
       .select(
@@ -55,6 +56,7 @@ export default async function EditarEventoPage({
       .eq('evento_id', id)
       .order('fecha_inscripcion', { ascending: false }),
     cargarGruposDelEvento(supabase, id, evento.tipo_evento_id ?? null),
+    coordinadoresHabilitados(supabase, evento.tipo_evento_id),
   ])
   const participantes: ParticipanteEquipo[] = await marcarPreinscriptos(
     (participantesRaw ?? []) as unknown as Omit<ParticipanteEquipo, 'preinscripto'>[]
@@ -71,6 +73,7 @@ export default async function EditarEventoPage({
           grupos={grupos}
           nombresGrupos={nombresGrupos}
           canAsignaciones={canGestionarAsignaciones(ctx, evento)}
+          coordinadoresHabilitadosIds={coordinadores.map(c => c.id)}
           canParticipantes={canGestionarParticipantes(ctx, evento)}
         />
       </div>

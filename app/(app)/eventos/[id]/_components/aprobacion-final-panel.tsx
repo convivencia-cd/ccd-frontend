@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
+import { apellidoNombreConApodo } from '@/lib/personas/nombre'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 type Centralizador = {
@@ -69,13 +70,15 @@ type Props = {
   }
   casasRetiro: { id: string; nombre: string; ciudad?: string | null; provincia?: string | null }[]
   personas: Persona[]
+  /** Card #47: coordinadores habilitados para el tipo de este evento. */
+  coordinadores: { id: string; nombre: string; apellido: string; apodo?: string | null }[]
 }
 
 function toStr(v: string | null | undefined): string {
   return v ?? ''
 }
 
-export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, personas }: Props) {
+export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, personas, coordinadores }: Props) {
   const router = useRouter()
 
   const [casaRetiroId, setCasaRetiroId] = useState(toStr(inicial.casa_retiro_id))
@@ -92,6 +95,17 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
   const [confirmando, setConfirmando] = useState<Accion | null>(null)
 
   const personaOptions = personas.map(p => ({ value: p.id, label: `${p.apellido}, ${p.nombre}` }))
+
+  // El coordinador ya guardado se conserva aunque no esté habilitado (eventos
+  // anteriores a la card #47), pero no se puede elegir a otro fuera de la lista.
+  const coordinadorOptions = coordinadores.map(p => ({ value: p.id, label: apellidoNombreConApodo(p) }))
+  if (inicial.coordinador_asignado_id && !coordinadorOptions.some(o => o.value === inicial.coordinador_asignado_id)) {
+    const p = personas.find(x => x.id === inicial.coordinador_asignado_id)
+    coordinadorOptions.unshift({
+      value: inicial.coordinador_asignado_id,
+      label: `${p ? `${p.apellido}, ${p.nombre}` : 'Persona asignada'} (no habilitado para este tipo)`,
+    })
+  }
 
   function selectCentralizador(i: number, personaId: string) {
     const p = personas.find(x => x.id === personaId)
@@ -209,11 +223,14 @@ export default function AprobacionFinalPanel({ eventoId, inicial, casasRetiro, p
         <Combobox
           value={coordinadorId}
           onSelect={setCoordinadorId}
-          options={personaOptions}
-          placeholder="Buscar coordinador..."
+          options={coordinadorOptions}
+          placeholder={coordinadorOptions.length === 0 ? 'No hay coordinadores habilitados para este tipo' : 'Buscar coordinador...'}
           searchPlaceholder="Buscar por apellido o nombre..."
-          emptyText="No se encontraron personas."
+          emptyText="No hay coordinadores habilitados con ese nombre."
         />
+        <p className="text-xs text-muted-foreground">
+          Solo coordinadores habilitados para este tipo de evento (Ministerios › Asignaciones).
+        </p>
       </div>
 
       {/* Asesor */}

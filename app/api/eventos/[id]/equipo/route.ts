@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { validarCoordinadorAsignado } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext } from '@/lib/auth/context'
 import { canGestionarAsignaciones } from '@/lib/eventos/equipo'
 import {
@@ -42,7 +43,7 @@ export async function PATCH(
   const { data: evento } = await supabase
     .from('eventos')
     .select(
-      `id, estado, organizacion_id, fraternidad_id, ${COLUMNAS_CENTRALIZADORES_AVISO}, ${COLUMNAS_COORDINADOR_ASESOR_AVISO}`
+      `id, estado, organizacion_id, fraternidad_id, tipo_evento_id, ${COLUMNAS_CENTRALIZADORES_AVISO}, ${COLUMNAS_COORDINADOR_ASESOR_AVISO}`
     )
     .eq('id', id)
     .single()
@@ -83,6 +84,12 @@ export async function PATCH(
       { status: 400 }
     )
   }
+
+  // Card #47: solo coordinadores habilitados para el tipo de evento.
+  const errorCoordinador = await validarCoordinadorAsignado(
+    supabase, evento.tipo_evento_id, updates.coordinador_asignado_id, evento.coordinador_asignado_id,
+  )
+  if (errorCoordinador) return NextResponse.json({ error: errorCoordinador }, { status: 422 })
 
   const { error: updateError } = await supabase.from('eventos').update(updates).eq('id', id)
 

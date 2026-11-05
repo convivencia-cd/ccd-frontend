@@ -1,6 +1,7 @@
 import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { validarCoordinadorAsignado, validarCoordinadoresPropuestos } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { camposFaltantesSolicitud, mensajeFaltantesSolicitud } from '@/lib/eventos/solicitud-requeridos'
 import { avisarEquipo, coordinadorYAsesorDe } from '@/lib/eventos/avisos-equipo'
@@ -176,6 +177,20 @@ export async function POST(
       valor_nuevo: valorNuevo,
       modificado_por: ctx.persona_id,
     })
+  }
+
+  // Card #47: solo coordinadores habilitados para el tipo de evento.
+  if ('coordinador_asignado_id' in fieldUpdates) {
+    const errorCoordinador = await validarCoordinadorAsignado(
+      supabase, evento.tipo_evento_id, fieldUpdates.coordinador_asignado_id, evento.coordinador_asignado_id,
+    )
+    if (errorCoordinador) return NextResponse.json({ error: errorCoordinador }, { status: 422 })
+  }
+  if ('coordinadores_propuestos' in fieldUpdates) {
+    const errorPropuestos = await validarCoordinadoresPropuestos(
+      supabase, evento.tipo_evento_id, fieldUpdates.coordinadores_propuestos, evento.coordinadores_propuestos,
+    )
+    if (errorPropuestos) return NextResponse.json({ error: errorPropuestos }, { status: 422 })
   }
 
   // No avanza si la solicitud (con los cambios del aprobador) quedó incompleta.

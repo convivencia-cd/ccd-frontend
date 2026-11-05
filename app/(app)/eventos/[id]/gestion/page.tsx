@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { coordinadoresHabilitados } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext } from '@/lib/auth/context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -212,6 +213,10 @@ export default async function EventoGestionPage({
     ? await cargarGruposDelEvento(supabase, id, (evento as Record<string, unknown>).tipo_evento_id as string | null)
     : { grupos: [], nombresGrupos: [] }
 
+  const coordinadoresHabilitadosIds = canAsignaciones
+    ? (await coordinadoresHabilitados(supabase, (evento as Record<string, unknown>).tipo_evento_id as string | null)).map(c => c.id)
+    : []
+
   const canPension = canGestionarPension(ctx, cierreEvento)
   const participantesPension = canPension
     ? pagaronInscripcion.map(p => ({
@@ -377,6 +382,7 @@ export default async function EventoGestionPage({
           grupos={grupos}
           nombresGrupos={nombresGrupos}
           canAsignaciones={canAsignaciones}
+          coordinadoresHabilitadosIds={coordinadoresHabilitadosIds}
           canParticipantes={canParticipantes}
           participantesPrimero
         />

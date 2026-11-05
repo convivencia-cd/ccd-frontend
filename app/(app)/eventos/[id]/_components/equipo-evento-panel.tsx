@@ -21,6 +21,8 @@ type Props = {
   nombresGrupos: string[]
   /** event.update sobre el evento: puede reasignar coordinador, asesor y centralizadores. */
   canAsignaciones: boolean
+  /** Card #47: coordinadores habilitados para el tipo del evento. */
+  coordinadoresHabilitadosIds: string[]
   /** event.manage_participants o ser centralizador: puede tocar el padrón del evento. */
   canParticipantes: boolean
   /** Gestión muestra el padrón de participantes arriba de todo (card #57). */
@@ -41,6 +43,7 @@ export default function EquipoEventoPanel({
   grupos,
   nombresGrupos,
   canAsignaciones,
+  coordinadoresHabilitadosIds,
   canParticipantes,
   participantesPrimero = false,
 }: Props) {
@@ -127,6 +130,7 @@ export default function EquipoEventoPanel({
           inicial={asignaciones}
           personas={personas}
           cargandoPersonas={cargandoPersonas}
+          coordinadoresHabilitadosIds={coordinadoresHabilitadosIds}
           onSaved={refrescar}
         />
       )}

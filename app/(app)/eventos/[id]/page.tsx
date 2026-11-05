@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { coordinadoresHabilitados } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -233,7 +234,8 @@ export default async function EventoDetailPage({
   }
 
   const [coordinadoresRolDisponibles, asesoresMinisterio, asesoresModo] = await Promise.all([
-    personasConMinisterioActivo('Coordinador'),
+    // Card #47: solo coordinadores habilitados para el tipo de este evento.
+    coordinadoresHabilitados(supabase, evento.tipo_evento_id),
     personasConMinisterioActivo('Asesor'),
     personasConModoAsesorActivo(),
   ])
@@ -1330,6 +1332,7 @@ export default async function EventoDetailPage({
               }}
               casasRetiro={(casasRetiro ?? []) as { id: string; nombre: string; ciudad?: string | null; provincia?: string | null }[]}
               personas={(personasCecistas ?? []) as { id: string; nombre: string; apellido: string; email?: string | null; telefono?: string | null }[]}
+              coordinadores={coordinadoresRolDisponibles}
             />
           </div>
         </div>

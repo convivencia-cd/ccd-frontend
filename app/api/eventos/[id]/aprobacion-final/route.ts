@@ -1,6 +1,7 @@
 import { actualizarEstadoEvento } from '@/lib/eventos/actualizar-estado'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { validarCoordinadorAsignado } from '@/lib/eventos/coordinadores-tipo-evento'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import {
   avisarEquipo,
@@ -55,7 +56,7 @@ export async function POST(
 
   const { data: evento, error: fetchError } = await supabase
     .from('eventos')
-    .select(`id, estado, ${COLUMNAS_CENTRALIZADORES_AVISO}, ${COLUMNAS_COORDINADOR_ASESOR_AVISO}`)
+    .select(`id, estado, tipo_evento_id, ${COLUMNAS_CENTRALIZADORES_AVISO}, ${COLUMNAS_COORDINADOR_ASESOR_AVISO}`)
     .eq('id', id)
     .single()
 
@@ -122,6 +123,12 @@ export async function POST(
       updates[campo] = body[campo as keyof AprobacionFinalBody] ?? null
     }
   }
+
+  // Card #47: solo coordinadores habilitados para el tipo de evento.
+  const errorCoordinador = await validarCoordinadorAsignado(
+    supabase, evento.tipo_evento_id, updates.coordinador_asignado_id, evento.coordinador_asignado_id,
+  )
+  if (errorCoordinador) return NextResponse.json({ error: errorCoordinador }, { status: 422 })
 
   const { error: updateError } = await actualizarEstadoEvento(
     supabase, request, id, evento.estado, updates,
