@@ -28,3 +28,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# envíos masivos de credenciales (estado local del script)
+/scripts/credenciales_cecistas_enviadas.json
+/scripts/credenciales_cecistas_errores.json

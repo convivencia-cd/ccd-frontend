@@ -1,0 +1,89 @@
+{
+  "fecha_revision": "2026-10-28",
+  "commit_local": "52ee771a9f2ac7144901d2e49b46c027deea7976",
+  "ultimo_commit_fecha": "2026-10-27",
+  "version_package": "0.1.0",
+  "version_produccion": "No verificada; esta referencia corresponde al código revisado",
+  "sha256_archivos": {
+    "package.json": "3b77ecec966573a840654987f587dace07a229c9fbf40a10651f43cf44d29ec2",
+    "pnpm-lock.yaml": "e68eb2d21e0c015260d1cf399b97aa494adca9586d78256341c61be87e65d7ef",
+    "next.config.mjs": "1d5caae5c1e6f46aa25939dd277212c9072eef11a33bb8396e54db3b06ed30b4"
+  },
+  "dependencias_aplicacion": 60,
+  "dependencias_desarrollo": 9,
+  "scripts_sql": 118,
+  "backups": "No generados ni verificados",
+  "accesos": "Los desarrolladores ingresan directamente a Supabase, GitHub y Resend con la cuenta Google noreply@convivenciacondios.org provista por el cliente",
+  "corte_y_cierre_etapa_1": "2026-10-31",
+  "aceptacion_cliente": "PENDIENTE DE CONFIRMAR",
+  "programador_principal": "Joaquín Balthasar De Weert",
+  "programador": "Juan Tomas Soto",
+  "pm_analista_funcional": "Angeles Truccia",
+  "cliente_informado": "Convivencia Con Dios",
+  "proveedor_contratado_personalmente": "Joaquín Balthasar De Weert",
+  "relacion_juan_tomas_soto": "Contratado por Joaquin Balthasar De Weert con conocimiento del cliente",
+  "propiedad_codigo_informada": "Del cliente; instrumento y condiciones por completar",
+  "garantia_propuesta_dias_corridos": 30,
+  "garantia_aceptacion_cliente": "PENDIENTE",
+  "titular_y_pagador_informado": {
+    "Vercel": "Convivencia Con Dios, informado por el proveedor; panel no inspeccionado",
+    "Supabase": "Convivencia Con Dios, informado por el proveedor; panel no inspeccionado",
+    "Resend": "Convivencia Con Dios, informado por el proveedor; panel no inspeccionado",
+    "dominio": "Convivencia Con Dios, informado por el proveedor; panel no inspeccionado",
+    "GitHub": "Convivencia Con Dios; acceso Google noreply@convivenciacondios.org, informado por el proveedor"
+  },
+  "aprobadora_funcional": "Constanza Cardenas Mancini",
+  "registro_aprobaciones": [
+    "reuniones",
+    "Trello"
+  ],
+  "importaciones_pendientes": [
+    "#52",
+    "#108",
+    "#48"
+  ],
+  "tratamiento_importaciones_al_cierre": "Pendientes de Etapa 1 sujetos a correcciones de emails; se completarán en cuanto se reciban, antes o después del 31 de octubre; sin fecha fija informada",
+  "datos_a_importar": [
+    "emails",
+    "números de teléfono",
+    "DNI"
+  ],
+  "archivos_importacion": "Entregados salvo correcciones de emails pendientes del cliente",
+  "url_produccion_informada": "https://plataforma.convivenciacondios.org/",
+  "repositorio_informado": "https://github.com/convivencia-cd/ccd-frontend",
+  "representante_posible_cliente": "Pablo Medina, integrante del EQT (Equipo Timón), es contacto de coordinación; firmante no confirmado",
+  "firmas": "No previstas actualmente",
+  "respaldos_automaticos_informados": "No existen según el proveedor; Supabase Free",
+  "respaldo_manual": "Existencia por confirmar; no generado ni verificado en esta revisión",
+  "contacto_conformidad": "Pablo Medina, integrante del EQT (Equipo Timón)",
+  "version_documental": "1.0",
+  "responsable_copia_cierre": "Joaquín Balthasar De Weert",
+  "copia_cierre_estado": "Preparación y verificación pendientes",
+  "canales_garantia": [
+    "Trello",
+    "WhatsApp grupal"
+  ],
+  "garantia_importaciones_posteriores": "Propuesta de 30 días corridos desde entrega y aceptación, solo para esa parte; pendiente de aceptación del cliente",
+  "documentos_y_reportes_generales": "Fuera de Etapa 1 según recuerda el proveedor; exclusión pendiente de confirmar con el cliente",
+  "rama": "main",
+  "remote": "ccd",
+  "remote_url": "https://github.com/convivencia-cd/ccd-frontend.git",
+  "upstream": "ccd/main",
+  "git_pull": "Completado con fast-forward desde 81f0663 hasta 52ee771",
+  "pruebas_locales": {
+    "total": 48,
+    "aprobadas": 41,
+    "fallidas": 7,
+    "causa_fallos": "Import no simulado @/lib/eventos/avisos-equipo en tests/evento-estado.test.cjs"
+  },
+  "funcion_pablo_medina": "Integrante del EQT (Equipo Timón)",
+  "cuenta_google_provista_cliente": "noreply@convivenciacondios.org",
+  "servicios_con_acceso_google_cliente": [
+    "Supabase",
+    "GitHub",
+    "Resend"
+  ],
+  "costos_servicios_google_cliente": "A cargo de Convivencia Con Dios si decide contratar planes pagos o consumos facturables; gestión desde las cuentas u organizaciones del cliente",
+  "medio_conformidad_previsto": "Confirmación expresa de Pablo Medina por WhatsApp sobre la entrega, pendientes y condiciones de garantía",
+  "estado_documentacion": "Documentación de entrega para el cliente; pendientes operativos y aceptación según acta"
+}

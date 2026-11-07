@@ -19,35 +19,37 @@
 --     sigue siendo el viejo (no pisa una edición manual).
 --   * Re-ejecutable: una segunda corrida no cambia nada.
 --
--- Filas con datos: 1935 | con email: 1002 | con celular: 1081 | con documento: 1043
+-- Filas con datos: 1935 | con email: 982 | con celular: 1075 | con documento: 1041
 -- Filas CCD-01941+ del CSV están vacías (#N/A) y se ignoran.
 --
--- Valores repetidos en el CSV (email/documento son UNIQUE, se asignan a una sola persona):
---   email wendyricci@hotmail.com: CCD-00147 Wendy Ricciardi, CCD-01234 Rafael Ricciardi → CCD-00147 (coincide con el nombre)
---   email crisvecha@gmail.com: CCD-00211 Cristina Veron, CCD-01803 Alicia Godoy → CCD-00211 (coincide con el nombre)
---   email pegorarodante3@gmail.com: CCD-00278 Dante Pegoraro, CCD-01502 Cristina Gaitan → CCD-00278 (coincide con el nombre)
---   email patrisol70gsm@gmail.com: CCD-00289 Patricia Gutierrez, CCD-00827 Patricia Gutierrez → CCD-00289 (misma persona duplicada → queda en el primer código)
---   email betinaneila@gmail.com: CCD-00406 Aurelia Dittlar, CCD-00408 Betina Daniela Neila → CCD-00408 (coincide con el nombre)
---   email carlosmartinis02@gmail.com: CCD-00446 Carlos Antonio Martinis, CCD-00460 Ana Karina Cambiaso → CCD-00446 (coincide con el nombre)
---   email kinejuarez20@gmail.com: CCD-00451 Myriam Teresita Juarez, CCD-00466 Ramon Odilio Ruiz Diaz → CCD-00451 (coincide con el nombre)
---   email mariateremedera@gmail.com: CCD-00479 Maria Teresa Medera, CCD-00489 Juan Domingo Bravo → CCD-00479 (coincide con el nombre)
---   email meleraguilar@gmail.com: CCD-00480 Josefina Hilda Rodriguez, CCD-00486 Gregorio Carlos Aguilar → CCD-00486 (coincide con el nombre)
---   email julialache2020@gmail.com: CCD-00569 Julia Lacheski, CCD-00570 Enrique Schmilewski → CCD-00569 (coincide con el nombre)
---   email gabrielarossi214@gmail.com: CCD-00624 Maria Gabriela Rossi, CCD-00627 Elsa Irene Birocco → CCD-00624 (coincide con el nombre)
---   email paularoma1124@gmail.com: CCD-00658 Paula Roma, CCD-00677 Teresa Martini → CCD-00658 (coincide con el nombre)
---   email palandridavid93@gmail.com: CCD-00757 David Jose Palandri, CCD-01018 David Jose Palandri → CCD-00757 (misma persona duplicada → queda en el primer código)
---   email ortizmirta078@gmail.com: CCD-00923 Angel Oscar Argañaraz, CCD-00938 Mirta Ortiz → CCD-00938 (coincide con el nombre)
---   email laladobler@yahoo.com.ar: CCD-00992 Maria Esmeralda Pinharanda Gomez, CCD-00993 Juan Luis Dobler → CCD-00993 (coincide con el nombre)
---   email monicagfl@hotmail.com: CCD-01024 Glagys Acevedo, CCD-01056 Monica Flores → CCD-01056 (coincide con el nombre)
---   email reattisonia@gmail.com: CCD-01144 Sonia Reatti, CCD-01160 Mararita Suñe → CCD-01144 (coincide con el nombre)
---   email mirthaadrianag@gmail.com: CCD-01197 Adriana Gonzales, CCD-01218 Adelina Molo → CCD-01197 (coincide con el nombre)
---   email marcarlopez13@gmail.com: CCD-01276 Maria del Carmen Lopez, CCD-01308 Nilda Romero → CCD-01276 (coincide con el nombre)
---   email fraternidadresistencia@gmail.com: CCD-01498 Rosa Cantero, CCD-01499 Elida Kiverling → ninguno (no se puede saber de quién es → no se carga)
---   email lucreciaoli1980@gmail.com: CCD-01607 Lucrecia Olivera, CCD-01613 Cesar Niell → CCD-01607 (coincide con el nombre)
---   email chichi_ninga@yahoo.es: CCD-01837 Hortensia Victoria Menacho Barros, CCD-01841 Bertha Viruez → ninguno (no se puede saber de quién es → no se carga)
---   doc   21530387: CCD-00289 Patricia Gutierrez, CCD-00827 Patricia Gutierrez → CCD-00289 (misma persona duplicada → queda en el primer código)
---   doc   37288276: CCD-00757 David Jose Palandri, CCD-01018 David Jose Palandri → CCD-00757 (misma persona duplicada → queda en el primer código)
---   doc   37749019: CCD-01614 Irma Brochini, CCD-01620 Yolanda Acosta → ninguno (personas distintas → no se carga)
+-- Casos en duda: se dejan AFUERA por ahora (pedido de CCD, pendiente de que los revisen):
+--   Personas duplicadas con dos códigos -> no se les carga email, celular ni documento:
+--     Patricia Gutierrez: CCD-00289 y CCD-00827
+--     David Jose Palandri: CCD-00757 y CCD-01018
+--     Patricia Rodriguez: CCD-01162 y CCD-01652
+--   Emails que figuran en más de una persona -> no se carga el email a ninguna
+--   (el resto de sus datos sí):
+--     wendyricci@hotmail.com: CCD-00147 Wendy Ricciardi, CCD-01234 Rafael Ricciardi
+--     crisvecha@gmail.com: CCD-00211 Cristina Veron, CCD-01803 Alicia Godoy
+--     pegorarodante3@gmail.com: CCD-00278 Dante Pegoraro, CCD-01502 Cristina Gaitan
+--     betinaneila@gmail.com: CCD-00406 Aurelia Dittlar, CCD-00408 Betina Daniela Neila
+--     carlosmartinis02@gmail.com: CCD-00446 Carlos Antonio Martinis, CCD-00460 Ana Karina Cambiaso
+--     kinejuarez20@gmail.com: CCD-00451 Myriam Teresita Juarez, CCD-00466 Ramon Odilio Ruiz Diaz
+--     mariateremedera@gmail.com: CCD-00479 Maria Teresa Medera, CCD-00489 Juan Domingo Bravo
+--     meleraguilar@gmail.com: CCD-00480 Josefina Hilda Rodriguez, CCD-00486 Gregorio Carlos Aguilar
+--     julialache2020@gmail.com: CCD-00569 Julia Lacheski, CCD-00570 Enrique Schmilewski
+--     gabrielarossi214@gmail.com: CCD-00624 Maria Gabriela Rossi, CCD-00627 Elsa Irene Birocco
+--     paularoma1124@gmail.com: CCD-00658 Paula Roma, CCD-00677 Teresa Martini
+--     ortizmirta078@gmail.com: CCD-00923 Angel Oscar Argañaraz, CCD-00938 Mirta Ortiz
+--     laladobler@yahoo.com.ar: CCD-00992 Maria Esmeralda Pinharanda Gomez, CCD-00993 Juan Luis Dobler
+--     monicagfl@hotmail.com: CCD-01024 Glagys Acevedo, CCD-01056 Monica Flores
+--     reattisonia@gmail.com: CCD-01144 Sonia Reatti, CCD-01160 Mararita Suñe
+--     mirthaadrianag@gmail.com: CCD-01197 Adriana Gonzales, CCD-01218 Adelina Molo
+--     marcarlopez13@gmail.com: CCD-01276 Maria del Carmen Lopez, CCD-01308 Nilda Romero
+--     fraternidadresistencia@gmail.com: CCD-01498 Rosa Cantero, CCD-01499 Elida Kiverling
+--     lucreciaoli1980@gmail.com: CCD-01607 Lucrecia Olivera, CCD-01613 Cesar Niell
+--     chichi_ninga@yahoo.es: CCD-01837 Hortensia Victoria Menacho Barros, CCD-01841 Bertha Viruez
+--   Documento 37749019 (CCD-01614 Irma Brochini y CCD-01620 Yolanda Acosta) -> no se carga.
 --
 -- Documentos descartados:
 --   CCD-00110: "1165082167" parece un teléfono, no un documento
@@ -217,7 +219,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00144', 'Gladys Monica', 'Sillero', 'gladyssillero', 'familiar', 'CONF-BSAS', 'FRAT-SC', 'claudiamalek23b@gmail.com', '1158054591', 'dni', '13007338'),
   ('CCD-00145', 'Juan Jose', 'Cutrera', 'juanjosecutrera', 'familiar', 'CONF-BSAS', 'FRAT-SC', 'juanjcutrera@gmail.com', '5491130072532', 'dni', '10121963'),
   ('CCD-00146', 'Maria Laura', 'Dominguez', 'marialauradominguez', 'servidor', 'CONF-BSAS', 'FRAT-SC', 'mlaura.dominguez68@gmail.com', '1136170321', 'dni', '20593225'),
-  ('CCD-00147', 'Wendy', 'Ricciardi', 'wendyricciardi', 'servidor', 'CONF-BSAS', 'FRAT-SC', 'wendyricci@hotmail.com', '1126019727', 'dni', '39373503'),
+  ('CCD-00147', 'Wendy', 'Ricciardi', 'wendyricciardi', 'servidor', 'CONF-BSAS', 'FRAT-SC', NULL, '1126019727', 'dni', '39373503'),
   ('CCD-00148', 'Sandra', 'Herrera', 'sandraherrera', 'servidor', 'CONF-BSAS', 'FRAT-SC', 'sandraherreradedios@gmail.com', '5491125287804', 'dni', '27104174'),
   ('CCD-00149', 'Monica Beatriz', 'Apella', 'monicaapella', 'servidor', 'FRAT-DEQT', 'FRAT-NSESP', 'moappella@gmail.com', '5492317465747', 'dni', '14018800'),
   ('CCD-00150', 'Fermin', 'Aristi', 'ferminaristi', 'servidor', 'FRAT-DEQT', 'FRAT-NSESP', 'ferminaristi@gmail.com', '5492343412059', 'dni', '24423690'),
@@ -281,7 +283,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00208', 'Mario', 'Borelli', 'marioborelli', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', 'cdcmario@hotmail.com', '5493624000582', 'dni', '23408637'),
   ('CCD-00209', 'Maria Teresa', 'Veron', 'mariateresaveron', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', 'matevecha@gmail.com', '5493624720392', 'dni', '20657201'),
   ('CCD-00210', 'Alicia', 'Veron', 'aliciaveron', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', 'alivecha@yahoo.com.ar', '3624720361', 'dni', '16700738'),
-  ('CCD-00211', 'Cristina', 'Veron', 'cristinaveron', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', 'crisvecha@gmail.com', '5493624008608', 'dni', '11899115'),
+  ('CCD-00211', 'Cristina', 'Veron', 'cristinaveron', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', NULL, '5493624008608', 'dni', '11899115'),
   ('CCD-00212', 'Florencia', 'Villalba', 'florenciavillalba', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', NULL, NULL, NULL, NULL),
   ('CCD-00213', 'Jose Maria', 'Zaracho', 'josezaracho', 'servidor', 'CONF-CSFN', 'FRAT-BQRAS', NULL, NULL, NULL, NULL),
   ('CCD-00214', 'Patricia', 'Belynsky', 'patriciabelynsky', 'familiar', 'CONF-CSFN', 'FRAT-BQRAS', NULL, '5493625609888', 'dni', '25792553'),
@@ -348,7 +350,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00275', 'Adriana', 'Fernandez', 'adrianafernandez', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'adrifernandez.1801@gmail.com', '5493624365136', 'dni', '31909721'),
   ('CCD-00276', 'Silvia', 'Garcia', 'silviagarcia', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'silvita.de.fernanandez@gmail.com549', '5493624695948', 'dni', '20172272'),
   ('CCD-00277', 'Romina', 'Lavia', 'rominalavia', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'romilavia@hotmail.com', '5493624898231', 'dni', '29720837'),
-  ('CCD-00278', 'Dante', 'Pegoraro', 'dantepegoraro', 'familiar', 'CONF-CSFN', 'FRAT-RCIA', 'pegorarodante3@gmail.com', '543624720413', 'dni', '12620249'),
+  ('CCD-00278', 'Dante', 'Pegoraro', 'dantepegoraro', 'familiar', 'CONF-CSFN', 'FRAT-RCIA', NULL, '543624720413', 'dni', '12620249'),
   ('CCD-00279', 'Adriana', 'Pinto', 'adrianapinto', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', NULL, NULL, NULL, NULL),
   ('CCD-00280', 'Pablo', 'Saracho Lobos', 'pablosaracholobos', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', NULL, NULL, NULL, NULL),
   ('CCD-00281', 'Elvira', 'Scala', 'elvirascala', 'familiar', 'CONF-CSFN', 'FRAT-RCIA', NULL, NULL, NULL, NULL),
@@ -359,7 +361,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00286', 'Maria Elena', 'Muñoz', 'mariaelenamuñoz', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'nazarethmariaelena@gmail.com', '3624294102', NULL, NULL),
   ('CCD-00287', 'Melisa', 'Aleksich', 'melisaaleksich', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'aleksichmelisa@gmail.com', '3624738632', 'dni', '35466539'),
   ('CCD-00288', 'Jorge', 'Caballero', 'jorgecaballero', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'caballero.alarmasx28@gmail.com', '5493725463687', 'dni', '13309696'),
-  ('CCD-00289', 'Patricia', 'Gutierrez', 'patriciagutierrez', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', 'patrisol70gsm@gmail.com', '3725485136', 'dni', '21530387'),
+  ('CCD-00289', 'Patricia', 'Gutierrez', 'patriciagutierrez', 'servidor', 'CONF-CSFN', 'FRAT-RCIA', NULL, NULL, NULL, NULL),
   ('CCD-00290', 'Gabriela del Milagro', 'Bejarano', 'gabrielabejarano', 'servidor', 'CONF-NOA', 'FRAT-JUJ', NULL, NULL, NULL, NULL),
   ('CCD-00291', 'Olga', 'Avila', 'olgaavila', 'servidor', 'CONF-NOA', 'FRAT-JUJ', NULL, NULL, NULL, NULL),
   ('CCD-00292', 'Sara Lia', 'Velardes Caceres', 'saravelardescaceres', 'servidor', 'CONF-NOA', 'FRAT-JUJ', NULL, NULL, NULL, NULL),
@@ -478,7 +480,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00405', 'Graciela Isaura', 'Abello', 'gracielaabello', 'familiar', 'CONF-MAUX', 'FRAT-LVIC', 'isaurabello1358@gmail.com', '542984340202', 'cedula', '14377442'),
   ('CCD-00406', 'Aurelia', 'Dittlar', 'aureliadittlar', 'servidor', 'CONF-MAUX', 'FRAT-LVIC', NULL, '542920648747', 'dni', '4254493'),
   ('CCD-00407', 'Angela', 'Libera', 'angelalibera', 'servidor', 'CONF-MAUX', 'FRAT-LVIC', 'angelalivera1959@gmail.com', '2982404024', 'dni', '14598868'),
-  ('CCD-00408', 'Betina Daniela', 'Neila', 'betinaneila', 'familiar', 'CONF-MAUX', 'FRAT-LVIC', 'betinaneila@gmail.com', '542931410919', 'dni', '18363828'),
+  ('CCD-00408', 'Betina Daniela', 'Neila', 'betinaneila', 'familiar', 'CONF-MAUX', 'FRAT-LVIC', NULL, '542931410919', 'dni', '18363828'),
   ('CCD-00409', 'Monica Beatriz', 'Orellano', 'monicaorellano', 'familiar', 'CONF-MAUX', 'FRAT-LVIC', 'moniorell63@gmail.com', '542984515856', 'dni', '18218408'),
   ('CCD-00410', 'Adriana Haydee', 'Orellano', 'adrianaorellano', 'familiar', 'CONF-MAUX', 'FRAT-LVIC', 'adriana.orell@hotmail.com', '5492984340222', 'dni', '13275470'),
   ('CCD-00411', 'Juana Irma', 'Quinteros', 'juanaquinteros', 'servidor', 'CONF-MAUX', 'FRAT-LVIC', 'juanairmaq@gmail.com', '532984399519', 'dni', '6299834'),
@@ -516,12 +518,12 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00443', 'Diego', 'Roma', 'diegoroma', 'servidor', 'CONF-MAUX', 'FRAT-JPII', 'diegoroma305@gmail.com', '5493465650971', 'dni', '23367394'),
   ('CCD-00444', 'Camila Adriana', 'Duarte', 'camiladuarte', 'servidor', 'CONF-MIS', 'FRAT-APO', 'camiadrianaduarte@gmail.com', '543764174692', 'dni', '34881586'),
   ('CCD-00445', 'Yde Mabel', 'Dos Santos', 'ydedossantos', 'familiar', 'CONF-MIS', 'FRAT-APO', NULL, NULL, NULL, NULL),
-  ('CCD-00446', 'Carlos Antonio', 'Martinis', 'carlosmartinis', 'servidor', 'CONF-MIS', 'FRAT-APO', 'carlosmartinis02@gmail.com', '543758458989', 'dni', '20676080'),
+  ('CCD-00446', 'Carlos Antonio', 'Martinis', 'carlosmartinis', 'servidor', 'CONF-MIS', 'FRAT-APO', NULL, '543758458989', 'dni', '20676080'),
   ('CCD-00447', 'Mirtha Zulema', 'Zuk', 'mirthazuk', 'servidor', 'CONF-MIS', 'FRAT-APO', 'zulemazuly68@gmail.com', '543758462378', 'dni', '20117803'),
   ('CCD-00448', 'Luis Felix', 'Alvarez', 'luisalvarez', 'familiar', 'CONF-MIS', 'FRAT-APO', 'luisfelixalvarez@gmail.com', '523758400905', 'dni', '16676804'),
   ('CCD-00449', 'Maria Angela', 'Cantero', 'mariaangelacantero', 'servidor', 'CONF-MIS', 'FRAT-APO', 'angela.maria.cantero16@gmail.com', '5493758503765', 'dni', '16295385'),
   ('CCD-00450', 'Norma Cristina', 'Avalos', 'normaavalos', 'servidor', 'CONF-MIS', 'FRAT-APO', 'normacrisavalos22@gmail.com', '543758455788', 'dni', '26071812'),
-  ('CCD-00451', 'Myriam Teresita', 'Juarez', 'myriamjuarez', 'servidor', 'CONF-MIS', 'FRAT-APO', 'kinejuarez20@gmail.com', '543765051635', 'dni', '18245858'),
+  ('CCD-00451', 'Myriam Teresita', 'Juarez', 'myriamjuarez', 'servidor', 'CONF-MIS', 'FRAT-APO', NULL, '543765051635', 'dni', '18245858'),
   ('CCD-00452', 'Patricia Marcela', 'Rottoli', 'patriciarottoli', 'familiar', 'CONF-MIS', 'FRAT-APO', 'profepatricia71@gmail.com', '543758408586', 'dni', '22085385'),
   ('CCD-00453', 'Maria Emilia', 'Sniechowski', 'mariaemiliasniechowski', 'servidor', 'CONF-MIS', 'FRAT-APO', 'molinasnie@yahoo.com.ar', '5493758577534', 'dni', '22735439'),
   ('CCD-00454', 'Griselda Soledad', 'Biale', 'griseldabiale', 'servidor', 'CONF-MIS', 'FRAT-APO', NULL, NULL, NULL, NULL),
@@ -549,14 +551,14 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00476', 'Amalia Nelli', 'Pereyra', 'amaliapereyra', 'orante', 'CONF-MIS', 'FRAT-APO', 'amaliapereyra0133@gmail.com', '3756410398', 'dni', '16851966'),
   ('CCD-00477', 'Candida', 'Pereyra', 'candidapereyra', 'orante', 'CONF-MIS', 'FRAT-APO', NULL, NULL, NULL, NULL),
   ('CCD-00478', 'Mariana Mariela', 'Alvares', 'marianaalvares', 'orante', 'CONF-MIS', 'FRAT-APO', NULL, NULL, NULL, NULL),
-  ('CCD-00479', 'Maria Teresa', 'Medera', 'mariateresamedera', 'familiar', 'CONF-MIS', 'FRAT-IGU', 'mariateremedera@gmail.com', '3751662300', 'dni', '12847705'),
+  ('CCD-00479', 'Maria Teresa', 'Medera', 'mariateresamedera', 'familiar', 'CONF-MIS', 'FRAT-IGU', NULL, '3751662300', 'dni', '12847705'),
   ('CCD-00480', 'Josefina Hilda', 'Rodriguez', 'josefinarodriguez', 'familiar', 'CONF-MIS', 'FRAT-IGU', NULL, '5493757548692', 'dni', '5908181'),
   ('CCD-00481', 'Estela Marina', 'Seewald', 'estelaseewald', 'familiar', 'CONF-MIS', 'FRAT-IGU', 'estelaseewald@gmail.com', '5493751520002', 'dni', '14521435'),
   ('CCD-00482', 'Erica', 'Mikkelsen', 'ericamikkelsen', 'servidor', 'CONF-MIS', 'FRAT-IGU', 'erimikkelsen0731@gmail.com', '3751400050', 'dni', '20118368'),
   ('CCD-00483', 'Natalia Cristina', 'Ovando', 'nataliaovando', 'servidor', 'CONF-MIS', 'FRAT-IGU', 'lic.nataliaovando@gmail.com', '543751418819', 'dni', '29357419'),
   ('CCD-00484', 'Patricia Marcela', 'Romero', 'patriciamarcelaromero', 'servidor', 'CONF-MIS', 'FRAT-IGU', 'marcelaromero05@gmail.com', '3764624906', 'dni', '35696234'),
   ('CCD-00485', 'Gladys Maria Esther', 'Valsechi', 'gladysvalsechi', 'servidor', 'CONF-MIS', 'FRAT-IGU', 'valsechigladysmariaesther@gmail.com', '3751559188', 'dni', '11697984'),
-  ('CCD-00486', 'Gregorio Carlos', 'Aguilar', 'gregorioaguilar', 'orante', 'CONF-MIS', 'FRAT-IGU', 'meleraguilar@gmail.com', '5493757548692', 'dni', '7546003'),
+  ('CCD-00486', 'Gregorio Carlos', 'Aguilar', 'gregorioaguilar', 'orante', 'CONF-MIS', 'FRAT-IGU', NULL, '5493757548692', 'dni', '7546003'),
   ('CCD-00487', 'Basilio Elisaul', 'Alvarez', 'basilioalvarez', 'orante', 'CONF-MIS', 'FRAT-IGU', 'basilioelivarez@gmail.com', '5493757612448', 'dni', '93501236'),
   ('CCD-00488', 'Maria Lidia', 'Arevalo', 'marialidiaarevalo', 'orante', 'CONF-MIS', 'FRAT-IGU', NULL, NULL, NULL, NULL),
   ('CCD-00489', 'Juan Domingo', 'Bravo', 'juandomingobravo', 'orante', 'CONF-MIS', 'FRAT-IGU', NULL, '3751662300', 'dni', '5540861'),
@@ -639,7 +641,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00566', 'Margarita Ester', 'Faria', 'margaritafaria', 'familiar', 'CONF-MIS', 'FRAT-SJOS', 'maguifa7@gmail.com', '3764337000', 'dni', '10990869'),
   ('CCD-00567', 'Marisa Susana', 'Rocha', 'marisarocha', 'familiar', 'CONF-MIS', 'FRAT-SJOS', 'marisasusanarocha16@gmail.com', '3764823588', 'dni', '17609081'),
   ('CCD-00568', 'Ricardo', 'Spachuk', 'ricardospachuk', 'familiar', 'CONF-MIS', 'FRAT-SJOS', 'ricardospachuk26@gmail.com', '3764823587', 'dni', '13658223'),
-  ('CCD-00569', 'Julia', 'Lacheski', 'julialacheski', 'servidor', 'CONF-MIS', 'FRAT-SJOS', 'julialache2020@gmail.com', '543764574245', 'dni', '10675120'),
+  ('CCD-00569', 'Julia', 'Lacheski', 'julialacheski', 'servidor', 'CONF-MIS', 'FRAT-SJOS', NULL, '543764574245', 'dni', '10675120'),
   ('CCD-00570', 'Enrique', 'Schmilewski', 'enriqueschmilewski', 'servidor', 'CONF-MIS', 'FRAT-SJOS', NULL, '543764573636', 'dni', '8102483'),
   ('CCD-00571', 'Maria Fernanda', 'Liota', 'mariafernandaliota', 'servidor', 'CONF-MIS', 'FRAT-SJOS', 'm.fernanda.liotta@gmail.com', '543764289880', 'dni', '22371523'),
   ('CCD-00572', 'Susana', 'Gaetano', 'susanagaetano', 'servidor', 'CONF-MIS', 'FRAT-SJOS', 'susanamgaetano@gmail.com', '543764538806', 'dni', '4424093'),
@@ -694,7 +696,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00621', 'Gladys Beatriz', 'Berti', 'gladysberti', 'familiar', 'CONF-NSDR', 'FRAT-MDP', 'gladysbeatrizb4@gmail.com', '5493462576756', 'dni', '5434418'),
   ('CCD-00622', 'Gustavo Adrian', 'Scamurra', 'gustavoscamurra', 'familiar', 'CONF-NSDR', 'FRAT-MDP', 'devenadogustavo@gmail.com', '5493462388000', 'dni', '21419262'),
   ('CCD-00623', 'Daniel Alejandro', 'Flucha', 'danielflucha', 'servidor', 'CONF-NSDR', 'FRAT-MDP', 'danyf0420@hotmail.com', '5493462594458', 'dni', '22636335'),
-  ('CCD-00624', 'Maria Gabriela', 'Rossi', 'mariagabrielarossi', 'servidor', 'CONF-NSDR', 'FRAT-MDP', 'gabrielarossi214@gmail.com', '3462594436', 'dni', '23356278'),
+  ('CCD-00624', 'Maria Gabriela', 'Rossi', 'mariagabrielarossi', 'servidor', 'CONF-NSDR', 'FRAT-MDP', NULL, '3462594436', 'dni', '23356278'),
   ('CCD-00625', 'Alcira Catalina', 'Zani', 'alcirazani', 'servidor', 'CONF-NSDR', 'FRAT-MDP', NULL, NULL, NULL, NULL),
   ('CCD-00626', 'Ana Maria', 'Teta', 'anateta', 'servidor', 'CONF-NSDR', 'FRAT-MDP', NULL, NULL, NULL, NULL),
   ('CCD-00627', 'Elsa Irene', 'Birocco', 'elsabirocco', 'servidor', 'CONF-NSDR', 'FRAT-MDP', NULL, '3462514411', 'dni', '50742114'),
@@ -728,7 +730,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00655', 'Jose Maria', 'Pedretti', 'josepedretti', 'servidor', 'CONF-NSDR', 'FRAT-NSC', 'semilla.pedretti@yahoo.com.ar', '93416486545', 'dni', '17752590'),
   ('CCD-00656', 'Laura Mabel', 'Tosello', 'lauratosello', 'servidor', 'CONF-NSDR', 'FRAT-NSC', 'lalutosello@hotmail.com', '5493464440201', 'dni', '29216384'),
   ('CCD-00657', 'Carlos Marcelo', 'Valdez', 'carlosvaldez', 'servidor', 'CONF-NSDR', 'FRAT-NSC', NULL, NULL, NULL, NULL),
-  ('CCD-00658', 'Paula', 'Roma', 'paularoma', 'servidor', 'CONF-NSDR', 'FRAT-NSC', 'paularoma1124@gmail.com', '5493465445590', 'dni', '27947263'),
+  ('CCD-00658', 'Paula', 'Roma', 'paularoma', 'servidor', 'CONF-NSDR', 'FRAT-NSC', NULL, '5493465445590', 'dni', '27947263'),
   ('CCD-00659', 'Roberto', 'Argañaraz', 'robertoargañaraz', 'servidor', 'CONF-NSDR', 'FRAT-NSC', 'argaraaz.roberto@gmail.com', '5493415552168', 'dni', '25604099'),
   ('CCD-00660', 'Roxana Maria', 'Cassan', 'roxanacassan', 'servidor', 'CONF-NSDR', 'FRAT-NSC', 'cassanesther@hotmail.com', '3416658762', 'dni', '11605892'),
   ('CCD-00661', 'Ruben', 'Perello', 'rubenperello', 'servidor', 'CONF-NSDR', 'FRAT-NSC', 'ruben.perello@hotmail.com', '5493471528904', 'dni', '16388526'),
@@ -827,7 +829,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00754', 'Yolanda', 'Muñoz', 'yolandamuñoz', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', NULL, NULL, NULL, NULL),
   ('CCD-00755', 'Natalia', 'Drovetta', 'nataliadrovetta', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', NULL, NULL, NULL, NULL),
   ('CCD-00756', 'Martin', 'Cejas', 'martincejas', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', NULL, NULL, NULL, NULL),
-  ('CCD-00757', 'David Jose', 'Palandri', 'davidjosepalandri', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', 'palandridavid93@gmail.com', '5493416250129', 'dni', '37288276'),
+  ('CCD-00757', 'David Jose', 'Palandri', 'davidjosepalandri', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', NULL, NULL, NULL, NULL),
   ('CCD-00758', 'Josefina', 'Carne', 'josefinacarne', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', 'josecarne.cmr@gmail.com', '5493415312634', 'dni', '33791433'),
   ('CCD-00759', 'Jesica', 'Fonseca', 'jesicafonseca', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', 'jesica-fonseca@hotmail.com', '5493413542857', 'dni', '32895637'),
   ('CCD-00760', 'David', 'Roberto', 'davidroberto', 'colaborador', 'CONF-NSDR', 'FRAT-ROS', NULL, NULL, NULL, NULL),
@@ -897,7 +899,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00824', 'Ricardo Horacio', 'Esposito', 'ricardoesposito', 'familiar', 'CONF-SDD', 'FRAT-CTES', 'rihoes60@gmail.com', '543794676519', 'dni', '13904996'),
   ('CCD-00825', 'Patricia Eleonor', 'Flores', 'patriciaflores', 'familiar', 'CONF-SDD', 'FRAT-CTES', 'patryflores1962@gmail.com', '153794227159', 'dni', '14732305'),
   ('CCD-00826', 'Fernando', 'Gomez', 'fernandogomez', 'familiar', 'CONF-SDD', 'FRAT-CTES', 'fernandogomezar@yahoo.com.ar', '5493794010562', 'dni', '23495219'),
-  ('CCD-00827', 'Patricia', 'Gutierrez', 'patriciagutierrezdeolmedo', 'familiar', 'CONF-SDD', 'FRAT-CTES', NULL, '3725485136', NULL, NULL),
+  ('CCD-00827', 'Patricia', 'Gutierrez', 'patriciagutierrezdeolmedo', 'familiar', 'CONF-SDD', 'FRAT-CTES', NULL, NULL, NULL, NULL),
   ('CCD-00828', 'Ramon Fortunato', 'Molina', 'ramonmolina', 'familiar', 'CONF-SDD', 'FRAT-CTES', 'ramonfortunato1973@gmail.com', '543794758407', 'dni', '23077948'),
   ('CCD-00829', 'Julio Cesar', 'Olmedo', 'julioolmedo', 'familiar', 'CONF-SDD', 'FRAT-CTES', 'jc_olmedo@yahoo.com.ar', '3794540868', 'dni', '12868015'),
   ('CCD-00830', 'Adriana Marisel', 'Reyes', 'adrianareyes', 'familiar', 'CONF-SDD', 'FRAT-CTES', 'reyesmarisel@gmail.com', '5493794348954', 'dni', '22748681'),
@@ -1008,7 +1010,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00935', 'Haydee Felicia', 'Malich', 'haydeemalich', 'colaborador', 'CONF-SDD', 'FRAT-FOR', NULL, NULL, NULL, NULL),
   ('CCD-00936', 'Silvana Ivone', 'Mieres', 'silvanamieres', 'colaborador', 'CONF-SDD', 'FRAT-FOR', NULL, NULL, NULL, NULL),
   ('CCD-00937', 'Ana Maria', 'Olmedo', 'anaolmedo', 'colaborador', 'CONF-SDD', 'FRAT-FOR', NULL, NULL, NULL, NULL),
-  ('CCD-00938', 'Mirta', 'Ortiz', 'mirtaortiz', 'colaborador', 'CONF-SDD', 'FRAT-FOR', 'ortizmirta078@gmail.com', '543704711780', 'dni', '13867736'),
+  ('CCD-00938', 'Mirta', 'Ortiz', 'mirtaortiz', 'colaborador', 'CONF-SDD', 'FRAT-FOR', NULL, '543704711780', 'dni', '13867736'),
   ('CCD-00939', 'Miriam Lucia', 'Osorio', 'miriamosorio', 'colaborador', 'CONF-SDD', 'FRAT-FOR', NULL, '5493718466272', 'otro', '92142337'),
   ('CCD-00940', 'Ana Margarita', 'Peña', 'anapeña', 'colaborador', 'CONF-SDD', 'FRAT-FOR', NULL, NULL, NULL, NULL),
   ('CCD-00941', 'Juan Roberto', 'Silva', 'juanrobertosilva', 'colaborador', 'CONF-SDD', 'FRAT-FOR', 'silvajuanroberto@gmail.com', '5493704398644', 'dni', '14385196'),
@@ -1063,7 +1065,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-00990', 'Nadia', 'Rivarola', 'nadiarivarola', 'colaborador', 'CONF-PDA', 'FRAT-FDD', NULL, NULL, NULL, NULL),
   ('CCD-00991', 'Julio Cesar', 'Perez', 'julioperez', 'colaborador', 'CONF-PDA', 'FRAT-FDD', NULL, NULL, NULL, NULL),
   ('CCD-00992', 'Maria Esmeralda', 'Pinharanda Gomez', 'mariaesmeraldapinharandagomez', 'familiar', 'CONF-PDA', 'FRAT-PAR', NULL, '5493434655151', 'dni', '5200233'),
-  ('CCD-00993', 'Juan Luis', 'Dobler', 'juanluisdobler', 'familiar', 'CONF-PDA', 'FRAT-PAR', 'laladobler@yahoo.com.ar', '5493434470446', 'dni', '5944766'),
+  ('CCD-00993', 'Juan Luis', 'Dobler', 'juanluisdobler', 'familiar', 'CONF-PDA', 'FRAT-PAR', NULL, '5493434470446', 'dni', '5944766'),
   ('CCD-00994', 'Miguel Angel', 'Velazquez', 'miguelvelazquez', 'familiar', 'CONF-PDA', 'FRAT-PAR', 'migmar2008@gmail.com', '5493436223920', 'dni', '20280739'),
   ('CCD-00995', 'Olga', 'Caceres', 'olgacaceres', 'servidor', 'CONF-PDA', 'FRAT-PAR', 'olgacacerescm1@gmail.com', '543437510627', 'dni', '13246388'),
   ('CCD-00996', 'Francisco Agustin', 'Carlomagno', 'franciscocarlomagno', 'servidor', 'CONF-PDA', 'FRAT-PAR', 'franciscocarlomagno5@gmail.com', '3437514740', 'dni', '43936787'),
@@ -1088,7 +1090,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01015', 'Cristela Silvia', 'Mareschal', 'cristelamareschal', 'colaborador', 'CONF-PDA', 'FRAT-PAR', 'cristela_m@hotmail.com', '3435012929', 'dni', '29620688'),
   ('CCD-01016', 'Raul Armando', 'Metzler', 'raulmetzler', 'colaborador', 'CONF-PDA', 'FRAT-PAR', 'raularmet@yahoo.com.ar', '5395048412', 'dni', '16108281'),
   ('CCD-01017', 'Elsie Mabel', 'Moleta', 'elsiemoleta', 'colaborador', 'CONF-PDA', 'FRAT-PAR', NULL, '5483434546766', 'dni', '4421226'),
-  ('CCD-01018', 'David Jose', 'Palandri', 'davidpalandri', 'colaborador', 'CONF-PDA', 'FRAT-PAR', NULL, '5493416250129', NULL, NULL),
+  ('CCD-01018', 'David Jose', 'Palandri', 'davidpalandri', 'colaborador', 'CONF-PDA', 'FRAT-PAR', NULL, NULL, NULL, NULL),
   ('CCD-01019', 'Karina', 'Paolin', 'karinapaolin', 'colaborador', 'CONF-PDA', 'FRAT-PAR', 'kari-mk@hotmail.com', '5493435172620', 'dni', '21512726'),
   ('CCD-01020', 'Edgar Fabian', 'Pavon', 'edgarpavon', 'colaborador', 'CONF-PDA', 'FRAT-PAR', 'fabianpavon@hotmail.es', '3434056601', 'dni', '32276058'),
   ('CCD-01021', 'Viviana Mariel', 'Peletti', 'vivianapeletti', 'colaborador', 'CONF-PDA', 'FRAT-PAR', 'mariel_peletti@hotmail.com', '54343154603921', NULL, NULL),
@@ -1126,7 +1128,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01053', 'Ana Maria', 'Ruiz', 'anaruiz', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', 'pipani17@gmail.com', '5493437440630', 'dni', '17423421'),
   ('CCD-01054', 'Patricia', 'Carlomagno', 'patriciacarlomagno', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', 'patriciacarlomagno71@gmail.com', '5493437404646', 'dni', '21735660'),
   ('CCD-01055', 'Carolina', 'Flores', 'carolinaflores', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', 'carolinaandreaflores44@gmail.com', '5493437408378', 'dni', '24488060'),
-  ('CCD-01056', 'Monica', 'Flores', 'monicaflores', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', 'monicagfl@hotmail.com', '5493437402281', 'dni', '17559022'),
+  ('CCD-01056', 'Monica', 'Flores', 'monicaflores', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', NULL, '5493437402281', 'dni', '17559022'),
   ('CCD-01057', 'Francisco', 'Fontanini', 'franciscofontanini', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', 'pipinofon@gmail.com', '5493437415013', 'dni', '17858007'),
   ('CCD-01058', 'Graciela', 'Godoy', 'gracielagodoy', 'familiar', 'CONF-PDA', 'FRAT-LPAZ', 'grac.ivanovich@gmail.com', '543437403027', 'dni', '17529017'),
   ('CCD-01059', 'Graciela Maria Amalia', 'Perassi', 'gracielaperassi', 'familiar', 'CONF-SFVC', 'FRAT-ESPE', 'gracielaperassicdc@hotmail.com', '3496460169', 'dni', '3988298'),
@@ -1214,7 +1216,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01141', 'Alicia', 'Balle', 'aliciaballe', 'colaborador', 'CONF-SFVC', 'FRAT-RAF', 'aliciapilarballe@gmail.com', '5493515052037', 'dni', '13170739'),
   ('CCD-01142', 'Alejandro', 'Gross', 'alejandrogross', 'familiar', 'CONF-SFVC', 'FRAT-SUN', 'alangross1425@gmail.com', '5493493661048', 'dni', '16645346'),
   ('CCD-01143', 'Francisco', 'Chamorro', 'franciscochamorro', 'familiar', 'CONF-SFVC', 'FRAT-SUN', 'francochamorro@yahoo.com.ar', '5493493459876', 'dni', '17675518'),
-  ('CCD-01144', 'Sonia', 'Reatti', 'soniareatti', 'familiar', 'CONF-SFVC', 'FRAT-SUN', 'reattisonia@gmail.com', '543493459876', 'dni', '18438308'),
+  ('CCD-01144', 'Sonia', 'Reatti', 'soniareatti', 'familiar', 'CONF-SFVC', 'FRAT-SUN', NULL, '543493459876', 'dni', '18438308'),
   ('CCD-01145', 'Mariela', 'Morlachi', 'marielamorlachi', 'familiar', 'CONF-SFVC', 'FRAT-SUN', 'mmorlachi@gmail.com', '3493666099', 'dni', '18248897'),
   ('CCD-01146', 'Ana', 'Gonzalez', 'anagonzalez', 'servidor', 'CONF-SFVC', 'FRAT-SUN', 'anamaria.bussi@hotmail.com', '349315665076', 'dni', '16339450'),
   ('CCD-01147', 'Maria Cristina', 'Mansilla', 'mariacristinamansilla', 'servidor', 'CONF-SFVC', 'FRAT-SUN', 'titabautista2704@gmail.com', '3491455132', 'dni', '13993130'),
@@ -1232,7 +1234,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01159', 'Julio Alejandro', 'Brandolin', 'juliobrandolin', 'colaborador', 'CONF-SFVC', 'FRAT-SUN', 'juliobrandolin@hotmail.com', '5493493443769', 'dni', '14808827'),
   ('CCD-01160', 'Mararita', 'Suñe', 'mararitasuñe', 'orante', 'CONF-SFVC', 'FRAT-SUN', NULL, '5493493408948', 'dni', '4506744'),
   ('CCD-01161', 'Mario', 'Tosello', 'mariotosello', 'orante', 'CONF-SFVC', 'FRAT-SUN', NULL, NULL, NULL, NULL),
-  ('CCD-01162', 'Patricia', 'Rodriguez', 'patriciarodriguez', 'orante', 'CONF-SFVC', 'FRAT-SUN', NULL, '16307701368', NULL, NULL),
+  ('CCD-01162', 'Patricia', 'Rodriguez', 'patriciarodriguez', 'orante', 'CONF-SFVC', 'FRAT-SUN', NULL, NULL, NULL, NULL),
   ('CCD-01163', 'Rossana', 'Melo', 'rossanamelo', 'colaborador', 'CONF-SFVC', 'FRAT-SUN', 'rossanamelo1802@gmail.com', '3493437534', 'dni', '17321082'),
   ('CCD-01164', 'Silvia', 'Landriel', 'silvialandriel', 'colaborador', 'CONF-SFVC', 'FRAT-SUN', NULL, NULL, NULL, NULL),
   ('CCD-01165', 'Sandra', 'Lopez', 'sandralopez', 'colaborador', 'CONF-SFVC', 'FRAT-SUN', 's-lopez2009@hotmail.com', '543491407480', 'dni', '24778694'),
@@ -1267,7 +1269,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01194', 'Alicia', 'Contreras', 'aliciacontreras', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'aliciamcontrera@gmail.com', '29755361032', 'dni', '14282761'),
   ('CCD-01195', 'Antonio', 'Dias', 'antoniodias', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'carlostoni46@gmail.com', '5492974169370', 'dni', '17934300'),
   ('CCD-01196', 'Claudia', 'Diaz', 'claudiadiaz', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'cristalmaria562@gmail.com', '2964512444', 'dni', '24960728'),
-  ('CCD-01197', 'Adriana', 'Gonzales', 'adrianagonzales', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'mirthaadrianag@gmail.com', '5492974212152', 'dni', '14470534'),
+  ('CCD-01197', 'Adriana', 'Gonzales', 'adrianagonzales', 'servidor', 'CONF-PAT', 'FRAT-CRIV', NULL, '5492974212152', 'dni', '14470534'),
   ('CCD-01198', 'Cristian Eduardo', 'Gottifredi', 'cristiangottifredi', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'crisgotti84@gmail.com', '2975073309', 'dni', '30486697'),
   ('CCD-01199', 'Gabriela', 'Lopez', 'gabrielalopez', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'gabii.lopez1108@gmail.com', '5492974162707', 'dni', '36334301'),
   ('CCD-01200', 'Bruno', 'Norval', 'brunonorval', 'servidor', 'CONF-PAT', 'FRAT-CRIV', 'norvalbruno245@gmail.com', '5492975344958', 'dni', '36903283'),
@@ -1346,7 +1348,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01273', 'Mariela', 'Martinez', 'marielamartinez', 'colaborador', 'CONF-CB', 'FRAT-DFUN', NULL, NULL, NULL, NULL),
   ('CCD-01274', 'Diego', 'Marquez', 'diegomarquez', 'colaborador', 'CONF-CB', 'FRAT-DFUN', NULL, NULL, NULL, NULL),
   ('CCD-01275', 'Ramon', 'Monje', 'ramonmonje', 'colaborador', 'CONF-CB', 'FRAT-DFUN', NULL, NULL, NULL, NULL),
-  ('CCD-01276', 'Maria del Carmen', 'Lopez', 'mariadelcarmenlopez', 'familiar', 'CONF-CB', 'FRAT-RIV', 'marcarlopez13@gmail.com', '5493585073155', 'dni', '22856443'),
+  ('CCD-01276', 'Maria del Carmen', 'Lopez', 'mariadelcarmenlopez', 'familiar', 'CONF-CB', 'FRAT-RIV', NULL, '5493585073155', 'dni', '22856443'),
   ('CCD-01277', 'Carmen', 'Allende', 'carmenallende', 'servidor', 'CONF-CB', 'FRAT-RIV', NULL, NULL, NULL, NULL),
   ('CCD-01278', 'Herles', 'Berardo', 'herlesberardo', 'servidor', 'CONF-CB', 'FRAT-RIV', 'herlesberardo@yahoo.com', '5493586002620', 'dni', '4874183'),
   ('CCD-01279', 'Veronica', 'Castañeda', 'veronicacastañeda', 'servidor', 'CONF-CB', 'FRAT-RIV', 'verocasta_eda_1990@hotmail.com', '5493582593111', 'dni', '18140656'),
@@ -1677,7 +1679,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01604', 'Maria Enriqueta', 'Garcia de Rosa', 'mariagarciaderosa', 'familiar', 'FRAT-DEQT', 'FRAT-MERC', 'mariaen1761@gmail.com', '59899531363', 'cedula', '34179477'),
   ('CCD-01605', 'Maria del Carmen', 'Rodriguez', 'mariarodriguez', 'servidor', 'FRAT-DEQT', 'FRAT-MERC', 'carmencirod77@gmail.com', '59899253655', 'cedula', '29529825'),
   ('CCD-01606', 'Mercedes', 'Graña', 'mercedesgraña', 'servidor', 'FRAT-DEQT', 'FRAT-MERC', 'mariamercedesgranacastellanos@gmail.com', '59898932161', 'cedula', '37724007'),
-  ('CCD-01607', 'Lucrecia', 'Olivera', 'lucreciaolivera', 'servidor', 'FRAT-DEQT', 'FRAT-MERC', 'lucreciaoli1980@gmail.com', '59899325816', 'cedula', '33343762'),
+  ('CCD-01607', 'Lucrecia', 'Olivera', 'lucreciaolivera', 'servidor', 'FRAT-DEQT', 'FRAT-MERC', NULL, '59899325816', 'cedula', '33343762'),
   ('CCD-01608', 'Juan Gaston', 'Dubourdieu', 'juandubourdieu', 'servidor', 'FRAT-DEQT', 'FRAT-MERC', 'juanchidubour@gmail.com', '59899316910', 'cedula', '28509828'),
   ('CCD-01609', 'Roberto', 'Baldi', 'robertobaldi', 'colaborador', 'FRAT-DEQT', 'FRAT-MERC', NULL, NULL, NULL, NULL),
   ('CCD-01610', 'Susana', 'Vidaurreta', 'susanavidaurreta', 'colaborador', 'FRAT-DEQT', 'FRAT-MERC', NULL, NULL, NULL, NULL),
@@ -1722,7 +1724,7 @@ INSERT INTO _stg_cec_v3 (codigo_interno, nombre, apellido, nombre_usuario, modo,
   ('CCD-01649', 'Alberto', 'Moncada', 'albertomoncada', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', 'amoncada2261@gmail.com', '17087904190', 'pasaporte', '581806462'),
   ('CCD-01650', 'Cecilia', 'Murillo', 'ceciliamurillo', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', 'torresbeto1983@gmail.com', '8155030310', NULL, NULL),
   ('CCD-01651', 'Reveca', 'Padilla', 'revecapadilla', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', NULL, NULL, NULL, NULL),
-  ('CCD-01652', 'Patricia', 'Rodriguez', 'pattyrodriguez', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', NULL, '16307701368', NULL, NULL),
+  ('CCD-01652', 'Patricia', 'Rodriguez', 'pattyrodriguez', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', NULL, NULL, NULL, NULL),
   ('CCD-01653', 'Maria Cruz', 'Rubio', 'mariarubio', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', 'mrubio7@sbcglobal.net', '16307884923', NULL, NULL),
   ('CCD-01654', 'Sara', 'Soto', 'sarasoto', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', 'edcalsa3507@gmail.com', '12107639284', NULL, NULL),
   ('CCD-01655', 'Humberto', 'Torres', 'humbertotorres', 'servidor', 'FRAT-DEQT', 'FRAT-CHIC', 'torresbeto@gmail.com', '8155030310', NULL, NULL),
@@ -2087,6 +2089,6 @@ COMMIT;
 -- ─── Verificación (correr aparte) ─────────────────────────────────────────────
 -- SELECT count(*) FROM personas WHERE codigo_interno IS NOT NULL;              -- 1935
 -- SELECT count(email), count(telefono), count(documento)
---   FROM personas WHERE codigo_interno IS NOT NULL;                             -- ~1002 / 1081 / 1043
+--   FROM personas WHERE codigo_interno IS NOT NULL;                             -- ~982 / 1075 / 1041
 -- SELECT codigo_interno, nombre, apellido, nombre_usuario, auth_user_id
 --   FROM personas WHERE codigo_interno > 'CCD-01935' ORDER BY 1;               -- altas nuevas (sin login aún)

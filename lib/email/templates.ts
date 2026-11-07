@@ -66,6 +66,42 @@ export const accesoCreado = defineTemplate<AccesoCreadoProps>({
   },
 })
 
+export type CredencialesCecistaProps = {
+  nombre: string
+  nombreUsuario: string
+  loginUrl: string
+  /** `/auth/forgot-password`, por si la contraseña inicial no funciona. */
+  recuperarUrl: string
+}
+
+/**
+ * Aviso masivo a los cecistas importados (054/097): su login ya existe con
+ * contraseña inicial = usuario, y la plataforma les pide cambiarla al entrar
+ * (`debe_cambiar_password`). Lo envía `scripts/enviar_credenciales_cecistas.mjs`.
+ */
+export const credencialesCecista = defineTemplate<CredencialesCecistaProps>({
+  subject: () => 'Tu acceso a la plataforma de la Comunidad CcD',
+  preheader: p => `Tu usuario es ${p.nombreUsuario}`,
+  tags: () => ({ categoria: 'acceso' }),
+  blocks: p => [
+    block.heading(`¡Hola, ${p.nombre}!`),
+    block.paragraph(
+      'La Comunidad CcD tiene una plataforma nueva y ya tenés tu cuenta creada. Desde ahí vas a poder ver y completar tus datos y anotarte a convivencias y retiros.'
+    ),
+    block.facts([
+      { label: 'Usuario', value: p.nombreUsuario },
+      { label: 'Contraseña inicial', value: 'la misma que tu usuario' },
+    ]),
+    block.button('Ingresar a la plataforma', p.loginUrl),
+    block.paragraph(
+      'La primera vez que ingreses, la plataforma te va a pedir que elijas una contraseña nueva (de al menos 8 caracteres). A partir de ahí vas a entrar siempre con tu usuario y esa contraseña nueva.'
+    ),
+    block.note(
+      `Si no podés ingresar, usá "¿Olvidaste tu contraseña?" en ${p.recuperarUrl}: te llega un link a este correo para crear una nueva.`
+    ),
+  ],
+})
+
 export type RecuperarPasswordProps = {
   nombre: string
   nombreUsuario: string
@@ -464,6 +500,7 @@ export const eventoSuspendido = defineTemplate<EventoEstadoProps>({
 export const templates = {
   generico,
   accesoCreado,
+  credencialesCecista,
   accesoParticipante,
   recuperarPassword,
   inscripcionRegistrada,

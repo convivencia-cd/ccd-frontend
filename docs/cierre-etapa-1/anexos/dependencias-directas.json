@@ -1,0 +1,554 @@
+[
+  {
+    "paquete": "@hookform/resolvers",
+    "grupo": "dependencies",
+    "version_declarada": "^3.10.0",
+    "version_instalada": "3.10.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-accordion",
+    "grupo": "dependencies",
+    "version_declarada": "1.2.2",
+    "version_instalada": "1.2.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-alert-dialog",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.4",
+    "version_instalada": "1.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-aspect-ratio",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.1",
+    "version_instalada": "1.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-avatar",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.2",
+    "version_instalada": "1.1.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-checkbox",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.3",
+    "version_instalada": "1.1.3",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-collapsible",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.2",
+    "version_instalada": "1.1.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-context-menu",
+    "grupo": "dependencies",
+    "version_declarada": "2.2.4",
+    "version_instalada": "2.2.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-dialog",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.4",
+    "version_instalada": "1.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-dropdown-menu",
+    "grupo": "dependencies",
+    "version_declarada": "2.1.4",
+    "version_instalada": "2.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-hover-card",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.4",
+    "version_instalada": "1.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-label",
+    "grupo": "dependencies",
+    "version_declarada": "2.1.1",
+    "version_instalada": "2.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-menubar",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.4",
+    "version_instalada": "1.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-navigation-menu",
+    "grupo": "dependencies",
+    "version_declarada": "1.2.3",
+    "version_instalada": "1.2.3",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-popover",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.4",
+    "version_instalada": "1.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-progress",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.1",
+    "version_instalada": "1.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-radio-group",
+    "grupo": "dependencies",
+    "version_declarada": "1.2.2",
+    "version_instalada": "1.2.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-scroll-area",
+    "grupo": "dependencies",
+    "version_declarada": "1.2.2",
+    "version_instalada": "1.2.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-select",
+    "grupo": "dependencies",
+    "version_declarada": "2.1.4",
+    "version_instalada": "2.1.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-separator",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.1",
+    "version_instalada": "1.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-slider",
+    "grupo": "dependencies",
+    "version_declarada": "1.2.2",
+    "version_instalada": "1.2.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-slot",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.1",
+    "version_instalada": "1.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-switch",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.2",
+    "version_instalada": "1.1.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-tabs",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.2",
+    "version_instalada": "1.1.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-toast",
+    "grupo": "dependencies",
+    "version_declarada": "1.2.4",
+    "version_instalada": "1.2.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-toggle",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.1",
+    "version_instalada": "1.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-toggle-group",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.1",
+    "version_instalada": "1.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@radix-ui/react-tooltip",
+    "grupo": "dependencies",
+    "version_declarada": "1.1.6",
+    "version_instalada": "1.1.6",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@supabase/ssr",
+    "grupo": "dependencies",
+    "version_declarada": "0.8.0",
+    "version_instalada": "0.8.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@supabase/supabase-js",
+    "grupo": "dependencies",
+    "version_declarada": "latest",
+    "version_instalada": "2.98.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@vercel/analytics",
+    "grupo": "dependencies",
+    "version_declarada": "1.3.1",
+    "version_instalada": "1.3.1",
+    "licencia_metadata": "MPL-2.0",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "autoprefixer",
+    "grupo": "dependencies",
+    "version_declarada": "^10.4.20",
+    "version_instalada": "10.4.27",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "class-variance-authority",
+    "grupo": "dependencies",
+    "version_declarada": "^0.7.1",
+    "version_instalada": "0.7.1",
+    "licencia_metadata": "Apache-2.0",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "clsx",
+    "grupo": "dependencies",
+    "version_declarada": "^2.1.1",
+    "version_instalada": "2.1.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "cmdk",
+    "grupo": "dependencies",
+    "version_declarada": "1.0.4",
+    "version_instalada": "1.0.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "date-fns",
+    "grupo": "dependencies",
+    "version_declarada": "4.1.0",
+    "version_instalada": "4.1.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "docx",
+    "grupo": "dependencies",
+    "version_declarada": "^9.9.0",
+    "version_instalada": "9.9.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "embla-carousel-react",
+    "grupo": "dependencies",
+    "version_declarada": "8.5.1",
+    "version_instalada": "8.5.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "html2canvas-pro",
+    "grupo": "dependencies",
+    "version_declarada": "^2.0.2",
+    "version_instalada": "2.0.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "html5-qrcode",
+    "grupo": "dependencies",
+    "version_declarada": "^2.3.8",
+    "version_instalada": "2.3.8",
+    "licencia_metadata": "Apache-2.0",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "input-otp",
+    "grupo": "dependencies",
+    "version_declarada": "1.4.1",
+    "version_instalada": "1.4.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "jspdf",
+    "grupo": "dependencies",
+    "version_declarada": "^4.2.0",
+    "version_instalada": "4.2.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "lucide-react",
+    "grupo": "dependencies",
+    "version_declarada": "^0.454.0",
+    "version_instalada": "0.454.0",
+    "licencia_metadata": "ISC",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "mercadopago",
+    "grupo": "dependencies",
+    "version_declarada": "^3.2.0",
+    "version_instalada": "3.2.0",
+    "licencia_metadata": "No informada en package.json",
+    "evidencia_adicional": "LICENSE local MIT"
+  },
+  {
+    "paquete": "next",
+    "grupo": "dependencies",
+    "version_declarada": "16.0.10",
+    "version_instalada": "16.0.10",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "next-themes",
+    "grupo": "dependencies",
+    "version_declarada": "^0.4.6",
+    "version_instalada": "0.4.6",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "qrcode",
+    "grupo": "dependencies",
+    "version_declarada": "^1.5.4",
+    "version_instalada": "1.5.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "react",
+    "grupo": "dependencies",
+    "version_declarada": "19.2.0",
+    "version_instalada": "19.2.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "react-day-picker",
+    "grupo": "dependencies",
+    "version_declarada": "9.8.0",
+    "version_instalada": "9.8.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "react-dom",
+    "grupo": "dependencies",
+    "version_declarada": "19.2.0",
+    "version_instalada": "19.2.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "react-hook-form",
+    "grupo": "dependencies",
+    "version_declarada": "^7.60.0",
+    "version_instalada": "7.71.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "react-resizable-panels",
+    "grupo": "dependencies",
+    "version_declarada": "^2.1.7",
+    "version_instalada": "2.1.9",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "recharts",
+    "grupo": "dependencies",
+    "version_declarada": "2.15.4",
+    "version_instalada": "2.15.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "resend",
+    "grupo": "dependencies",
+    "version_declarada": "^6.19.0",
+    "version_instalada": "6.19.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "sonner",
+    "grupo": "dependencies",
+    "version_declarada": "^1.7.4",
+    "version_instalada": "1.7.4",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "tailwind-merge",
+    "grupo": "dependencies",
+    "version_declarada": "^3.3.1",
+    "version_instalada": "3.5.0",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "tailwindcss-animate",
+    "grupo": "dependencies",
+    "version_declarada": "^1.0.7",
+    "version_instalada": "1.0.7",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "vaul",
+    "grupo": "dependencies",
+    "version_declarada": "^1.1.2",
+    "version_instalada": "1.1.2",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "xlsx",
+    "grupo": "dependencies",
+    "version_declarada": "^0.18.5",
+    "version_instalada": "0.18.5",
+    "licencia_metadata": "Apache-2.0",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "zod",
+    "grupo": "dependencies",
+    "version_declarada": "3.25.76",
+    "version_instalada": "3.25.76",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@tailwindcss/postcss",
+    "grupo": "devDependencies",
+    "version_declarada": "^4.1.9",
+    "version_instalada": "4.2.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@types/node",
+    "grupo": "devDependencies",
+    "version_declarada": "^22",
+    "version_instalada": "22.19.13",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@types/qrcode",
+    "grupo": "devDependencies",
+    "version_declarada": "^1.5.6",
+    "version_instalada": "1.5.6",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@types/react",
+    "grupo": "devDependencies",
+    "version_declarada": "^19",
+    "version_instalada": "19.2.14",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "@types/react-dom",
+    "grupo": "devDependencies",
+    "version_declarada": "^19",
+    "version_instalada": "19.2.3",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "postcss",
+    "grupo": "devDependencies",
+    "version_declarada": "^8.5",
+    "version_instalada": "8.5.8",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "tailwindcss",
+    "grupo": "devDependencies",
+    "version_declarada": "^4.1.9",
+    "version_instalada": "4.2.1",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "tw-animate-css",
+    "grupo": "devDependencies",
+    "version_declarada": "1.3.3",
+    "version_instalada": "1.3.3",
+    "licencia_metadata": "MIT",
+    "evidencia_adicional": "Metadatos locales"
+  },
+  {
+    "paquete": "typescript",
+    "grupo": "devDependencies",
+    "version_declarada": "^5",
+    "version_instalada": "5.9.3",
+    "licencia_metadata": "Apache-2.0",
+    "evidencia_adicional": "Metadatos locales"
+  }
+]
