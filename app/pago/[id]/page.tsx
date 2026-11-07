@@ -11,6 +11,7 @@ import {
   cargarTiposEventosRealizables,
 } from '@/lib/eventos/inscripcion-datos-server'
 import { nombreLegible } from '@/lib/personas/eventos-realizados'
+import { motivoInscripcionCerrada } from '@/lib/eventos/vigencia-inscripcion'
 import type { DiocesisRow } from '@/components/diocesis-field'
 
 // El precio, los datos de la persona y el estado del pago cambian fuera de
@@ -100,7 +101,7 @@ export default async function PagoInscripcionPage({
         formacion_religiosa, participacion_grupos_iglesia, accion_social
       ),
       evento:eventos!evento_id(
-        id, nombre, fecha_inicio, fecha_fin, precio, ciudad, provincia_evento,
+        id, nombre, estado, fecha_inicio, fecha_fin, precio, ciudad, provincia_evento,
         casa_retiro:casas_retiro!casa_retiro_id(nombre)
       )
     `)
@@ -113,6 +114,7 @@ export default async function PagoInscripcionPage({
   const evento = participante.evento as unknown as {
     id: string
     nombre: string
+    estado: string | null
     fecha_inicio: string | null
     fecha_fin: string | null
     precio: number | null
@@ -132,11 +134,37 @@ export default async function PagoInscripcionPage({
     .limit(1)
     .maybeSingle()
 
-  const yaInscripto = participante.estado_participacion !== 'interesado'
+  const dadoDeBaja = participante.estado_participacion === 'cancelado'
+  const yaInscripto = !dadoDeBaja && participante.estado_participacion !== 'interesado'
   const yaPago = pagoRow?.estado_pago === 'confirmado'
   const comprobanteEnRevision = pagoRow?.estado_pago === 'pendiente' && pagoRow?.medio_pago === 'transferencia'
 
   const lugar = [evento.casa_retiro?.nombre, evento.ciudad, evento.provincia_evento].filter(Boolean).join(', ')
+
+  // Card #111: el link vence cuando arranca el retiro (o si la persona fue dada de baja).
+  const cerrada = dadoDeBaja
+    ? 'Tu inscripción a este retiro fue dada de baja. Si creés que es un error, comunicate con los organizadores.'
+    : yaInscripto || yaPago
+      ? null
+      : motivoInscripcionCerrada(evento)
+  if (cerrada) {
+    return (
+      <PublicShell>
+        <div className="rounded-xl border border-border bg-muted/40 p-6 text-center">
+          <Clock className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h1 className="mt-4 text-xl font-bold text-foreground">Este link ya no está vigente</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hola {persona.nombre}, {cerrada.charAt(0).toLowerCase() + cerrada.slice(1)}
+          </p>
+        </div>
+        <div className="mt-6 text-center">
+          <Link href={`/e/${evento.id}`} className="text-sm text-[#F08020] hover:underline">
+            Ver el detalle del retiro
+          </Link>
+        </div>
+      </PublicShell>
+    )
+  }
 
   if (yaInscripto || yaPago) {
     return (

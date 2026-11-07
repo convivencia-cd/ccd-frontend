@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { motivoInscripcionCerrada } from '@/lib/eventos/vigencia-inscripcion'
 import {
   CAMPOS_PERSONA_INSCRIPCION,
   ESTADOS_ECLESIALES,
@@ -58,13 +59,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: participante } = await supabaseAdmin
     .from('evento_participantes')
-    .select('id, estado_participacion, persona_id')
+    .select('id, estado_participacion, persona_id, evento:eventos!evento_id(estado, fecha_inicio)')
     .eq('id', id)
     .maybeSingle()
 
   if (!participante) {
     return NextResponse.json({ error: 'No se encontró la inscripción.' }, { status: 404 })
   }
+  // Card #111: el link vence cuando arranca el retiro.
+  const cerrada = motivoInscripcionCerrada(
+    participante.evento as unknown as { estado: string | null; fecha_inicio: string | null } | null
+  )
+  if (cerrada) return NextResponse.json({ error: cerrada }, { status: 409 })
   if (participante.estado_participacion !== 'interesado') {
     return NextResponse.json(
       { error: 'Esta inscripción ya no está en revisión. Contactate con los organizadores.' },

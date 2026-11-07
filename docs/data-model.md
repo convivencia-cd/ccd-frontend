@@ -194,6 +194,20 @@ Histórico de asignaciones institucionales.
 - Toda asignación debe tener fecha_inicio.
 - La asignación actual es aquella sin fecha_fin.
 
+## Tipos de evento del Coordinador (ASIGNACION_MINISTERIO_TIPOS_EVENTO)
+
+Migración 103 (card #47). Una asignación del ministerio Coordinador (COOR) lista
+los tipos de evento que esa persona puede coordinar:
+
+- asignacion_id (FK asignaciones_ministerio)
+- tipo_evento_id (FK tipos_eventos)
+
+Los desplegables de coordinador (coordinadores propuestos, coordinador asignado,
+aprobación final, Asignaciones del Retiro) muestran solo a quien tiene una
+asignación COOR vigente con el tipo del evento tildado. Sin tipos tildados, no
+aparece en ninguno. Las rutas de la API validan lo mismo
+(`lib/eventos/coordinadores-tipo-evento.ts`).
+
 ---
 
 # 3.6 EVENTO

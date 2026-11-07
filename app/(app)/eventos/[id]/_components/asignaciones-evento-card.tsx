@@ -38,15 +38,26 @@ export default function AsignacionesEventoCard({
   inicial,
   personas,
   cargandoPersonas,
+  coordinadoresHabilitadosIds,
   onSaved,
 }: {
   eventoId: string
   inicial: AsignacionesEvento
   personas: PersonaOption[]
   cargandoPersonas: boolean
+  /** Card #47: ids de los coordinadores habilitados para el tipo de este evento. */
+  coordinadoresHabilitadosIds: string[]
   onSaved: () => void
 }) {
   const [coordinador, setCoordinador] = useState(inicial.coordinador_asignado_id ?? '')
+
+  // Solo coordinadores habilitados para el tipo de evento. El que ya estaba
+  // guardado se conserva en la lista aunque no lo esté (eventos anteriores).
+  const habilitados = new Set(coordinadoresHabilitadosIds)
+  const personasCoordinador = personas.filter(
+    p => habilitados.has(p.id) || p.id === inicial.coordinador_asignado_id
+  )
+  const coordinadorNoHabilitado = !!coordinador && !habilitados.has(coordinador)
   const [asesor, setAsesor] = useState(inicial.asesor_asignado_id ?? '')
   const [centralizadores, setCentralizadores] = useState<Centralizador[]>([
     {
@@ -154,14 +165,25 @@ export default function AsignacionesEventoCard({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Coordinador asignado</p>
             <PersonaCombobox
               value={coordinador}
-              personas={personas}
+              personas={personasCoordinador}
               onChange={v => {
                 setCoordinador(v)
                 setOk(false)
               }}
-              placeholder={cargandoPersonas ? "Cargando personas..." : "— Sin asignar —"}
+              placeholder={
+                cargandoPersonas
+                  ? "Cargando personas..."
+                  : coordinadoresHabilitadosIds.length === 0
+                    ? "No hay coordinadores habilitados para este tipo"
+                    : "— Sin asignar —"
+              }
               disabled={cargandoPersonas}
             />
+            {coordinadorNoHabilitado && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                No está habilitado como coordinador de este tipo de evento.
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Asesor asignado</p>

@@ -76,29 +76,25 @@ export default function NewPagoPage() {
         return
       }
 
-      const supabase = createClient()
-
-      const insertData: Record<string, unknown> = {
-        evento_participante_id: formData.evento_participante_id,
-        concepto: formData.concepto,
-        monto: parseFloat(formData.monto),
-        medio_pago: formData.medio_pago,
-        estado_pago: formData.estado_pago,
-        fecha_pago: formData.fecha_pago,
-      }
-      if (formData.referencia) insertData.referencia = formData.referencia
-      if (formData.notas) insertData.notas = formData.notas
-
-      const { data: pago, error: pagoError } = await supabase.from('pagos').insert(insertData).select('id').single()
-      if (pagoError) throw pagoError
-
-      if (formData.estado_pago === 'confirmado' && formData.concepto === 'inscripcion') {
-        await supabase
-          .from('evento_participantes')
-          .update({ estado_participacion: 'inscripto' })
-          .eq('id', formData.evento_participante_id)
-          .eq('estado_participacion', 'interesado')
-      }
+      // El servidor valida el permiso sobre el evento y, si el pago de
+      // inscripción entra confirmado, pasa al participante a inscripto.
+      const resPago = await fetch('/api/pagos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evento_participante_id: formData.evento_participante_id,
+          concepto: formData.concepto,
+          monto: parseFloat(formData.monto),
+          medio_pago: formData.medio_pago,
+          estado_pago: formData.estado_pago,
+          fecha_pago: formData.fecha_pago,
+          referencia: formData.referencia,
+          notas: formData.notas,
+        }),
+      })
+      const dataPago = await resPago.json().catch(() => ({}))
+      if (!resPago.ok) throw new Error(dataPago.error ?? 'Error al registrar el pago')
+      const pago = { id: dataPago.id as string }
 
       if (comprobante && formData.medio_pago === 'transferencia') {
         const fd = new FormData()

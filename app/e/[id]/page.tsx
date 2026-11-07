@@ -5,6 +5,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { ArrowLeft, CalendarDays, MapPin, Users, Phone, Mail, Building2, BookOpen, Wallet, CheckCircle2, Clock, XCircle, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { InteresModalWrapper } from '@/components/landing/InteresModalWrapper'
+import { motivoInscripcionCerrada } from '@/lib/eventos/vigencia-inscripcion'
 
 // El precio y el estado del evento pueden cambiar en cualquier momento — no
 // cachear esta página.
@@ -154,7 +155,9 @@ export default async function PublicEventDetailPage({
 
   if (!evento) notFound()
 
-  const inscripcionesAbiertas = evento.estado === 'publicado'
+  // Card #111: también se cierra cuando llega la fecha de inicio.
+  const motivoCierre = motivoInscripcionCerrada(evento)
+  const inscripcionesAbiertas = !motivoCierre
 
   // Quién pagó, para poder saludarlo por su nombre y mostrarle con qué email
   // quedó registrado. Si el external_reference no viene o no resuelve, la
@@ -527,7 +530,7 @@ export default async function PublicEventDetailPage({
                   {ESTADO_CERRADO_INFO[evento.estado]?.titulo ?? 'Inscripciones cerradas'}
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                  {ESTADO_CERRADO_INFO[evento.estado]?.mensaje ?? 'Las inscripciones para este retiro no están disponibles.'}
+                  {ESTADO_CERRADO_INFO[evento.estado]?.mensaje ?? motivoCierre}
                 </p>
               </div>
             )}

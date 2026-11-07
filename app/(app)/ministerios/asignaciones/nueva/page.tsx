@@ -24,12 +24,20 @@ import {
   type PersonaOption,
 } from "@/components/persona-combobox"
 import { Combobox } from "@/components/ui/combobox"
+import {
+  TiposEventoCoordinador,
+  cargarTiposEvento,
+  guardarTiposDeAsignacion,
+  type TipoEventoOpcion,
+} from "@/components/ministerios/tipos-evento-coordinador"
+import { CODIGO_MINISTERIO_COORDINADOR } from "@/lib/eventos/coordinadores-tipo-evento"
 
 interface Ministerio {
   id: string
   nombre: string
   tipo: string
   nivel_acceso: number
+  codigo_interno: string | null
 }
 
 interface Org {
@@ -66,6 +74,8 @@ export default function NuevaAsignacionPage() {
   const [ministerios, setMinisterios] = useState<Ministerio[]>([])
   const [organizaciones, setOrganizaciones] = useState<Org[]>([])
   const [eventos, setEventos] = useState<Evento[]>([])
+  const [tiposEvento, setTiposEvento] = useState<TipoEventoOpcion[]>([])
+  const [tiposSeleccionados, setTiposSeleccionados] = useState<string[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
   const [form, setForm] = useState({
@@ -90,11 +100,12 @@ export default function NuevaAsignacionPage() {
         { data: ministeriosData },
         { data: orgsData },
         { data: eventosData },
+        tiposData,
       ] = await Promise.all([
         fetchPersonas(),
         supabase
           .from("ministerios")
-          .select("id, nombre, tipo, nivel_acceso")
+          .select("id, nombre, tipo, nivel_acceso, codigo_interno")
           .eq("activo", true)
           .order("tipo")
           .order("nombre"),
@@ -104,15 +115,20 @@ export default function NuevaAsignacionPage() {
           .is("fecha_baja", null)
           .order("nombre"),
         supabase.from("eventos").select("id, nombre, tipo").order("nombre"),
+        cargarTiposEvento(supabase),
       ])
       setPersonas(personasData)
       setMinisterios(ministeriosData ?? [])
       setOrganizaciones(orgsData ?? [])
       setEventos(eventosData ?? [])
+      setTiposEvento(tiposData)
       setLoadingData(false)
     }
     load()
   }, [])
+
+  const esCoordinador =
+    ministerios.find((m) => m.id === form.ministerio_id)?.codigo_interno === CODIGO_MINISTERIO_COORDINADOR
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -127,6 +143,12 @@ export default function NuevaAsignacionPage() {
 
     if (form.estado === "inactivo" && !form.fecha_fin) {
       setError("Debes indicar una fecha de fin cuando el estado es inactivo")
+      setLoading(false)
+      return
+    }
+
+    if (esCoordinador && tiposSeleccionados.length === 0) {
+      setError("Tildá al menos un tipo de evento que pueda coordinar")
       setLoading(false)
       return
     }
@@ -168,7 +190,7 @@ export default function NuevaAsignacionPage() {
     await closeQuery
 
     // Insertar nueva asignación
-    const { error: insertError } = await supabase
+    const { data: nueva, error: insertError } = await supabase
       .from("asignaciones_ministerio")
       .insert({
         persona_id: form.persona_id,
@@ -182,11 +204,22 @@ export default function NuevaAsignacionPage() {
         notas: form.notas || null,
         documento_url: documentoUrl,
       })
+      .select("id")
+      .single()
 
-    if (insertError) {
-      setError("Error al crear la asignación: " + insertError.message)
+    if (insertError || !nueva) {
+      setError("Error al crear la asignación: " + (insertError?.message ?? "sin respuesta"))
       setLoading(false)
       return
+    }
+
+    if (esCoordinador) {
+      const errorTipos = await guardarTiposDeAsignacion(supabase, nueva.id, tiposSeleccionados)
+      if (errorTipos) {
+        setError("La asignación se creó, pero no se pudieron guardar los tipos de evento: " + errorTipos)
+        setLoading(false)
+        return
+      }
     }
 
     router.push("/ministerios/asignaciones")
@@ -301,6 +334,14 @@ export default function NuevaAsignacionPage() {
                 />
               </div>
             </div>
+
+            {esCoordinador && (
+              <TiposEventoCoordinador
+                tipos={tiposEvento}
+                value={tiposSeleccionados}
+                onChange={setTiposSeleccionados}
+              />
+            )}
 
             {/* Fila 3: Estado + Motivo de fin */}
             <div className="grid grid-cols-2 gap-4">

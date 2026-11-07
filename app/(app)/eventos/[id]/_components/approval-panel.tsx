@@ -404,7 +404,8 @@ function NivelDiscernimiento({
                       updateCoordinadores(arr)
                     }}
                     opcionesRol={coordinadoresRol}
-                    otro={{ tipo: 'buscador', opciones: serviciosBusqueda }}
+                    otro={null}
+                    sinOpcionesTexto="— No hay coordinadores habilitados para este tipo —"
                   />
                   {coordinadoresArr.length > 1 && (
                     <button
@@ -488,7 +489,9 @@ function NivelDiscernimiento({
                       value={currentVal('coordinador_asignado_id')}
                       onChange={val => setCampo('coordinador_asignado_id', val)}
                       opcionesRol={coordinadoresRol}
-                      otro={{ tipo: 'buscador', opciones: serviciosBusqueda, personasFallback: personas }}
+                      otro={null}
+                      personasFallback={personas}
+                      sinOpcionesTexto="— No hay coordinadores habilitados para este tipo —"
                     />
                     {selectedCoordinador && (
                       <Link

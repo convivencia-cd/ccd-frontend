@@ -71,7 +71,9 @@ export async function POST(
   } | null)?.evento ?? null
 
   const puedeEnOrg = (orgId: string | null) =>
-    canPerform(ctx, 'payment.verify', orgId) || canPerform(ctx, 'event.update', orgId)
+    canPerform(ctx, 'payment.verify', orgId) ||
+    canPerform(ctx, 'payment.register', orgId) ||
+    canPerform(ctx, 'event.update', orgId)
 
   const autorizado =
     !!evento &&

@@ -8,6 +8,7 @@ import { DollarSign, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getUserContext, canPerform } from '@/lib/auth/context'
 import { esCentralizadorDeEvento } from '@/lib/eventos/cierre'
+import { puedeAbrirRegistroDePagos } from '@/lib/pagos/permisos'
 import { VerificacionPendientes, type PagoPendiente } from '@/components/pagos/VerificacionPendientes'
 
 const conceptoLabel: Record<string, string> = {
@@ -40,6 +41,23 @@ export default async function PagosPage() {
   // otro), tenga o no comprobante; los de Mercado Pago los resuelve el webhook. Visibles para quien
   // tiene payment.verify scopeado a la org del evento, o es Centralizador del evento.
   const tienePermisoVerificar = !!ctx && canPerform(ctx, 'payment.verify')
+
+  // Botón "Nuevo Pago": payment.register / event.manage, o ser Centralizador de
+  // algún retiro (el servidor valida después cada pago contra su evento).
+  let puedeRegistrarPagos = false
+  if (ctx) {
+    let esCentralizador = false
+    if (ctx.persona_id && !puedeAbrirRegistroDePagos(ctx, false)) {
+      const { count } = await supabase
+        .from('eventos')
+        .select('id', { count: 'exact', head: true })
+        .or(
+          `centralizador_1_persona_id.eq.${ctx.persona_id},centralizador_2_persona_id.eq.${ctx.persona_id},centralizador_3_persona_id.eq.${ctx.persona_id}`
+        )
+      esCentralizador = (count ?? 0) > 0
+    }
+    puedeRegistrarPagos = puedeAbrirRegistroDePagos(ctx, esCentralizador)
+  }
   let pagosPendientes: PagoPendiente[] = []
 
   if (ctx) {
@@ -173,12 +191,14 @@ export default async function PagosPage() {
             <CardTitle className="text-foreground">Pagos Registrados</CardTitle>
             <CardDescription>Historial de todos los pagos en el sistema</CardDescription>
           </div>
-          <Link href="/pagos/nuevo">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nuevo Pago
-            </Button>
-          </Link>
+          {puedeRegistrarPagos && (
+            <Link href="/pagos/nuevo">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nuevo Pago
+              </Button>
+            </Link>
+          )}
         </CardHeader>
         <CardContent>
           {pagos && pagos.length > 0 ? (
@@ -231,12 +251,14 @@ export default async function PagosPage() {
               <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold text-foreground">No hay pagos registrados</h3>
               <p className="mt-2 text-muted-foreground">Comienza registrando el primer pago en el sistema</p>
-              <Link href="/pagos/nuevo" className="mt-4 inline-block">
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Nuevo Pago
-                </Button>
-              </Link>
+              {puedeRegistrarPagos && (
+                <Link href="/pagos/nuevo" className="mt-4 inline-block">
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Nuevo Pago
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
         </CardContent>

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { redirect } from "next/navigation"
 import { formatDateShort, formatDateLong } from "@/lib/utils"
 import { getUserContext, canPerform } from "@/lib/auth/context"
+import { puedeAbrirRegistroDePagos } from "@/lib/pagos/permisos"
 import { cargarPendientesDeAprobacion } from "@/lib/eventos/pendientes-aprobacion"
 import { createClient } from "@/lib/supabase/server"
 import { ordenarModos } from "@/lib/personas/modos"
@@ -1035,12 +1036,14 @@ export default async function DashboardPage() {
                   </Button>
                 </Link>
               )}
-              <Link href="/pagos/nuevo">
-                <Button variant="outline" className="gap-2 bg-transparent">
-                  <DollarSign className="h-4 w-4 text-amber-500" />
-                  Registrar Pago
-                </Button>
-              </Link>
+              {puedeAbrirRegistroDePagos(ctx, (misEventosCentralizador?.length ?? 0) > 0) && (
+                <Link href="/pagos/nuevo">
+                  <Button variant="outline" className="gap-2 bg-transparent">
+                    <DollarSign className="h-4 w-4 text-amber-500" />
+                    Registrar Pago
+                  </Button>
+                </Link>
+              )}
               <Link href="/documentos/nuevo">
                 <Button variant="outline" className="gap-2 bg-transparent">
                   <FileText className="h-4 w-4 text-red-500" />
