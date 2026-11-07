@@ -11,6 +11,25 @@ import { formatDateAR } from "@/lib/utils"
 import { PersonaAvatar } from "./_components/persona-avatar"
 import { VotosEditor } from "./_components/votos-editor"
 import { apellidoNombreConApodo } from "@/lib/personas/nombre"
+import { nombreLegible } from "@/lib/personas/eventos-realizados"
+import { ROLES_EVENTO_LABEL } from "@/lib/eventos/equipo"
+
+const estadoParticipacionLabel: Record<string, string> = {
+  interesado: "Interesado",
+  inscripto: "Inscripto",
+  en_curso: "En curso",
+  completado: "Completado",
+  lista_espera: "Lista de espera",
+  cancelado: "Cancelado",
+}
+
+type ParticipacionRow = {
+  key: string
+  rol: string
+  estado: string | null
+  fecha_asistencia: string | null
+  evento: { id: string; nombre: string; fecha_inicio: string | null } | null
+}
 
 function formatDate(date: string | null) {
   return formatDateAR(date)
@@ -85,18 +104,22 @@ export default async function PersonaDetailPage({
     { data: historialAcompanamiento },
     { data: acompanaA },
     { data: votos },
-    { data: participacionesConvivente },
+    { data: participaciones },
+    { data: eventosRealizados },
+    { data: eventosCentralizados },
   ] = await Promise.all([
     supabase
       .from("personas")
       .select(
-        "id, nombre, apellido, apodo, email, email_ccd, telefono, tipo_documento, documento, fecha_nacimiento, direccion, direccion_nro, localidad, codigo_postal, provincia, pais, notas, estado, created_at, acepta_comunicaciones, estado_eclesial, estado_vida, diocesis, tipo_persona, parroquia, socio_asociacion, referente_comunidad, cecista_dedicado, intercesor_dies_natalis, nombre_usuario, nivel_estudios, anio_ingreso, acompanante_id, fecha_ingreso_comunidad, foto_url, es_convivente",
+        "id, nombre, apellido, apodo, email, email_ccd, telefono, tipo_documento, documento, fecha_nacimiento, direccion, direccion_nro, localidad, codigo_postal, provincia, pais, notas, estado, created_at, acepta_comunicaciones, estado_eclesial, estado_vida, diocesis, tipo_persona, parroquia, socio_asociacion, referente_comunidad, cecista_dedicado, intercesor_dies_natalis, nombre_usuario, nivel_estudios, anio_ingreso, acompanante_id, fecha_ingreso_comunidad, foto_url, es_convivente, modo_participacion_ingreso, anio_ultimo_cambio_modo",
       )
       .eq("id", id)
       .single(),
+    // persona_modos NO tiene columna `notas`: pedirla hace fallar toda la
+    // consulta y la ficha mostraba "Sin historial de modos".
     supabase
       .from("persona_modos")
-      .select("modo, fecha_inicio, fecha_fin, estado, motivo_fin, documento_url, notas")
+      .select("id, modo, fecha_inicio, fecha_fin, estado, motivo_fin, documento_url")
       .eq("persona_id", id)
       .order("fecha_inicio", { ascending: false }),
     supabase
@@ -127,9 +150,22 @@ export default async function PersonaDetailPage({
       .eq("persona_id", id),
     supabase
       .from("evento_participantes")
-      .select("id, estado_participacion, fecha_asistencia, evento:eventos!evento_id(id, nombre, fecha_inicio)")
+      .select("id, rol_en_evento, estado_participacion, fecha_asistencia, evento:eventos!evento_id(id, nombre, fecha_inicio)")
+      .eq("persona_id", id),
+    // Checklist histórico (eventos hechos antes de la plataforma, migr. 050).
+    supabase
+      .from("persona_eventos_realizados")
+      .select("id, anio, tipo:tipos_eventos!tipo_evento_id(nombre)")
       .eq("persona_id", id)
-      .eq("rol_en_evento", "convivente"),
+      .order("anio", { ascending: true, nullsFirst: false }),
+    // Los centralizadores viven en eventos.centralizador_N_persona_id, no
+    // siempre en evento_participantes.
+    supabase
+      .from("eventos")
+      .select("id, nombre, fecha_inicio")
+      .or(
+        `centralizador_1_persona_id.eq.${id},centralizador_2_persona_id.eq.${id},centralizador_3_persona_id.eq.${id}`,
+      ),
   ])
 
   if (error || !persona) notFound()
@@ -139,21 +175,42 @@ export default async function PersonaDetailPage({
   const confraternidadOrg = (personaOrgs as any[])?.find((o) => o.tipo_relacion === "confraternidad")?.organizacion
   const fraternidadOrg = (personaOrgs as any[])?.find((o) => o.tipo_relacion === "fraternidad")?.organizacion
 
-  // Convivencias en las que fue convivente: las que tienen asistencia tomada
-  // (mismo criterio que el trigger de 082 que pone el tilde es_convivente).
-  const convivencias = ((participacionesConvivente ?? []) as unknown as {
+  // Historial en la plataforma: toda participación (cualquier rol) + los
+  // eventos donde figura como centralizador en la cabecera del evento.
+  const historialPlataforma: ParticipacionRow[] = (
+    (participaciones ?? []) as unknown as {
+      id: string
+      rol_en_evento: string
+      estado_participacion: string | null
+      fecha_asistencia: string | null
+      evento: ParticipacionRow["evento"]
+    }[]
+  ).map((p) => ({
+    key: p.id,
+    rol: p.rol_en_evento,
+    estado: p.estado_participacion,
+    fecha_asistencia: p.fecha_asistencia,
+    evento: p.evento,
+  }))
+  for (const ev of (eventosCentralizados ?? []) as { id: string; nombre: string; fecha_inicio: string | null }[]) {
+    const yaEsta = historialPlataforma.some((p) => p.evento?.id === ev.id && p.rol === "centralizador")
+    if (!yaEsta) {
+      historialPlataforma.push({
+        key: `centralizador-${ev.id}`,
+        rol: "centralizador",
+        estado: null,
+        fecha_asistencia: null,
+        evento: ev,
+      })
+    }
+  }
+  historialPlataforma.sort((a, b) => (b.evento?.fecha_inicio ?? "").localeCompare(a.evento?.fecha_inicio ?? ""))
+
+  const realizadosPrevios = ((eventosRealizados ?? []) as unknown as {
     id: string
-    estado_participacion: string
-    fecha_asistencia: string | null
-    evento: { id: string; nombre: string; fecha_inicio: string | null } | null
-  }[])
-    .filter(
-      (p) =>
-        p.fecha_asistencia ||
-        p.estado_participacion === "en_curso" ||
-        p.estado_participacion === "completado",
-    )
-    .sort((a, b) => (b.evento?.fecha_inicio ?? "").localeCompare(a.evento?.fecha_inicio ?? ""))
+    anio: number | null
+    tipo: { nombre: string } | null
+  }[]).filter((r) => r.tipo)
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -410,6 +467,18 @@ export default async function PersonaDetailPage({
                 ) : "—"}
               </dd>
             </div>
+            <Field
+              label="Modo al ingreso"
+              value={
+                (persona as any).modo_participacion_ingreso
+                  ? String((persona as any).modo_participacion_ingreso).replace(/^\w/, (c) => c.toUpperCase())
+                  : null
+              }
+            />
+            <Field
+              label="Año del último cambio de modo"
+              value={(persona as any).anio_ultimo_cambio_modo ? String((persona as any).anio_ultimo_cambio_modo) : null}
+            />
             {persona.intercesor_dies_natalis && (
               <Field
                 label="Intercesor Dies Natalis"
@@ -429,14 +498,14 @@ export default async function PersonaDetailPage({
                     <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Desde</th>
                     <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Hasta</th>
                     <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Estado</th>
-                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Notas</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Motivo de fin</th>
                     <th className="text-left py-2 font-medium text-muted-foreground">Adjunto</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(modos ?? []).map((m: any, i) => (
+                  {(modos ?? []).map((m: any) => (
                     <tr
-                      key={i}
+                      key={m.id}
                       className={`border-b border-border/50 last:border-0 ${
                         !m.fecha_fin ? "bg-green-50 dark:bg-green-900/10" : ""
                       }`}
@@ -452,8 +521,8 @@ export default async function PersonaDetailPage({
                       </td>
                       <td className="py-2 pr-4 text-muted-foreground capitalize">{m.estado ?? "—"}</td>
                       <td className="py-2 pr-4 text-muted-foreground max-w-50">
-                        {m.notas ? (
-                          <span className="whitespace-pre-wrap">{m.notas}</span>
+                        {m.motivo_fin ? (
+                          <span className="whitespace-pre-wrap">{m.motivo_fin}</span>
                         ) : "—"}
                       </td>
                       <td className="py-2">
@@ -475,37 +544,79 @@ export default async function PersonaDetailPage({
               </table>
             )}
           </div>
-          <div className="border-t border-border mt-4 pt-4 space-y-2">
-            <p className="text-sm font-medium text-foreground">Convivencias como convivente</p>
-            {convivencias.length === 0 ? (
+        </CardContent>
+      </Card>
+
+      {/* Historial de participación */}
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wide">
+            Historial de participación
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Eventos en la plataforma</p>
+            {historialPlataforma.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin participaciones registradas en la plataforma.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Evento</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Fecha</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Rol</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Estado</th>
+                    <th className="text-left py-2 font-medium text-muted-foreground">Asistencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historialPlataforma.map((p) => (
+                    <tr key={p.key} className="border-b border-border/50 last:border-0">
+                      <td className="py-2 pr-4 text-foreground">
+                        {p.evento ? (
+                          <Link href={`/eventos/${p.evento.id}`} className="text-primary hover:underline">
+                            {p.evento.nombre}
+                          </Link>
+                        ) : "—"}
+                      </td>
+                      <td className="py-2 pr-4 text-muted-foreground">{formatDate(p.evento?.fecha_inicio ?? null)}</td>
+                      <td className="py-2 pr-4 text-muted-foreground">{ROLES_EVENTO_LABEL[p.rol] ?? p.rol}</td>
+                      <td className="py-2 pr-4 text-muted-foreground">
+                        {p.estado ? (estadoParticipacionLabel[p.estado] ?? p.estado) : "—"}
+                      </td>
+                      <td className="py-2 text-muted-foreground">
+                        {p.fecha_asistencia ? formatDate(p.fecha_asistencia) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="border-t border-border pt-4 space-y-2">
+            <p className="text-sm font-medium text-foreground">Convivencias, retiros y talleres realizados</p>
+            <p className="text-xs text-muted-foreground">Declarados por la persona (anteriores a la plataforma).</p>
+            {realizadosPrevios.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {(persona as any).es_convivente
-                  ? "Hizo su convivencia antes de que existiera la plataforma."
-                  : "Todavía no participó de ninguna convivencia."}
+                  ? "Es convivente, pero no tiene eventos previos cargados."
+                  : "Sin eventos previos cargados."}
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Retiro</th>
-                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Fecha</th>
-                    <th className="text-left py-2 font-medium text-muted-foreground">Asistencia</th>
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Evento</th>
+                    <th className="text-left py-2 font-medium text-muted-foreground">Año</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {convivencias.map((c) => (
-                    <tr key={c.id} className="border-b border-border/50 last:border-0">
-                      <td className="py-2 pr-4 text-foreground">
-                        {c.evento ? (
-                          <Link href={`/eventos/${c.evento.id}`} className="text-primary hover:underline">
-                            {c.evento.nombre}
-                          </Link>
-                        ) : "—"}
-                      </td>
-                      <td className="py-2 pr-4 text-muted-foreground">{formatDate(c.evento?.fecha_inicio ?? null)}</td>
-                      <td className="py-2 text-muted-foreground">
-                        {c.fecha_asistencia ? formatDate(c.fecha_asistencia) : "—"}
-                      </td>
+                  {realizadosPrevios.map((r) => (
+                    <tr key={r.id} className="border-b border-border/50 last:border-0">
+                      <td className="py-2 pr-4 text-foreground">{nombreLegible(r.tipo!.nombre)}</td>
+                      <td className="py-2 text-muted-foreground">{r.anio ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
