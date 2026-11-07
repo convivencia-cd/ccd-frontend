@@ -51,6 +51,20 @@ export async function POST(request: Request) {
 
   const today = new Date().toISOString().split('T')[0]
 
+  // Card #93: si la solicitud no trae valores, se copian los estándar del tipo.
+  // Después se cambian en cada retiro desde "Editar retiro".
+  let valoresTipo: { precio_inscripcion: number | null; precio_pension: number | null } | null = null
+  if (body.tipo_evento_id) {
+    const { data } = await supabase
+      .from('tipos_eventos')
+      .select('precio_inscripcion, precio_pension')
+      .eq('id', body.tipo_evento_id)
+      .maybeSingle()
+    valoresTipo = data
+  }
+  const valor = (enviado: unknown, estandar: number | null | undefined) =>
+    enviado != null && enviado !== '' ? Number(enviado) : Number(estandar ?? 0)
+
   const insertData: Record<string, unknown> = {
     nombre: body.nombre,
     tipo: body.tipo,
@@ -59,8 +73,8 @@ export async function POST(request: Request) {
     fecha_inicio: body.fecha_inicio,
     fecha_fin: body.fecha_fin,
     estado,
-    precio: body.precio != null && body.precio !== '' ? Number(body.precio) : 0,
-    pension: body.pension != null && body.pension !== '' ? Number(body.pension) : 0,
+    precio: valor(body.precio, valoresTipo?.precio_inscripcion),
+    pension: valor(body.pension, valoresTipo?.precio_pension),
     organizacion_id: organizacion_id || null,       // confraternidad
     fraternidad_id: fraternidad_id || null,
     requiere_discernimiento_confra: body.requiere_discernimiento_confra ?? false,

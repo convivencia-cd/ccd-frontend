@@ -24,6 +24,8 @@ export default function NuevoTipoEventoForm() {
     requiere_discernimiento_confra: false,
     requiere_discernimiento_eqt: false,
     requisitos: '',
+    precio_inscripcion: '',
+    precio_pension: '',
     activo: true,
   })
   const [rolesOpciones, setRolesOpciones] = useState<Ministerio[]>([])
@@ -225,6 +227,45 @@ export default function NuevoTipoEventoForm() {
                   placeholder="Descripción de requisitos o condiciones especiales..."
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                 />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="precio_inscripcion">
+                    Valor de inscripción estándar
+                  </label>
+                  <input
+                    id="precio_inscripcion"
+                    name="precio_inscripcion"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.precio_inscripcion}
+                    onChange={handleChange}
+                    placeholder="Sin valor estándar"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="precio_pension">
+                    Valor de pensión estándar
+                  </label>
+                  <input
+                    id="precio_pension"
+                    name="precio_pension"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.precio_pension}
+                    onChange={handleChange}
+                    placeholder="Sin valor estándar"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground sm:col-span-2">
+                  Se copian automáticamente al crear un retiro de este tipo y después se pueden cambiar en cada retiro.
+                  Cambiarlos acá no modifica los retiros ya creados.
+                </p>
               </div>
             </div>
           </CardContent>

@@ -3,6 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserContext } from '@/lib/auth/context'
 import { canPerform } from '@/lib/auth/permissions'
 
+/** '' / null → null (sin valor estándar); número ≥ 0 → número; otra cosa → error. */
+function valorEstandar(v: unknown): { ok: true; valor: number | null } | { ok: false } {
+  if (v === undefined || v === null || v === '') return { ok: true, valor: null }
+  const n = Number(v)
+  if (!Number.isFinite(n) || n < 0) return { ok: false }
+  return { ok: true, valor: n }
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -49,6 +57,14 @@ export async function PATCH(
     requiere_discernimiento_eqt: body.requiere_discernimiento_eqt ?? false,
     requisitos: body.requisitos || null,
     activo: body.activo ?? true,
+  }
+
+  // Card #93: valores estándar que se copian al crear un retiro de este tipo.
+  for (const campo of ['precio_inscripcion', 'precio_pension'] as const) {
+    if (!(campo in body)) continue
+    const r = valorEstandar(body[campo])
+    if (!r.ok) return NextResponse.json({ error: 'Los valores de inscripción y pensión deben ser números mayores o iguales a 0' }, { status: 400 })
+    updateData[campo] = r.valor
   }
 
   // Preguntas de los informes del cierre, una lista por informe (migración 092):
