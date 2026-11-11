@@ -35,7 +35,9 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
+import { Suspense } from "react"
 import { PanelParticipante } from "./_components/panel-participante"
+import { CalendarioInicio, CalendarioInicioSkeleton } from "./_components/calendario-inicio"
 
 const ROLE_LABELS: Record<string, string> = {
   admin_general: "Administrador General",
@@ -818,6 +820,11 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {/* Calendario de Retiros: todos los eventos visibles + mi rol en cada uno */}
+      <Suspense fallback={<CalendarioInicioSkeleton />}>
+        <CalendarioInicio ctx={ctx} />
+      </Suspense>
 
       {/* Eventos donde soy Coordinador o Asesor */}
       {misEventosCoordinadorAsesor && misEventosCoordinadorAsesor.length > 0 && (

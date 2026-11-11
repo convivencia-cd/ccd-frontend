@@ -30,6 +30,7 @@ import {
   ScrollText,
   ClipboardList,
   User,
+  CalendarDays,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -71,6 +72,11 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
         label: "Panel de Inicio",
         href: "/dashboard",
       },
+      {
+        icon: <CalendarDays className="h-5 w-5" />,
+        label: "Calendario",
+        href: "/calendario",
+      },
       ...(p.canViewPublicados
         ? [
             {
@@ -97,6 +103,11 @@ function buildNavItems(p: SidebarPermissions): NavItem[] {
       icon: <LayoutDashboard className="h-5 w-5" />,
       label: "Panel de Inicio",
       href: "/dashboard",
+    },
+    {
+      icon: <CalendarDays className="h-5 w-5" />,
+      label: "Calendario",
+      href: "/calendario",
     },
     {
       icon: <Users className="h-5 w-5" />,

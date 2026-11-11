@@ -1,10 +1,12 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { ArrowRight, Calendar, Globe, MapPin, User } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { canPerform, type UserContext } from '@/lib/auth/context'
 import { createClient } from '@/lib/supabase/server'
 import { cargarMiPerfil } from '@/lib/personas/mi-perfil-server'
 import { formatDateAR } from '@/lib/utils'
+import { CalendarioInicio, CalendarioInicioSkeleton } from './calendario-inicio'
 
 // Panel de inicio de la cuenta de Participante (convivente no cecista, card #92).
 // Cada bloque depende de un permiso de catálogo que ya existe:
@@ -62,7 +64,7 @@ export async function PanelParticipante({ ctx }: { ctx: UserContext }) {
   const retiros = perfil?.retiros ?? []
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-5xl space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">{nombre ? `¡Hola, ${nombre}!` : '¡Hola!'}</h1>
         <p className="mt-2 text-muted-foreground">Bienvenido/a a la Comunidad Convivencia con Dios.</p>
@@ -97,6 +99,10 @@ export async function PanelParticipante({ ctx }: { ctx: UserContext }) {
           </CardContent>
         </Card>
       )}
+
+      <Suspense fallback={<CalendarioInicioSkeleton />}>
+        <CalendarioInicio ctx={ctx} />
+      </Suspense>
 
       {verPublicados && (
         <Card className="border-border bg-card">
