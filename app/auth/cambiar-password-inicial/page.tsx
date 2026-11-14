@@ -52,7 +52,13 @@ export default function CambiarPasswordInicialPage() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
-      setError("No se pudo actualizar la contraseña. Intentá de nuevo.")
+      // Supabase rechaza repetir la contraseña actual (la temporal).
+      const misma = updateError.code === 'same_password' || /different from the old/i.test(updateError.message)
+      setError(
+        misma
+          ? "La contraseña nueva tiene que ser distinta de la temporal con la que entraste."
+          : "No se pudo actualizar la contraseña. Intentá de nuevo."
+      )
       setIsLoading(false)
       return
     }

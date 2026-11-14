@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { apellidoNombreConApodo } from "@/lib/personas/nombre"
 import { correspondeAsesorAutomatico } from "@/lib/personas/modos"
 import { ESTADOS_ECLESIALES, ESTADO_ECLESIAL_RANGOS } from "@/lib/eventos/inscripcion-datos"
+import { verificarAsignacionDuplicada } from "@/lib/ministerios/asignacion-duplicada"
 
 type Persona = {
   id: string
@@ -489,6 +490,18 @@ export function EditPersonaForm({
     setAsigLoading(true)
 
     const supabase = createClient()
+
+    // Card #124: por acá entró el duplicado de Timonel de Pablo Medina.
+    const duplicada = await verificarAsignacionDuplicada(supabase, {
+      personaId: persona.id,
+      ministerioId: newAsig.ministerio_id,
+      organizacionId: newAsig.organizacion_id || null,
+    })
+    if (duplicada) {
+      setAsigError(duplicada)
+      setAsigLoading(false)
+      return
+    }
 
     let documentoUrl: string | null = null
     if (asigAdjunto) {

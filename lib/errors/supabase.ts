@@ -1,5 +1,11 @@
+import {
+  MENSAJE_ASIGNACION_DUPLICADA_GENERICO,
+  esErrorAsignacionDuplicada,
+} from '@/lib/ministerios/asignacion-duplicada'
+
 export function translateSupabaseError(message: string): string {
   if (/duplicate key value violates unique constraint/i.test(message)) {
+    if (esErrorAsignacionDuplicada(message)) return MENSAJE_ASIGNACION_DUPLICADA_GENERICO
     if (/email/i.test(message)) return 'Ya existe una persona con ese email.'
     if (/documento/i.test(message)) return 'Ya existe una persona con ese número de documento.'
     if (/nombre_usuario/i.test(message)) return 'Ese nombre de usuario ya está en uso.'

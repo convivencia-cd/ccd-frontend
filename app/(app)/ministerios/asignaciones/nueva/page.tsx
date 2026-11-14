@@ -31,6 +31,11 @@ import {
   type TipoEventoOpcion,
 } from "@/components/ministerios/tipos-evento-coordinador"
 import { CODIGO_MINISTERIO_COORDINADOR } from "@/lib/eventos/coordinadores-tipo-evento"
+import {
+  verificarAsignacionDuplicada,
+  esErrorAsignacionDuplicada,
+  MENSAJE_ASIGNACION_DUPLICADA_GENERICO,
+} from "@/lib/ministerios/asignacion-duplicada"
 
 interface Ministerio {
   id: string
@@ -156,6 +161,21 @@ export default function NuevaAsignacionPage() {
     const orgId = form.organizacion_id || null
     const hoy = new Date().toISOString().split("T")[0]
 
+    // Card #124: no se puede tener el mismo rol activo dos veces en la misma
+    // organización. Antes se cerraba la anterior en silencio; ahora se frena.
+    if (form.estado === "activo") {
+      const duplicada = await verificarAsignacionDuplicada(supabase, {
+        personaId: form.persona_id,
+        ministerioId: form.ministerio_id,
+        organizacionId: orgId,
+      })
+      if (duplicada) {
+        setError(duplicada)
+        setLoading(false)
+        return
+      }
+    }
+
     // Subir adjunto si se seleccionó uno
     let documentoUrl: string | null = null
     if (adjunto) {
@@ -172,22 +192,6 @@ export default function NuevaAsignacionPage() {
       const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
       documentoUrl = urlData.publicUrl
     }
-
-    // Cerrar asignación activa existente para la misma combinación (patrón histórico)
-    let closeQuery = supabase
-      .from("asignaciones_ministerio")
-      .update({ estado: "inactivo", fecha_fin: hoy })
-      .eq("persona_id", form.persona_id)
-      .eq("ministerio_id", form.ministerio_id)
-      .eq("estado", "activo")
-
-    if (orgId) {
-      closeQuery = closeQuery.eq("organizacion_id", orgId)
-    } else {
-      closeQuery = closeQuery.is("organizacion_id", null)
-    }
-
-    await closeQuery
 
     // Insertar nueva asignación
     const { data: nueva, error: insertError } = await supabase
@@ -208,7 +212,11 @@ export default function NuevaAsignacionPage() {
       .single()
 
     if (insertError || !nueva) {
-      setError("Error al crear la asignación: " + (insertError?.message ?? "sin respuesta"))
+      setError(
+        esErrorAsignacionDuplicada(insertError?.message)
+          ? MENSAJE_ASIGNACION_DUPLICADA_GENERICO
+          : "Error al crear la asignación: " + (insertError?.message ?? "sin respuesta"),
+      )
       setLoading(false)
       return
     }

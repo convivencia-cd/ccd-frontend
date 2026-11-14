@@ -22,6 +22,11 @@ import {
   type TipoEventoOpcion,
 } from '@/components/ministerios/tipos-evento-coordinador'
 import { CODIGO_MINISTERIO_COORDINADOR } from '@/lib/eventos/coordinadores-tipo-evento'
+import {
+  verificarAsignacionDuplicada,
+  esErrorAsignacionDuplicada,
+  MENSAJE_ASIGNACION_DUPLICADA_GENERICO,
+} from '@/lib/ministerios/asignacion-duplicada'
 
 interface Ministerio {
   id: string
@@ -164,6 +169,22 @@ export default function EditarAsignacionPage() {
       return
     }
 
+    // Card #124: si queda activa, no puede chocar con otra asignación activa
+    // de la misma persona, rol y organización.
+    if (form.estado === 'activo') {
+      const duplicada = await verificarAsignacionDuplicada(supabase, {
+        personaId: form.persona_id,
+        ministerioId: form.ministerio_id,
+        organizacionId: form.organizacion_id || null,
+        excluirId: id,
+      })
+      if (duplicada) {
+        setError(duplicada)
+        setSaving(false)
+        return
+      }
+    }
+
     let documentoUrl = documentoUrlActual
     if (adjunto) {
       const ext = adjunto.name.split('.').pop()
@@ -195,7 +216,11 @@ export default function EditarAsignacionPage() {
       .eq('id', id)
 
     if (err) {
-      setError('Error al guardar: ' + err.message)
+      setError(
+        esErrorAsignacionDuplicada(err.message)
+          ? MENSAJE_ASIGNACION_DUPLICADA_GENERICO
+          : 'Error al guardar: ' + err.message,
+      )
       setSaving(false)
       return
     }

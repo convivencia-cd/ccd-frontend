@@ -99,7 +99,13 @@ function ResetPasswordForm() {
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
-      setError("No se pudo actualizar la contraseña. El link puede haber expirado.")
+      // Supabase rechaza repetir la contraseña actual.
+      const misma = error.code === 'same_password' || /different from the old/i.test(error.message)
+      setError(
+        misma
+          ? "La contraseña nueva tiene que ser distinta de la actual."
+          : "No se pudo actualizar la contraseña. El link puede haber expirado."
+      )
       setIsLoading(false)
       return
     }
